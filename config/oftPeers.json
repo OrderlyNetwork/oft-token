@@ -1,0 +1,16 @@
+{
+  "dev": {
+    "sepolia": {
+      "arbitrumsepolia": true,
+      "orderlysepolia": true
+    },
+    "arbitrumsepolia": {
+      "sepolia": true,
+      "orderlysepolia": true
+    },
+    "orderlysepolia": {
+      "sepolia": true,
+      "arbitrumsepolia": true
+    }
+  }
+}

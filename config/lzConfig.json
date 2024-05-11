@@ -1,0 +1,18 @@
+{
+    "sepolia": {
+        "endpoint": "0x6EDCE65403992e310A62460808c4b910D972f10f",
+        "eid": "40161"
+    },
+    "arbitrumsepolia": {
+        "endpoint": "0x6EDCE65403992e310A62460808c4b910D972f10f",
+        "eid": "40231"
+    },
+    "opsepolia": {
+        "endpoint": "0x6EDCE65403992e310A62460808c4b910D972f10f",
+        "eid": "40232"
+    },
+    "orderlysepolia": {
+        "endpoint": "0x6EDCE65403992e310A62460808c4b910D972f10f",
+        "eid": "40200"
+    }
+}

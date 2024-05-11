@@ -1,0 +1,54 @@
+{
+  "dev": {
+    "sepolia": {
+      "OrderToken": "0x78f7bC9513DD38B87E16B6B33D326D46f8dfD7D1",
+      "OrderAdapter": "0x7DDf8A964C66787F3a7050EF7EDaaF3c64E6447E"
+    },
+    "arbitrumsepolia": {
+      "OrderOFT": "0x1e4b441BFdAFF6e7E0A8B648df1357818813dE5e"
+    },
+    "opsepolia": {
+      "OrderOFT": "0xeA57519EC8D4B1dEDBD8cB036B8BA5eE963D537c"
+    },
+    "orderlysepolia": {
+      "OrderOFT": "0x1e4b441BFdAFF6e7E0A8B648df1357818813dE5e"
+    }
+  },
+  "qa": {
+    "sepolia": {
+      "OrderToken": "0x19e46dD2ad8C0e21a20376f866e88825BB298e72",
+      "OrderAdapter": "0xb03A6C9F32F94D4e8B12459C5d3404D9C8C9D635"
+    },
+    "arbitrumsepolia": {
+      "OrderOFT": "0x2F36A4F5a692eccb4B174d219B41c1d3811895d7"
+    },
+    "opsepolia": {
+      "OrderOFT": "0x2F36A4F5a692eccb4B174d219B41c1d3811895d7"
+    },
+    "orderlysepolia": {
+      "OrderOFT": "0x2F36A4F5a692eccb4B174d219B41c1d3811895d7"
+    }
+  },
+  "staging": {
+    "sepolia": {
+      "OrderToken": "0x9a3aFB674C0853F8EA711B50D876c909E1f48bd5"
+    },
+    "arbitrumsepolia": {
+      "OrderOFT": "0x0eF0519352515171B96D504Af5E89F36265a6675"
+    },
+    "opsepolia": {
+      "OrderOFT": "0x0eF0519352515171B96D504Af5E89F36265a6675"
+    }
+  },
+  "mainnet": {
+    "sepolia": {
+      "OrderToken": "0x9a3aFB674C0853F8EA711B50D876c909E1f48bd5"
+    },
+    "arbitrumsepolia": {
+      "OrderOFT": "0x0eF0519352515171B96D504Af5E89F36265a6675"
+    },
+    "opsepolia": {
+      "OrderOFT": "0x0eF0519352515171B96D504Af5E89F36265a6675"
+    }
+  }
+}
