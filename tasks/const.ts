@@ -40,7 +40,7 @@ export type TestNetworkName = 'sepolia' | 'arbitrumsepolia' | 'opsepolia' | 'amo
 export type MainNetworkName = 'ethereum' | 'arbitrum' | 'optimism' | 'polygon' | 'base' | 'mantle' | 'orderly'
 export type OFTContractType = 'OrderToken' | 'OrderAdapter' | 'OrderOFT'
 
-export const TEST_NETWORKS = ['sepolia', 'arbitrumsepolia', 'orderlysepolia']  // ,, 'opsepolia',  'amoy', 'basesepolia', 'mantlesepolia', 
+export const TEST_NETWORKS = ['sepolia', 'arbitrumsepolia', 'opsepolia', 'orderlysepolia']  //  'amoy', 'basesepolia', 'mantlesepolia', 
 export const MAIN_NETWORKS = ['ethereum', 'arbitrum', 'optimism', 'polygon', 'base', 'mantle', 'orderly']
 
 export function tokenContractName(network: network) {

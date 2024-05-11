@@ -56,7 +56,7 @@ const config: HardhatUserConfig = {
         },
         arbitrumsepolia: {
             eid: EndpointId.ARBSEP_V2_TESTNET,
-            url: process.env.RPC_URL_ARBITRUM_SEPOLIA || RPC["arbitrumsepolia"],
+            url: process.env.RPC_URL_ARBITRUMSEPOLIA || RPC["arbitrumsepolia"],
             accounts,
         },
         opsepolia: {
@@ -66,22 +66,22 @@ const config: HardhatUserConfig = {
         },
         amoy: {
           eid: EndpointId.AMOY_V2_TESTNET,
-          url: process.env.RPC_URL_AMOY || RPC["amoy"],
+          url: process.env.RPC_URL_AMOYSEPOLIA || RPC["amoy"],
           accounts,
         },
         basesepolia: {
             eid: EndpointId.BASESEP_V2_TESTNET,
-            url: process.env.RPC_URL_BASESEP || RPC["basesepolia"],
+            url: process.env.RPC_URL_BASESEPOLIA || RPC["basesepolia"],
             accounts,
         },
         mantlesepolia: {
             eid: EndpointId.MANTLESEP_V2_TESTNET,
-            url: process.env.RPC_URL_MANTLE || RPC["mantlesepolia"],
+            url: process.env.RPC_URL_MANTLESEPOLIA || RPC["mantlesepolia"],
             accounts,
         },
         orderlysepolia: {
             eid: EndpointId.ORDERLY_V2_TESTNET,
-            url: process.env.RPC_URL_ORDERLY || RPC["orderlysepolia"],
+            url: process.env.RPC_URL_ORDERLYSEPOLIA || RPC["orderlysepolia"],
             accounts,
         },
         // mainnets
