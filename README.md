@@ -108,3 +108,29 @@ By following these steps, you can focus more on creating innovative omnichain so
 <p align="center">
   Join our community on <a href="https://discord-layerzero.netlify.app/discord" style="color: #a77dff">Discord</a> | Follow us on <a href="https://twitter.com/LayerZero_Labs" style="color: #a77dff">Twitter</a>
 </p>
+
+
+# Orderly Token Contract
+
+
+## Verify Contract
+```
+npx @layerzerolabs/verify-contract --help
+
+
+# cheatsheet
+npx @layerzerolabs/verify-contract -d "./deployments" --contracts "OrderToken" -n "sepolia" -u "https://api-sepolia.etherscan.io/api" -k "HZWU2GGNP63PCBWTS7AJ7ZMSSAX27VVXV1"
+
+npx @layerzerolabs/verify-contract -d "./deployments" --contracts "OrderAdapter" -n "sepolia" -u "https://api-sepolia.etherscan.io/api" -k "HZWU2GGNP63PCBWTS7AJ7ZMSSAX27VVXV1"
+
+npx @layerzerolabs/verify-contract -d "./deployments" --contracts "OrderOFT" -n "arbitrumsepolia" -u "https://api-sepolia.arbiscan.io/api" -k "V35YB6IYANCD5THE3QVCJ2IVNJN51BD9PT"
+
+npx @layerzerolabs/verify-contract -d "./deployments" --contracts "OrderOFT" -n "opsepolia" -u "https://api-sepolia-optimistic.etherscan.io/api" -k "QHECVD7ITRA46RIFKPC83V4N4MYC4Z2WWF"
+
+npx @layerzerolabs/verify-contract -d "./deployments" --contracts "OrderOFT" -n "mantlesepolia" -u "https://explorer.sepolia.mantle.xyz/api"
+
+npx @layerzerolabs/verify-contract -d "./deployments" --contracts "OrderOFT" -n "basesepolia" -u "https://api-sepolia.basescan.org/api" -k "YDRBJYS89J6T6M4FW8CGJGCF7DPTNE547I"
+
+npx @layerzerolabs/verify-contract -d "./deployments/" --contracts "OrderOFT" -n "orderlysepolia" -u "https://testnet-explorer.orderly.org/api"
+
+```
