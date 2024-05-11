@@ -1,136 +1,171 @@
-<p align="center">
-  <a href="https://layerzero.network">
-    <img alt="LayerZero" style="width: 400px" src="https://docs.layerzero.network/img/LayerZero_Logo_White.svg"/>
-  </a>
-</p>
-
-<p align="center">
-  <a href="https://layerzero.network" style="color: #a77dff">Homepage</a> | <a href="https://docs.layerzero.network/" style="color: #a77dff">Docs</a> | <a href="https://layerzero.network/developers" style="color: #a77dff">Developers</a>
-</p>
-
-<h1 align="center">OFT Example</h1>
-
-<p align="center">
-  <a href="https://docs.layerzero.network/v2/developers/evm/oft/quickstart" style="color: #a77dff">Quickstart</a> | <a href="https://docs.layerzero.network/contracts/oapp-configuration" style="color: #a77dff">Configuration</a> | <a href="https://docs.layerzero.network/contracts/options" style="color: #a77dff">Message Execution Options</a> | <a href="https://docs.layerzero.network/contracts/endpoint-addresses" style="color: #a77dff">Endpoint Addresses</a>
-</p>
-
-<p align="center">Template project for getting started with LayerZero's <code>OFT</code> contract development.</p>
-
-## 1) Developing Contracts
-
-#### Installing dependencies
-
-We recommend using `pnpm` as a package manager (but you can of course use a package manager of your choice):
-
-```bash
-pnpm install
-```
-
-#### Compiling your contracts
-
-This project supports both `hardhat` and `forge` compilation. By default, the `compile` command will execute both:
-
-```bash
-pnpm compile
-```
-
-If you prefer one over the other, you can use the tooling-specific commands:
-
-```bash
-pnpm compile:forge
-pnpm compile:hardhat
-```
-
-Or adjust the `package.json` to for example remove `forge` build:
-
-```diff
-- "compile": "$npm_execpath run compile:forge && $npm_execpath run compile:hardhat",
-- "compile:forge": "forge build",
-- "compile:hardhat": "hardhat compile",
-+ "compile": "hardhat compile"
-```
-
-#### Running tests
-
-Similarly to the contract compilation, we support both `hardhat` and `forge` tests. By default, the `test` command will execute both:
-
-```bash
-pnpm test
-```
-
-If you prefer one over the other, you can use the tooling-specific commands:
-
-```bash
-pnpm test:forge
-pnpm test:hardhat
-```
-
-Or adjust the `package.json` to for example remove `hardhat` tests:
-
-```diff
-- "test": "$npm_execpath test:forge && $npm_execpath test:hardhat",
-- "test:forge": "forge test",
-- "test:hardhat": "$npm_execpath hardhat test"
-+ "test": "forge test"
-```
-
-## 2) Deploying Contracts
-
-Set up deployer wallet/account:
-
-- Rename `.env.example` -> `.env`
-- Choose your preferred means of setting up your deployer wallet/account:
-
-```
-MNEMONIC="test test test test test test test test test test test junk"
-or...
-PRIVATE_KEY="0xabc...def"
-```
-
-- Fund this address with the corresponding chain's native tokens you want to deploy to.
-
-To deploy your contracts to your desired blockchains, run the following command in your project's folder:
-
-```bash
-npx hardhat lz:deploy
-```
-
-More information about available CLI arguments can be found using the `--help` flag:
-
-```bash
-npx hardhat lz:deploy --help
-```
-
-By following these steps, you can focus more on creating innovative omnichain solutions and less on the complexities of cross-chain communication.
-
-<br></br>
-
-<p align="center">
-  Join our community on <a href="https://discord-layerzero.netlify.app/discord" style="color: #a77dff">Discord</a> | Follow us on <a href="https://twitter.com/LayerZero_Labs" style="color: #a77dff">Twitter</a>
-</p>
-
-
 # Orderly Token Contract
 
+This project is built using Layerzero [dev-tool](https://github.com/LayerZero-Labs/devtools), which has integrated Hardhat and Foundry for development, testing and deployment.
 
-## Verify Contract
+This repo contains the Orderly Token contract in native ERC20 standard and its cooresponding [OFT version](https://docs.layerzero.network/v2/developers/evm/oft/quickstart)to enable multi-chain token transfer within [LayerZero V2 protocol](https://github.com/LayerZero-Labs/LayerZero-v2).
+
+To deploy and test this project, please follow the instructions below.
+
+```
+git clone repo_url
+npm install
+```
+
+## Architecture
+The project is structured as follows:
+- contracts: Contains the OrderToken and OrderOFT contracts
+- deployments: Contains the deployed results for the contracts, used for verification
+- config: Contains the configuration for Layerzero V2 and the deployed contracts addresses and peer relationship between OFT contracts
+- tasks: Contains the tasks for deployment and the interactions with the contracts
+- test: Contains the tests for the contracts
+- `hardhat.config.js`: Contains the hardhat configuration
+
+### Contracts
+
+- `OrderToken.sol`: The native ERC20 token contract deployed on Ethereum mainnet and testnet.
+- `OrderAdapter.sol`: The adapter contract to enable the multichain token transfer for ORDER token.
+- `OrderOFT.sol`: The OFT version of the OrderToken contract, deployed on many other chains such as Orderly, Abitrum, Optimism, Polygon, Base, Mantle etc.
+
+### Tasks
+The very useful tasks are defined in the tasks folder, which can be used to deploy the contracts, interact with the contracts.
+
+You can run `npx hardhat` to list all the available tasks:
+```
+AVAILABLE TASKS:
+
+  check                                 Check whatever you need
+  clean                                 Clears the cache and deletes all artifacts
+  compile                               Compiles the entire project, building all artifacts
+  console                               Opens a hardhat console
+  deploy                                Deploy contracts
+  etherscan-verify                      submit contract source code to etherscan
+  export                                export contract deployment of the specified network into one file
+  export-artifacts                
+  flatten                               Flattens and prints contracts and their dependencies. If no file is passed, all the contracts in the project will be flattened.
+  help                                  Prints this message
+  order:bridge:token                    Send tokens to a specific address on a specific network
+  order:deploy                          Deploys the contract to a specific network
+  order:peer:init                       Initialize the network connections in oftPeers.json file
+  order:peer:set                        Connect OFT contracs on different networks
+  order:print                           Prints the address of the OFT contract
+  run                                   Runs a user-defined script after compiling the project
+  size-contracts                        Output the size of compiled contracts
+  sourcify                              submit contract source code to sourcify (https://sourcify.dev)
+  test                                  Runs mocha tests
+```
+
+These tasks with the prefix `order:` are defined in the tasks folder, are used for Orderly network.
+#### Deploy Contracts
+
+To deploy native ERC20 token contract on Ethereum
+
+```
+// On Sepolia testnet
+npx hardhat order:deploy --network sepolia --env dev --contract OrderToken
+// On Ethereum mainnet
+npx hardhat order:deploy --network ethereum --env mainnet --contract OrderToken
+```
+
+To deploy OFT Adapter contract on Ethereum
+```
+// On Sepolia testnet
+npx hardhat order:deploy --network sepolia --env dev --contract OrderAdapter
+// On Ethereum mainnet
+npx hardhat order:deploy --network ethereum --env mainnet --contract OrderAdapter
+```
+
+To deploy OFT contract on different chains
+```
+// On testnet
+npx hardhat order:deploy --network arbitrumsepolia --env dev --contract OrderOFT
+npx hardhat order:deploy --network opsepolia --env dev --contract OrderOFT
+npx hardhat order:deploy --network amoy --env dev --contract OrderOFT
+npx hardhat order:deploy --network basesepolia --env dev --contract OrderOFT
+npx hardhat order:deploy --network mantlesepolia --env dev --contract OrderOFT
+npx hardhat order:deploy --network orderlysepolia --env dev --contract OrderOFT
+
+// On mainnet
+npx hardhat order:deploy --network arbitrum --env mainnet --contract OrderOFT
+npx hardhat order:deploy --network optimism --env mainnet --contract OrderOFT
+npx hardhat order:deploy --network polygon --env mainnet --contract OrderOFT
+npx hardhat order:deploy --network base --env mainnet --contract OrderOFT
+npx hardhat order:deploy --network mantle --env mainnet --contract OrderOFT
+npx hardhat order:deploy --network orderly --env mainnet --contract OrderOFT
+```
+
+#### Verify Contracts
 ```
 npx @layerzerolabs/verify-contract --help
 
 
 # cheatsheet
-npx @layerzerolabs/verify-contract -d "./deployments" --contracts "OrderToken" -n "sepolia" -u "https://api-sepolia.etherscan.io/api" -k "HZWU2GGNP63PCBWTS7AJ7ZMSSAX27VVXV1"
+source .env
+npx @layerzerolabs/verify-contract -d "./deployments" --contracts "OrderToken" -n "sepolia" -u $API_URL_SEPOLIA -k $API_KEY_SEPOLIA 
 
-npx @layerzerolabs/verify-contract -d "./deployments" --contracts "OrderAdapter" -n "sepolia" -u "https://api-sepolia.etherscan.io/api" -k "HZWU2GGNP63PCBWTS7AJ7ZMSSAX27VVXV1"
+npx @layerzerolabs/verify-contract -d "./deployments" --contracts "OrderAdapter" -n "sepolia" -u $API_URL_SEPOLIA -k $API_KEY_SEPOLIA
 
-npx @layerzerolabs/verify-contract -d "./deployments" --contracts "OrderOFT" -n "arbitrumsepolia" -u "https://api-sepolia.arbiscan.io/api" -k "V35YB6IYANCD5THE3QVCJ2IVNJN51BD9PT"
+npx @layerzerolabs/verify-contract -d "./deployments" --contracts "OrderOFT" -n "arbitrumsepolia" -u $API_URL_ARBITRUMSEPOLIA -k $API_KEY_ARBITRUMSEPOLIA
 
-npx @layerzerolabs/verify-contract -d "./deployments" --contracts "OrderOFT" -n "opsepolia" -u "https://api-sepolia-optimistic.etherscan.io/api" -k "QHECVD7ITRA46RIFKPC83V4N4MYC4Z2WWF"
+npx @layerzerolabs/verify-contract -d "./deployments" --contracts "OrderOFT" -n "opsepolia" -u $API_URL_OPSEPOLIA -k $API_KEY_OPSEPOLIA
 
-npx @layerzerolabs/verify-contract -d "./deployments" --contracts "OrderOFT" -n "mantlesepolia" -u "https://explorer.sepolia.mantle.xyz/api"
+npx @layerzerolabs/verify-contract -d "./deployments" --contracts "OrderOFT" -n "amoy" -u $API_URL_AMOYSEPOLIA -k $API_KEY_AMOYSEPOLIA
 
-npx @layerzerolabs/verify-contract -d "./deployments" --contracts "OrderOFT" -n "basesepolia" -u "https://api-sepolia.basescan.org/api" -k "YDRBJYS89J6T6M4FW8CGJGCF7DPTNE547I"
+npx @layerzerolabs/verify-contract -d "./deployments" --contracts "OrderOFT" -n "basesepolia" -u $API_URL_BASESEPOLIA -k $API_KEY_BASESEPOLIA
 
-npx @layerzerolabs/verify-contract -d "./deployments/" --contracts "OrderOFT" -n "orderlysepolia" -u "https://testnet-explorer.orderly.org/api"
+npx @layerzerolabs/verify-contract -d "./deployments" --contracts "OrderOFT" -n "mantlesepolia" -u $API_URL_MANTLESEPOLIA -k $API_KEY_MANTLESEPOLIA
+
+npx @layerzerolabs/verify-contract -d "./deployments/" --contracts "OrderOFT" -n "orderlysepolia" -u $API_URL_ORDERLYSEPOLIA
 
 ```
+
+#### Peer Connection
+
+After we've deployed ERC20 contract + Adapter and OFT contracts, we need to connect them together to enable the multi-chain token transfer.
+
+To give the maximum token tranfer flexibility, we can connect the OFT contracts on different networks together. That is to say, we can transfer the token from one supported network to another supported network. There are O(N^2) pathways for the token transfer between the OFT contracts on different networks.
+
+`config/oftPeers.json` file is used to record the peer stutus between the OFT contracts on different networks. The file is structured as follows:
+```
+{
+  "env: {
+    "fromNetwork1": {
+      "toNetwork1": true,
+      "toNetwork2": false,
+    }
+  }
+}
+```
+
+To connect an OFT contract on one network to other OFT contracts on other networks, we can run the following command:
+```
+// npx hardhat order:peer:set --env dev --network fromNetwork 
+npx hardhat order:peer:set --env dev --network sepolia
+```
+
+The task `order:peer:set` will try to connect the OFT(or Adapter) contract on the network specified in the `--network` parameter to the OFT contracts on other networks (Supported networks are defined by the `TEST_NETWORKS` or `MAIN_NETWORKS` in `tasks/const.ts`). The connection status will be recorded in the `config/oftPeers.json` file.
+
+```
+npx hardhat order:peer:set --env qa --network orderlysepolia 
+Running on orderlysepolia
+Setting peer on orderlysepolia to sepolia with tx hash 0xebb02bfb2f4b2f6636c52ec1580f7098694589e4a161ff75fecbab25a572c97e
+Setting peer on orderlysepolia to arbitrumsepolia with tx hash 0xc1afe0b883d90ec62046bd3532e68ee77a18f00daf4d53882dc962af20a0306c
+Setting peer on orderlysepolia to opsepolia with tx hash 0x3beb9f4f1be0305968df683f62e6bb9dcac6cf7079422317c2712bfd3d37bed4
+```
+
+After we have executed the `order:peer:set` task on each supported network, it is supposed that the OFT contracts on different networks are connected together. The transfer between any two of them is enabled.
+
+#### Token Transfer
+
+To test the token transfer across chains, we can use `order:bridge:token` task to send the token from one network to another network. The task is defined as follows:
+```
+npx hardhat order:bridge:token --env dev --network fromNetwork --dst-network toNetwork --receiver toAddress --amount amount
+```
+Notice: The very first token transfer should be executed on the network where the native ERC20 token is deployed (Sepolia or Ethereum). And to transfer from the ERC20 token to the OFT token, the task will try to approve the OrderAdapter contract to spend the token on behalf of the sender.
+```
+> npx hardhat order:bridge:token --env qa --network sepolia --dst-network opsepolia --receiver 0xDd3287043493E0a08d2B348397554096728B459c --amount 1000000      
+
+Running on sepolia
+Approving OrderAdapter to spend 1000000000000000000000000 on OrderToken with tx hash 0xcf4350481ec5edff2bad5c75a78c5400941d78f8c4f07c356eed3bdd2383b703
+Sending tokens from sepolia to opsepolia with tx hash 0xb85736a51535f2a47be6a1d0f2025b136c6c66a896e4c5a483908690ae753fa5
+```
+Using [LayerZero](https://testnet.layerzeroscan.com/tx/0xb85736a51535f2a47be6a1d0f2025b136c6c66a896e4c5a483908690ae753fa5) scan to monitor the token transfer status

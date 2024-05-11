@@ -12,5 +12,27 @@
       "sepolia": true,
       "arbitrumsepolia": true
     }
+  },
+  "qa": {
+    "sepolia": {
+      "arbitrumsepolia": true,
+      "orderlysepolia": true,
+      "opsepolia": true
+    },
+    "arbitrumsepolia": {
+      "sepolia": true,
+      "opsepolia": true,
+      "orderlysepolia": true
+    },
+    "orderlysepolia": {
+      "sepolia": true,
+      "arbitrumsepolia": true,
+      "opsepolia": true
+    },
+    "opsepolia": {
+      "sepolia": true,
+      "arbitrumsepolia": true,
+      "orderlysepolia": true
+    }
   }
 }

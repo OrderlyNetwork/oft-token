@@ -5,10 +5,6 @@ import { loadOFTAddress, saveOFTAddress, loadLzConfig,  setPeer, isPeered } from
 import { Options } from '@layerzerolabs/lz-v2-utilities'
 
 import { RPC } from "./const"
-// const { deployments } = require('hardhat');
-// const { ethers } = require('ethers');
-
-// import { deployments } from "hardhat"
 
 let fromNetwork: string = ""
 let toNetwork: string = ""
@@ -19,7 +15,7 @@ let localContractName: string = ""
 let remoteContractAddress: string = ""
 let remoteContractName: string = ""
 
-task("print-oft-address", "Prints the address of the OFT contract")
+task("order:print", "Prints the address of the OFT contract")
     .addParam("env", "The environment to deploy the OFT contract", undefined, types.string)
     .setAction(async (taskArgs, hre) => {
         console.log(`Printing contract address on ${taskArgs.env} ${hre.network.name}`, await loadOFTAddress(taskArgs.env, hre.network.name, "OrderOFT"))
@@ -28,15 +24,7 @@ task("print-oft-address", "Prints the address of the OFT contract")
 
     })
 
-task("deploy-oft", "Deploys the OFT contract")
-    .addParam("env", "The environment to deploy the OFT contract", undefined, types.string)
-    .setAction(async (taskArgs, hre) => {
-        const env: EnvType = taskArgs.env as EnvType
-        console.log(`Deploying OFT contract on ${env} environment`)
-
-    })
-
-task("deploy:to", "Deploys the contract to a specific network")
+task("order:deploy", "Deploys the contract to a specific network")
     .addParam("env", "The environment to deploy the OFT contract", undefined, types.string)
     .addParam("contract", "The contract to deploy", undefined, types.string)
     .setAction(async (taskArgs, hre) => {
@@ -60,6 +48,8 @@ task("deploy:to", "Deploys the contract to a specific network")
                     deterministicDeployment: salt
                 };
 
+
+                // should set a correct distributor address for mainnet deployment
                 const initDistributor = signer.address
     
                 // deterministically deploy the contract
@@ -118,7 +108,7 @@ task("deploy:to", "Deploys the contract to a specific network")
         }
     })
 
-task("peer:set", "Connect OFT contracs on different networks")
+task("order:peer:set", "Connect OFT contracs on different networks")
     .addParam("env", "The environment to connect the OFT contracts", undefined, types.string)
     .setAction(async (taskArgs, hre) => {
         try {
@@ -128,12 +118,6 @@ task("peer:set", "Connect OFT contracs on different networks")
             for (const toNetwork of NETWORKS) {
                 if (fromNetwork !== toNetwork) {
                     
-                    // if (fromNetwork === NETWORKS[0]) {
-                    //     console.log(fromNetwork)
-                    //     localContractName = "OrderAdapter"
-                    // } else {
-                    //     localContractName = "OrderOFT"
-                    // }
                     localContractName = oftContractName(fromNetwork)
                     remoteContractName = oftContractName(toNetwork)
 
@@ -165,7 +149,7 @@ task("peer:set", "Connect OFT contracs on different networks")
         }
     })
 
-task("peer:init", "Initialize the network connections in oftPeers.json file")
+task("order:peer:init", "Initialize the network connections in oftPeers.json file")
     .addParam("env", "The environment to connect the OFT contracts", undefined, types.string)
     .addFlag("writeFile", "Write the connections to the file")
     .setAction(async (taskArgs, hre) => {
@@ -185,7 +169,7 @@ task("peer:init", "Initialize the network connections in oftPeers.json file")
     })
 
 
-task("bridge:token", "Send tokens to a specific address on a specific network")
+task("order:bridge:token", "Send tokens to a specific address on a specific network")
     .addParam("env", "The environment to send the tokens", undefined, types.string)
     .addParam("dstNetwork", "The network to receive the tokens", undefined, types.string)
     .addParam("receiver", "The address to receive the tokens", undefined, types.string)
@@ -220,13 +204,13 @@ task("bridge:token", "Send tokens to a specific address on a specific network")
             const deciamls = await erc20Contract.decimals() 
 
             const tokenAmount = hre.ethers.utils.parseUnits(taskArgs.amount, deciamls)
-
+            let nonce = await signer.getTransactionCount()
             if (await localContract.approvalRequired()) {
-                const approveTx = await erc20Contract.approve(localContractAddress, tokenAmount)
+                const approveTx = await erc20Contract.approve(localContractAddress, tokenAmount, {nonce: nonce++})
                 console.log(`Approving ${localContractName} to spend ${tokenAmount} on ${erc20ContractName} with tx hash ${approveTx.hash}`)
             }
             
-            
+            // TODO: test with different gasLimit 
             const gasLimit = 60000
             const msgValue = 0
             const option = Options.newOptions().addExecutorLzReceiveOption(gasLimit, msgValue)
@@ -243,7 +227,8 @@ task("bridge:token", "Send tokens to a specific address on a specific network")
             const fee = await localContract.quoteSend(param, payLzToken);
             const sendTx = await localContract.send(param, fee, signer.address, 
             {   value: fee.nativeFee,
-                gasLimit: 1000000
+                gasLimit: 1000000,
+                nonce: nonce
             })
             console.log(`Sending tokens from ${fromNetwork} to ${toNetwork} with tx hash ${sendTx.hash}`)
         }
