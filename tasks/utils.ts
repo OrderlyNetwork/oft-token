@@ -1,4 +1,4 @@
-import { OFTData, OFTPeers, LZConfig, env, name} from "./const";
+import { OFTData, OFTPeers, LZConfig, env, name, TEST_NETWORKS, MAIN_NETWORKS} from "./const";
 import fs from 'fs';
 
 const ADDRESS_PATH = "./config/oftAddress.json"
@@ -67,23 +67,5 @@ export async function isPeered(env: env, from: string, to: string) {
         }
     } else {
         throw new Error("Peers file not found")
-    }
-}
-
-export function getNetworkName(network: string) {
-    
-}
-
-export function loadLzConfig(network: string) {
-    if (fs.existsSync(LZ_CONFIG_PATH)) {
-        const data = fs.readFileSync(LZ_CONFIG_PATH, 'utf-8');
-        const lzConfig: LZConfig = JSON.parse(data);
-        
-        if (lzConfig[network]) {
-            return lzConfig[network]
-        } else {
-            throw new Error(`Lz config for ${network} not found`)
-        }
-        
     }
 }

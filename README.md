@@ -97,9 +97,9 @@ npx hardhat order:deploy --network orderly --env mainnet --contract OrderOFT
 ```
 npx @layerzerolabs/verify-contract --help
 
-
 # cheatsheet
 source .env
+
 npx @layerzerolabs/verify-contract -d "./deployments" --contracts "OrderToken" -n "sepolia" -u $API_URL_SEPOLIA -k $API_KEY_SEPOLIA 
 
 npx @layerzerolabs/verify-contract -d "./deployments" --contracts "OrderAdapter" -n "sepolia" -u $API_URL_SEPOLIA -k $API_KEY_SEPOLIA
