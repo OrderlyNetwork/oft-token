@@ -1,17 +1,17 @@
 {
   "dev": {
     "sepolia": {
-      "OrderToken": "0x3a377D565204015481db5b1370ebb561F61F06e3",
-      "OrderAdapter": "0x83b88e51605C4d4791B8047EE5f7b148A73633F8"
+      "OrderToken": "0x89D577f879f44bEc79357212bDCDb8F02411DC0a",
+      "OrderAdapter": "0x497B5D12560B9F69f6Ef9Dd14D0C9DA92230D249"
     },
     "arbitrumsepolia": {
-      "OrderOFT": "0x31C91E43044E92159Da55e30D3c0Cd461e57a3E3"
+      "OrderOFT": "0x7c786b08E58efF5cCaCB64B28919Bf83D15DDeA6"
     },
     "opsepolia": {
-      "OrderOFT": "0xeA57519EC8D4B1dEDBD8cB036B8BA5eE963D537c"
+      "OrderOFT": "0x7c786b08E58efF5cCaCB64B28919Bf83D15DDeA6"
     },
     "orderlysepolia": {
-      "OrderOFT": "0x31C91E43044E92159Da55e30D3c0Cd461e57a3E3"
+      "OrderOFT": "0x7c786b08E58efF5cCaCB64B28919Bf83D15DDeA6"
     }
   },
   "qa": {
