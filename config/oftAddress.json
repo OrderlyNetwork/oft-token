@@ -2,10 +2,12 @@
   "dev": {
     "sepolia": {
       "OrderToken": "0x89D577f879f44bEc79357212bDCDb8F02411DC0a",
-      "OrderAdapter": "0x497B5D12560B9F69f6Ef9Dd14D0C9DA92230D249"
+      "OrderAdapter": "0x497B5D12560B9F69f6Ef9Dd14D0C9DA92230D249",
+      "OrderSafe": "0x3B19Ac281Dc987Ef84BFE3BD9a41e4b3A396180B"
     },
     "arbitrumsepolia": {
-      "OrderOFT": "0x7c786b08E58efF5cCaCB64B28919Bf83D15DDeA6"
+      "OrderOFT": "0x7c786b08E58efF5cCaCB64B28919Bf83D15DDeA6",
+      "OrderSafe": "0x3B19Ac281Dc987Ef84BFE3BD9a41e4b3A396180B"
     },
     "opsepolia": {
       "OrderOFT": "0x7c786b08E58efF5cCaCB64B28919Bf83D15DDeA6"
