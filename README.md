@@ -4,7 +4,7 @@ This project is built using Layerzero [dev-tool](https://github.com/LayerZero-La
 
 This repo contains the Orderly Token contract in native ERC20 standard and its cooresponding [OFT version](https://docs.layerzero.network/v2/developers/evm/oft/quickstart)to enable multi-chain token transfer within [LayerZero V2 protocol](https://github.com/LayerZero-Labs/LayerZero-v2).
 
-To deploy and test this project, please follow the instructions below.
+To deploy and test this project, please excute follow the instructions first.
 
 ```
 git clone repo_url
@@ -15,7 +15,7 @@ npm install
 The project is structured as follows:
 - contracts: Contains the OrderToken and OrderOFT contracts
 - deployments: Contains the deployed results for the contracts, used for verification
-- config: Contains the configuration for Layerzero V2 and the deployed contracts addresses and peer relationship between OFT contracts
+- config: Contains the configuration for the deployed contracts addresses and peer relationship between OFT contracts
 - tasks: Contains the tasks for deployment and the interactions with the contracts
 - test: Contains the tests for the contracts
 - `hardhat.config.js`: Contains the hardhat configuration
@@ -57,17 +57,28 @@ AVAILABLE TASKS:
 These tasks with the prefix `order:` are defined in the tasks folder, are used for Orderly network.
 #### Deploy Contracts
 
-To deploy native ERC20 token contract on Ethereum
+Before you can run the task to deplyment, you need to set up the `.env` file to specify the network and the private key for the deployment. Check the `.env.example` file for the reference.
+
+All contracts are deployed with `create2` method, which means the contract address is determined by the contract bytecode and the `salt` value defined in the `.env` file. The `salt` value is used to generate the contract address deterministically.
+
+
+To deploy native ERC20 token contract on Ethereum: 
 
 ```
+// Compile the contracts
+npx hardhat compile
+
 // On Sepolia testnet
 npx hardhat order:deploy --network sepolia --env dev --contract OrderToken
 // On Ethereum mainnet
 npx hardhat order:deploy --network ethereum --env mainnet --contract OrderToken
 ```
 
-To deploy OFT Adapter contract on Ethereum
+To deploy OFT Adapter contract on Ethereum: 
 ```
+// Compile the contracts
+npx hardhat compile
+
 // On Sepolia testnet
 npx hardhat order:deploy --network sepolia --env dev --contract OrderAdapter
 // On Ethereum mainnet
@@ -76,6 +87,9 @@ npx hardhat order:deploy --network ethereum --env mainnet --contract OrderAdapte
 
 To deploy OFT contract on different chains
 ```
+// Compile the contracts
+npx hardhat compile
+
 // On testnet
 npx hardhat order:deploy --network arbitrumsepolia --env dev --contract OrderOFT
 npx hardhat order:deploy --network opsepolia --env dev --contract OrderOFT
@@ -146,6 +160,7 @@ The task `order:peer:set` will try to connect the OFT(or Adapter) contract on th
 
 ```
 npx hardhat order:peer:set --env qa --network orderlysepolia 
+
 Running on orderlysepolia
 Setting peer on orderlysepolia to sepolia with tx hash 0xebb02bfb2f4b2f6636c52ec1580f7098694589e4a161ff75fecbab25a572c97e
 Setting peer on orderlysepolia to arbitrumsepolia with tx hash 0xc1afe0b883d90ec62046bd3532e68ee77a18f00daf4d53882dc962af20a0306c
@@ -162,10 +177,11 @@ npx hardhat order:bridge:token --env dev --network fromNetwork --dst-network toN
 ```
 Notice: The very first token transfer should be executed on the network where the native ERC20 token is deployed (Sepolia or Ethereum). And to transfer from the ERC20 token to the OFT token, the task will try to approve the OrderAdapter contract to spend the token on behalf of the sender.
 ```
-> npx hardhat order:bridge:token --env qa --network sepolia --dst-network opsepolia --receiver 0xDd3287043493E0a08d2B348397554096728B459c --amount 1000000      
+npx hardhat order:bridge:token --env qa --network sepolia --dst-network opsepolia --receiver 0xDd3287043493E0a08d2B348397554096728B459c --amount 1000000      
 
 Running on sepolia
 Approving OrderAdapter to spend 1000000000000000000000000 on OrderToken with tx hash 0xcf4350481ec5edff2bad5c75a78c5400941d78f8c4f07c356eed3bdd2383b703
 Sending tokens from sepolia to opsepolia with tx hash 0xb85736a51535f2a47be6a1d0f2025b136c6c66a896e4c5a483908690ae753fa5
 ```
+
 Using [LayerZero](https://testnet.layerzeroscan.com/tx/0xb85736a51535f2a47be6a1d0f2025b136c6c66a896e4c5a483908690ae753fa5) scan to monitor the token transfer status
