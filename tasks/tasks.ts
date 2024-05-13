@@ -36,7 +36,7 @@ task("order:deploy", "Deploys the contract to a specific network")
     .setAction(async (taskArgs, hre) => {
         checkNetwork(hre.network.name)
         try {
-            const contract: OFTContractType = taskArgs.contract as OFTContractType
+            const contractName: OFTContractType = taskArgs.contract as OFTContractType
             const env: EnvType = taskArgs.env as EnvType
             console.log(`Running on ${hre.network.name}`)
             const { deploy } = hre.deployments;
@@ -45,7 +45,7 @@ task("order:deploy", "Deploys the contract to a specific network")
     
             // set the salt for deterministic deployment
             let contractAddress: string = ""
-            if (contract === 'OrderToken') {
+            if (contractName === 'OrderToken') {
                 const salt = hre.ethers.utils.id(process.env.TOKEN_DEPLOYMENT_SALT + `${env}` || "deterministicDeployment")
                 const baseDeployArgs = {
                     from: signer.address,
@@ -57,13 +57,13 @@ task("order:deploy", "Deploys the contract to a specific network")
                 const initDistributor = signer.address
     
                 // deterministically deploy the contract
-                const OrderTokenContract = await deploy(contract,  {
+                const OrderTokenContract = await deploy(contractName,  {
                     ...baseDeployArgs,
                     args: [initDistributor]
                 })
                 console.log(`Order Token contract deployed to ${OrderTokenContract.address} with tx hash ${OrderTokenContract.transactionHash}`);
                 contractAddress = OrderTokenContract.address
-            } else if (contract === 'OrderAdapter') {
+            } else if (contractName === 'OrderAdapter') {
                 const salt = hre.ethers.utils.id(process.env.ADAPTER_DEPLOYMENT_SALT + `${env}` || "deterministicDeployment")
                 const baseDeployArgs = {
                     from: signer.address,
@@ -83,7 +83,7 @@ task("order:deploy", "Deploys the contract to a specific network")
                 
                 console.log(`Order Adapter contract deployed to ${OrderAdapterContract.address} with tx hash ${OrderAdapterContract.transactionHash}`);
                 contractAddress = OrderAdapterContract.address
-            } else if (contract === 'OrderOFT') {
+            } else if (contractName === 'OrderOFT') {
                 const salt = hre.ethers.utils.id(process.env.OFT_DEPLOYMENT_SALT + `${env}` || "deterministicDeployment")
                 const baseDeployArgs = {
                     from: signer.address,
@@ -92,7 +92,7 @@ task("order:deploy", "Deploys the contract to a specific network")
                 };
                 const lzEndpointAddress = getLzConfig(hre.network.name).endpointAddress
                 const owner = signer.address
-            
+                const args = [lzEndpointAddress, owner]
                 // deterministically deploy the contract
                 const OrderOFTContract = await deploy("OrderOFT", {
                     ...baseDeployArgs,
@@ -101,11 +101,79 @@ task("order:deploy", "Deploys the contract to a specific network")
                 
                 console.log(`Order OFT contract deployed to ${OrderOFTContract.address} with tx hash ${OrderOFTContract.transactionHash}`);
                 contractAddress = OrderOFTContract.address
+            } else if (contractName === 'OrderSafe') {
+                const salt = hre.ethers.utils.id(process.env.SAFE_DEPLOYMENT_SALT + `${env}` || "deterministicDeployment")
+                const baseDeployArgs = {
+                    from: signer.address,
+                    log: true,
+                    deterministicDeployment: salt
+                };
+                const lzEndpointAddress = getLzConfig(hre.network.name).endpointAddress
+                const owner = signer.address
+                const initArgs = [owner]
+                // deterministically deploy the contract
+                const OrderSafeContract = await deploy("OrderSafe", {
+                    ...baseDeployArgs,
+                    proxy: {
+                        owner: owner,
+                        proxyContract: "UUPS",
+                        execute: {
+                            methodName: "initialize",
+                            args: initArgs
+                        }
+                    }
+                })
+                console.log(`Order Safe contract deployed to ${OrderSafeContract.address} with tx hash ${OrderSafeContract.transactionHash}`);
+                contractAddress = OrderSafeContract.address
+            } else {
+                throw new Error(`Contract ${contractName} not found`)
             }
             
-            await saveOFTAddress(env, hre.network.name, contract, contractAddress)
+            await saveOFTAddress(env, hre.network.name, contractName, contractAddress)
             
             
+        }
+        catch (e) {
+            console.log(`Error: ${e}`)
+        }
+    })
+
+task("order:upgrade", "Upgrades the contract to a specific network")
+    .addParam("env", "The environment to upgrade the OFT contract", undefined, types.string)
+    .addParam("contract", "The contract to upgrade", undefined, types.string)
+    .setAction(async (taskArgs, hre) => {
+        const network = hre.network.name
+        checkNetwork(network)
+        try {
+            const contractName: OFTContractType = taskArgs.contract as OFTContractType
+            const env: EnvType = taskArgs.env as EnvType
+            console.log(`Running on ${hre.network.name}`)
+            const { deploy } = hre.deployments;
+            const [ signer ] = await hre.ethers.getSigners();
+            let implAddress = ""
+            if (contractName === 'OrderSafe') {
+                const salt = hre.ethers.utils.id(process.env.SAFE_DEPLOYMENT_SALT + `${env}` || "deterministicDeployment")
+                const baseDeployArgs = {
+                    from: signer.address,
+                    log:true,
+                    deterministicDeployment: salt
+                }
+
+                const OrderSafeContract = await deploy("OrderSafe", {
+                    ...baseDeployArgs
+                })
+                implAddress = OrderSafeContract.address
+                console.log(`Order Safe implementation deployed to ${OrderSafeContract.address} with tx hash ${OrderSafeContract.transactionHash}`);
+            } else {
+                throw new Error(`Contract ${contractName} not found`)
+            }
+            const contractAddress = await loadOFTAddress(env, network, contractName) as string
+            const contract = await hre.ethers.getContractAt(contractName, contractAddress, signer)
+            
+            // encoded data for function call during upgrade
+            const data = "0x"
+            const upgradeTx = await contract.upgradeToAndCall(implAddress, data)
+            console.log(`Upgrading contract ${contractName} to ${implAddress} with tx hash ${upgradeTx.hash}`)
         }
         catch (e) {
             console.log(`Error: ${e}`)
@@ -243,3 +311,4 @@ task("order:bridge:token", "Send tokens to a specific address on a specific netw
             console.log(`Error: ${e}`)
         }
     })
+

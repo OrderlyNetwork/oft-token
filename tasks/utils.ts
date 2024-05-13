@@ -3,7 +3,7 @@ import fs from 'fs';
 
 const ADDRESS_PATH = "./config/oftAddress.json"
 const PEERS_PATH = "./config/oftPeers.json"
-const LZ_CONFIG_PATH = "./config/lzConfig.json"
+
 
 
 export async function saveOFTAddress(env: env, network: string, name: name, address: string) {
