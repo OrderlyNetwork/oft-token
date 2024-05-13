@@ -28,28 +28,5 @@
     "orderlysepolia": {
       "OrderOFT": "0x9a4f391795097d567EB9dFF5c8FB461230592B29"
     }
-  },
-  "staging": {
-    "sepolia": {
-      "OrderToken": "0x9a3aFB674C0853F8EA711B50D876c909E1f48bd5"
-    },
-    "arbitrumsepolia": {
-      "OrderOFT": "0x0eF0519352515171B96D504Af5E89F36265a6675"
-    },
-    "opsepolia": {
-      "OrderOFT": "0x0eF0519352515171B96D504Af5E89F36265a6675"
-    }
-  },
-  "mainnet": {
-    "ethereum": {
-      "OrderToken": "",
-      "OrderAdapter": ""
-    },
-    "arbitrum": {
-      "OrderOFT": ""
-    },
-    "optimism": {
-      "OrderOFT": ""
-    }
   }
 }
