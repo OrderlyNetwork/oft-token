@@ -23,11 +23,10 @@ task("test:task", "Used to test code snippets")
 task("order:print", "Prints the address of the OFT contract")
     .addParam("env", "The environment to deploy the OFT contract", undefined, types.string)
     .setAction(async (taskArgs, hre) => {
-        console.log(`Printing contract address on ${taskArgs.env} ${hre.network.name}`, await loadOFTAddress(taskArgs.env, hre.network.name, "OrderOFT"))
-        
-        // await saveOFTAddress(taskArgs.env, hre.network.name, "OrderOFT", "0x1234567890")
-        // console.log(`Printing contract address on ${taskArgs.env} ${hre.network.name}`, await loadOFTAddress(taskArgs.env, hre.network.name, "OrderOFT"))
-
+        const contractName: OFTContractType = taskArgs.contract as OFTContractType
+        const env: EnvType = taskArgs.env as EnvType
+        checkNetwork(hre.network.name)
+        console.log(`Printing contract address on ${taskArgs.env} ${hre.network.name}`, await loadOFTAddress(env, hre.network.name, contractName))
     })
 
 task("order:deploy", "Deploys the contract to a specific network")
@@ -41,7 +40,6 @@ task("order:deploy", "Deploys the contract to a specific network")
             console.log(`Running on ${hre.network.name}`)
             const { deploy } = hre.deployments;
             const [ signer ] = await hre.ethers.getSigners();
-            // const endpointV2Deployment = await hre.deployments.get('EndpointV2')
     
             // set the salt for deterministic deployment
             let contractAddress: string = ""
@@ -93,6 +91,7 @@ task("order:deploy", "Deploys the contract to a specific network")
                 const lzEndpointAddress = getLzConfig(hre.network.name).endpointAddress
                 const owner = signer.address
                 const args = [lzEndpointAddress, owner]
+                
                 // deterministically deploy the contract
                 const OrderOFTContract = await deploy("OrderOFT", {
                     ...baseDeployArgs,
@@ -111,6 +110,7 @@ task("order:deploy", "Deploys the contract to a specific network")
                 const lzEndpointAddress = getLzConfig(hre.network.name).endpointAddress
                 const owner = signer.address
                 const initArgs = [owner]
+                
                 // deterministically deploy the contract
                 const OrderSafeContract = await deploy("OrderSafe", {
                     ...baseDeployArgs,

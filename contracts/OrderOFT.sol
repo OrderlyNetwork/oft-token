@@ -8,7 +8,5 @@ contract OrderOFT is OFT {
     constructor(
         address _lzEndpoint,
         address _delegate
-    ) OFT("Orderly Network", "ORDER", _lzEndpoint, _delegate) Ownable(_delegate) {
-    }
-      
+    ) OFT("Orderly Network", "ORDER", _lzEndpoint, _delegate) Ownable(_delegate) {}    
 }

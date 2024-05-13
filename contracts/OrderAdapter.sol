@@ -6,9 +6,8 @@ import { OFTAdapter } from "@layerzerolabs/lz-evm-oapp-v2/contracts/oft/OFTAdapt
 
 contract OrderAdapter is OFTAdapter {
     constructor(
-        address _token,
+        address _orderToken,
         address _lzEndpoint,
         address _delegate
-    ) OFTAdapter(_token, _lzEndpoint, _delegate) Ownable(_delegate) {
-    }
+    ) OFTAdapter(_orderToken, _lzEndpoint, _delegate) Ownable(_delegate) {}
 }

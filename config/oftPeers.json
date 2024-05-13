@@ -23,24 +23,24 @@
   },
   "qa": {
     "sepolia": {
-      "arbitrumsepolia": true,
-      "orderlysepolia": true,
-      "opsepolia": true
+      "arbitrumsepolia": false,
+      "orderlysepolia": false,
+      "opsepolia": false
     },
     "arbitrumsepolia": {
-      "sepolia": true,
-      "opsepolia": true,
-      "orderlysepolia": true
+      "sepolia": false,
+      "opsepolia": false,
+      "orderlysepolia": false
     },
     "orderlysepolia": {
-      "sepolia": true,
-      "arbitrumsepolia": true,
-      "opsepolia": true
+      "sepolia": false,
+      "arbitrumsepolia": false,
+      "opsepolia": false
     },
     "opsepolia": {
-      "sepolia": true,
-      "arbitrumsepolia": true,
-      "orderlysepolia": true
+      "sepolia": false,
+      "arbitrumsepolia": false,
+      "orderlysepolia": false
     }
   }
 }

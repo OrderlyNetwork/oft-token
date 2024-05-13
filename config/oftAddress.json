@@ -1,19 +1,17 @@
 {
   "dev": {
     "sepolia": {
-      "OrderToken": "0x89D577f879f44bEc79357212bDCDb8F02411DC0a",
-      "OrderAdapter": "0x497B5D12560B9F69f6Ef9Dd14D0C9DA92230D249",
-      "OrderSafe": "0x3B19Ac281Dc987Ef84BFE3BD9a41e4b3A396180B"
+      "OrderToken": "0x7eE793D7272a933d6908F9bfca53221954E3bBaf",
+      "OrderAdapter": "0xb9f92144D49f73D7483a74DDE6A42E93aD630B5D"
     },
     "arbitrumsepolia": {
-      "OrderOFT": "0x7c786b08E58efF5cCaCB64B28919Bf83D15DDeA6",
-      "OrderSafe": "0x3B19Ac281Dc987Ef84BFE3BD9a41e4b3A396180B"
+      "OrderOFT": "0x78e1f20eBbFB0f9E1e94a92a3c1A004b8DDfFF36"
     },
     "opsepolia": {
-      "OrderOFT": "0x7c786b08E58efF5cCaCB64B28919Bf83D15DDeA6"
+      "OrderOFT": "0x78e1f20eBbFB0f9E1e94a92a3c1A004b8DDfFF36"
     },
     "orderlysepolia": {
-      "OrderOFT": "0x7c786b08E58efF5cCaCB64B28919Bf83D15DDeA6"
+      "OrderOFT": "0x78e1f20eBbFB0f9E1e94a92a3c1A004b8DDfFF36"
     }
   },
   "qa": {

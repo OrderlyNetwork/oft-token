@@ -159,12 +159,12 @@ npx hardhat order:peer:set --env dev --network sepolia
 The task `order:peer:set` will try to connect the OFT(or Adapter) contract on the network specified in the `--network` parameter to the OFT contracts on other networks (Supported networks are defined by the `TEST_NETWORKS` or `MAIN_NETWORKS` in `tasks/const.ts`). The connection status will be recorded in the `config/oftPeers.json` file.
 
 ```
-npx hardhat order:peer:set --env qa --network orderlysepolia 
+npx hardhat order:peer:set --env dev --network arbitrumsepolia
 
-Running on orderlysepolia
-Setting peer on orderlysepolia to sepolia with tx hash 0xebb02bfb2f4b2f6636c52ec1580f7098694589e4a161ff75fecbab25a572c97e
-Setting peer on orderlysepolia to arbitrumsepolia with tx hash 0xc1afe0b883d90ec62046bd3532e68ee77a18f00daf4d53882dc962af20a0306c
-Setting peer on orderlysepolia to opsepolia with tx hash 0x3beb9f4f1be0305968df683f62e6bb9dcac6cf7079422317c2712bfd3d37bed4
+Running on arbitrumsepolia
+Setting peer from arbitrumsepolia to sepolia with tx hash 0x18e8c44af4ae59b7be6669338d2faf653abc12a634e1c732cf7345a255819dd6
+Setting peer from arbitrumsepolia to opsepolia with tx hash 0xcfced93bc51c9a2f0e4f09cd99b1a5752c84dd52870c7ccabbf4b8b8e3e7e7c5
+Setting peer from arbitrumsepolia to orderlysepolia with tx hash 0x1d3fd4dd47c8b8f2fb9c06ffd78fc11bdbd48ac8515eb14643de1bb835791f27
 ```
 
 After we have executed the `order:peer:set` task on each supported network, it is supposed that the OFT contracts on different networks are connected together. The transfer between any two of them is enabled.
@@ -177,11 +177,11 @@ npx hardhat order:bridge:token --env dev --network fromNetwork --dst-network toN
 ```
 Notice: The very first token transfer should be executed on the network where the native ERC20 token is deployed (Sepolia or Ethereum). And to transfer from the ERC20 token to the OFT token, the task will try to approve the OrderAdapter contract to spend the token on behalf of the sender.
 ```
-npx hardhat order:bridge:token --env qa --network sepolia --dst-network opsepolia --receiver 0xDd3287043493E0a08d2B348397554096728B459c --amount 1000000      
+npx hardhat order:bridge:token --env dev --network sepolia --dst-network arbitrumsepolia --receiver 0xDd3287043493E0a08d2B348397554096728B459c --amount 1000000
 
 Running on sepolia
-Approving OrderAdapter to spend 1000000000000000000000000 on OrderToken with tx hash 0xcf4350481ec5edff2bad5c75a78c5400941d78f8c4f07c356eed3bdd2383b703
-Sending tokens from sepolia to opsepolia with tx hash 0xb85736a51535f2a47be6a1d0f2025b136c6c66a896e4c5a483908690ae753fa5
+Approving OrderAdapter to spend 1000000000000000000000000 on OrderToken with tx hash 0xf9fc78ac90eb6524ad5b94d48d33f785336b948298f3516b96dc0c60c1a82c0f
+Sending tokens from sepolia to arbitrumsepolia with tx hash 0x774db31149ba43cd85342bf654ff2fc884c8fe21863911f055a3e281dd9766aa
 ```
 
-Using [LayerZero](https://testnet.layerzeroscan.com/tx/0xb85736a51535f2a47be6a1d0f2025b136c6c66a896e4c5a483908690ae753fa5) scan to monitor the token transfer status
+Using [LayerZero](https://testnet.layerzeroscan.com/tx/0x774db31149ba43cd85342bf654ff2fc884c8fe21863911f055a3e281dd9766aa) scan to monitor the token transfer status
