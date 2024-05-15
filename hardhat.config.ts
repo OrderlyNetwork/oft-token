@@ -74,11 +74,11 @@ const config: HardhatUserConfig = {
             url: process.env.RPC_URL_BASESEPOLIA || RPC["basesepolia"],
             accounts,
         },
-        mantlesepolia: {
-            eid: EndpointId.MANTLESEP_V2_TESTNET,
-            url: process.env.RPC_URL_MANTLESEPOLIA || RPC["mantlesepolia"],
-            accounts,
-        },
+        // mantlesepolia: {
+        //     eid: EndpointId.MANTLESEP_V2_TESTNET,
+        //     url: process.env.RPC_URL_MANTLESEPOLIA || RPC["mantlesepolia"],
+        //     accounts,
+        // },
         orderlysepolia: {
             eid: EndpointId.ORDERLY_V2_TESTNET,
             url: process.env.RPC_URL_ORDERLYSEPOLIA || RPC["orderlysepolia"],
@@ -86,31 +86,31 @@ const config: HardhatUserConfig = {
         },
         // mainnets
         ethereum: {
-            url: process.env.RPC_URL_ETHEREUM || '',
+            url: process.env.RPC_URL_ETHEREUM || RPC["ethereum"],
             accounts,
         },
         arbitrum: {
-            url: process.env.RPC_URL_ARBITRUM || '',
+            url: process.env.RPC_URL_ARBITRUM || RPC["arbitrum"],
             accounts,
         },
         optimism: {
-            url: process.env.RPC_URL_OPTIMISM || '',
+            url: process.env.RPC_URL_OPTIMISM || RPC["optimism"],
             accounts,
         },
         polygon: {
-            url: process.env.RPC_URL_POLYGON || '',
+            url: process.env.RPC_URL_POLYGON || RPC["polygon"],
             accounts,
         },
         base: {
-            url: process.env.RPC_URL_BASE || '',
+            url: process.env.RPC_URL_BASE || RPC["base"],
             accounts,
         },
         mantle: {
-            url: process.env.RPC_URL_MANTLE || '',
+            url: process.env.RPC_URL_MANTLE || RPC["mantle"],
             accounts,
         },
         orderly: {
-            url: process.env.RPC_URL_ORDERLY || '',
+            url: process.env.RPC_URL_ORDERLY || RPC["orderly"],
             accounts,
         }
     },
