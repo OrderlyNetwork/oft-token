@@ -10,7 +10,7 @@ import { IOrderSafe } from "../interfaces/IOrderSafe.sol";
 
 import { IOrderSafeRelayer } from "../interfaces/IOrderSafeRelayer.sol";
 
-contract OrderSafe is OrderBase, IOrderSafe, OrderSafeStorage {
+contract OrderSafe is IOrderSafe, OrderBase, OrderSafeStorage {
     // using OFTComposeMsgCodec for bytes;
     using SafeERC20 for IERC20;
 

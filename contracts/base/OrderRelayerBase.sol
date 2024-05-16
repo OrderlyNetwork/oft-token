@@ -5,7 +5,7 @@ import { OrderRelayerStorage } from "../storage/OrderRelayerStorage.sol";
 import { OrderBase } from "./OrderBase.sol";
 import { IOrderRelayer } from "../interfaces/IOrderRelayer.sol";
 
-abstract contract OrderRelayerBase is OrderRelayerStorage, OrderBase, IOrderRelayer {
+abstract contract OrderRelayerBase is IOrderRelayer, OrderBase, OrderRelayerStorage {
     /* ========== Public ========== */
     function setComposeMsgSender(address _composeMsgSender, bool _allowed) public onlyOwner {
         composeMsgSender[_composeMsgSender] = _allowed;

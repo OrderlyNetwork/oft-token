@@ -11,11 +11,11 @@ import { IOrderSafeRelayer } from "../interfaces/IOrderSafeRelayer.sol";
 import { OrderRelayerStorage } from "../storage/OrderRelayerStorage.sol";
 import { OrderSafeRelayerStorage } from "../storage/OrderSafeRelayerStorage.sol";
 
-contract OrderSafeRelayer is OrderRelayerBase, IOrderSafeRelayer, OrderSafeRelayerStorage {
+contract OrderSafeRelayer is IOrderSafeRelayer, OrderRelayerBase, OrderSafeRelayerStorage {
     using SafeERC20 for IERC20;
     using OptionsBuilder for bytes;
 
-    function sendStakeMsg(address _staker, uint256 _amount) public payable override {
+    function sendStakeMsg(address _staker, uint256 _amount) public payable {
         require(msg.sender == orderSafe, "OrderSafeRelayer: Only OrderSafe can call");
         if (IOFT(oft).approvalRequired()) {
             IERC20 token = IERC20(IOFT(oft).token());
@@ -29,7 +29,7 @@ contract OrderSafeRelayer is OrderRelayerBase, IOrderSafeRelayer, OrderSafeRelay
             .newOptions()
             .addExecutorLzReceiveOption(lzReceiveGas, airdropValue)
             .addExecutorLzComposeOption(index, lzComposeGas, airdropValue);
-        bytes memory composeMsg = abi.encode(eidMap[block.chainid], _staker, _amount);
+        bytes memory composeMsg = abi.encode(_staker, _amount);
         SendParam memory sendParam = SendParam({
             dstEid: _getOrderEid(),
             to: OFTMsgCodec.addressToBytes32(orderBoxRelayer),

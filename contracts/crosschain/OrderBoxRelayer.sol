@@ -12,7 +12,7 @@ import { IOrderBoxRelayer } from "../interfaces/IOrderBoxRelayer.sol";
 import { OrderRelayerBase } from "../base/OrderRelayerBase.sol";
 import { IOrderBox } from "../interfaces/IOrderBox.sol";
 
-contract OrderBoxRelayer is OrderRelayerBase, OrderBoxRelayerStorage, IOrderBoxRelayer, ILayerZeroComposer {
+contract OrderBoxRelayer is IOrderBoxRelayer, ILayerZeroComposer, OrderRelayerBase, OrderBoxRelayerStorage {
     using OFTComposeMsgCodec for bytes;
     using SafeERC20 for IERC20;
 

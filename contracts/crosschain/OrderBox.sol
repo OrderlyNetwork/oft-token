@@ -9,7 +9,7 @@ import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.s
 import { OrderBoxStorage } from "../storage/OrderBoxStorage.sol";
 import { IOrderBox } from "../interfaces/IOrderBox.sol";
 
-contract OrderBox is OrderBase, OrderBoxStorage, IOrderBox {
+contract OrderBox is IOrderBox, OrderBase, OrderBoxStorage {
     function stakeOrder(uint256 _chainId, address _staker, uint256 _amount) public {
         require(msg.sender == boxRelayer, "OrderBox: Only OrderBoxRelayer can call");
         stakers[_staker].orderAmount += _amount;
