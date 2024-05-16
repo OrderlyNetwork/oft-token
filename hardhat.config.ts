@@ -74,11 +74,11 @@ const config: HardhatUserConfig = {
             url: process.env.RPC_URL_BASESEPOLIA || RPC["basesepolia"],
             accounts,
         },
-        // mantlesepolia: {
-        //     eid: EndpointId.MANTLESEP_V2_TESTNET,
-        //     url: process.env.RPC_URL_MANTLESEPOLIA || RPC["mantlesepolia"],
-        //     accounts,
-        // },
+        mantlesepolia: {
+            eid: EndpointId.MANTLESEP_V2_TESTNET,
+            url: process.env.RPC_URL_MANTLESEPOLIA || RPC["mantlesepolia"],
+            accounts,
+        },
         orderlysepolia: {
             eid: EndpointId.ORDERLY_V2_TESTNET,
             url: process.env.RPC_URL_ORDERLYSEPOLIA || RPC["orderlysepolia"],
