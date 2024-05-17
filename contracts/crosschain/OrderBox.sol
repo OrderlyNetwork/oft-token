@@ -16,4 +16,16 @@ contract OrderBox is IOrderBox, OrderBase, OrderBoxStorage {
         stakers[_staker].blockNumber = block.number;
         emit OrderStaked(_chainId, _staker, _amount);
     }
+
+    /* ========================= Only Owner ========================= */
+    function setOrderRelayer(address _orderRelayer) public onlyOwner {
+        require(_orderRelayer != address(0), "OrderSafe: invalid order relayer address");
+        boxRelayer = _orderRelayer;
+        emit OrderRelayerSet(_orderRelayer);
+    }
+
+    function setOft(address _oft) public onlyOwner {
+        require(_oft != address(0), "OrderBox: zero oft address");
+        oft = _oft;
+    }
 }

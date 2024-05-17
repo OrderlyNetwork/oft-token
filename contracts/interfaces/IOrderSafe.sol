@@ -8,4 +8,5 @@ interface IOrderSafe {
     event OrderUnstakeCompleted(address indexed staker, uint256 amount);
 
     function setOrderRelayer(address _orderRelayer) external;
+    function setOft(address _oft) external;
 }

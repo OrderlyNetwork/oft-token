@@ -59,6 +59,10 @@ contract OrderSafeRelayer is IOrderSafeRelayer, OrderRelayerBase, OrderSafeRelay
         orderBoxRelayer = _orderBoxRelayer;
     }
 
+    function setOrderChainId(uint256 _orderChainId) public onlyOwner {
+        orderChainId = _orderChainId;
+    }
+
     /* ========================= Internal ========================= */
 
     function _getOrderEid() internal view returns (uint32) {

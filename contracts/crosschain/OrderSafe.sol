@@ -34,4 +34,9 @@ contract OrderSafe is IOrderSafe, OrderBase, OrderSafeStorage {
         safeRelayer = _orderRelayer;
         emit OrderRelayerSet(_orderRelayer);
     }
+
+    function setOft(address _oft) public onlyOwner {
+        require(_oft != address(0), "OrderSafe: invalid oft address");
+        oft = _oft;
+    }
 }

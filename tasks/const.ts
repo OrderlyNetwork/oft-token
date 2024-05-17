@@ -37,7 +37,7 @@ export type VaultNetworkType = 'arbitrum' | 'optimism' | 'polygon' | 'base' | 'm
 export type TestNetworkType = 'sepolia' | 'arbitrumsepolia' | 'opsepolia' | 'amoy' | 'basesepolia' | 'mantlesepolia' |  'orderlysepolia'
 export type MainNetworkType = 'ethereum' | 'arbitrum' | 'optimism' | 'polygon' | 'base' | 'mantle' | 'orderly'
 export type AllNetworkType = TestNetworkType | MainNetworkType
-export type OFTContractType = 'OrderToken' | 'OrderAdapter' | 'OrderOFT' | 'OrderSafe'
+export type OFTContractType = 'OrderToken' | 'OrderAdapter' | 'OrderOFT' | 'OrderSafe' | 'OrderBox' | 'OrderSafeRelayer' | 'OrderBoxRelayer'
 
 export const TEST_NETWORKS = ['sepolia', 'arbitrumsepolia', 'opsepolia', 'orderlysepolia']  //  'amoy', 'basesepolia', 'mantlesepolia', 
 export const MAIN_NETWORKS = ['ethereum', 'arbitrum', 'optimism', 'polygon', 'base', 'mantle', 'orderly']
@@ -53,13 +53,13 @@ export const RPC: { [key: network]: string } = {
     "mantlesepolia": "https://rpc.sepolia.mantle.xyz",
     "orderlysepolia": "https://testnet-rpc.orderly.org/8jbWg77mA6PCwHe13tEiv6rFqT1UJLPEB",
     // mainnets
-    "ethereum": "",
-    "arbitrum": "",
-    "optimism": "",
-    "polygon": "",
-    "base": "",
-    "mantle": "",
-    "orderly": "",
+    "ethereum": "https://ethereum-rpc.publicnode.com",
+    "arbitrum": "https://arb1.arbitrum.io/rpc",
+    "optimism": "https://optimism.publicnode.com",
+    "polygon": "https://polygon-bor.publicnode.com",
+    "base": "https://base-rpc.publicnode.com",
+    "mantle": "https://mantle-rpc.publicnode.com",
+    "orderly": "https://rpc.orderly.network",
 }
 
 export function getRPC(network: network) {
@@ -72,6 +72,7 @@ export function getRPC(network: network) {
 type LzConfig = {
     endpointAddress: address,
     endpointId: number,
+    chainId: number,
 }
 
 // For most testnets/mainnets, the endpoint is the follow one, but need to check the actual endpoint under this doc https://docs.layerzero.network/v2/developers/evm/technical-reference/deployed-contracts
@@ -83,59 +84,73 @@ export const LZ_CONFIG: { [key: network]: LzConfig} = {
     "sepolia": {
         endpointAddress: TEST_LZ_ENDPOINT,
         endpointId: TestnetV2EndpointId.SEPOLIA_V2_TESTNET,
+        chainId: 11155111,
     },
     "arbitrumsepolia": {
         endpointAddress: TEST_LZ_ENDPOINT,
         endpointId: TestnetV2EndpointId.ARBSEP_V2_TESTNET,
+        chainId: 421614,
     },
     "opsepolia": {
         endpointAddress: TEST_LZ_ENDPOINT,
         endpointId: TestnetV2EndpointId.OPTSEP_V2_TESTNET,
+        chainId: 11155420,
     },
     "amoy": {
         endpointAddress: TEST_LZ_ENDPOINT,
         endpointId: TestnetV2EndpointId.AMOY_V2_TESTNET,
+        chainId: 80002,
     },
     "basesepolia": {
         endpointAddress: TEST_LZ_ENDPOINT,
         endpointId: TestnetV2EndpointId.BASESEP_V2_TESTNET,
+        chainId: 84532,
     },
     "mantlesepolia": {
         endpointAddress: TEST_LZ_ENDPOINT,
         endpointId: TestnetV2EndpointId.MANTLESEP_V2_TESTNET,
+        chainId: 5003,
     },
     "orderlysepolia": {
         endpointAddress: TEST_LZ_ENDPOINT,
         endpointId: TestnetV2EndpointId.ORDERLY_V2_TESTNET,
+        chainId: 4460,
     },
     // lz config for mainnets
     "ethereum": {
         endpointAddress: MAIN_LZ_ENDPOINT,
         endpointId: MainnetV2EndpointId.ETHEREUM_V2_MAINNET,
+        chainId: 1,
     },
     "arbitrum": {
         endpointAddress: MAIN_LZ_ENDPOINT,
         endpointId: MainnetV2EndpointId.ARBITRUM_V2_MAINNET,
+        chainId: 42161,
     },
     "optimism": {
         endpointAddress: MAIN_LZ_ENDPOINT,
         endpointId: MainnetV2EndpointId.OPTIMISM_V2_MAINNET,
+        chainId: 10,
     },
     "polygon": {
         endpointAddress: MAIN_LZ_ENDPOINT,
         endpointId: MainnetV2EndpointId.POLYGON_V2_MAINNET,
+        chainId: 137,
     },
     "base": {
         endpointAddress: MAIN_LZ_ENDPOINT,
         endpointId: MainnetV2EndpointId.BASE_V2_MAINNET,
+        chainId: 8453,
     },
     "mantle": {
         endpointAddress: MAIN_LZ_ENDPOINT,
         endpointId: MainnetV2EndpointId.MANTLE_V2_MAINNET,
+        chainId: 5000,
     },
     "orderly": {
         endpointAddress: MAIN_LZ_ENDPOINT,
         endpointId: MainnetV2EndpointId.ORDERLY_V2_MAINNET,
+        chainId: 291,
     },
 }
 
