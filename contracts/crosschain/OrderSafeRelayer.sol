@@ -20,6 +20,7 @@ contract OrderSafeRelayer is IOrderSafeRelayer, OrderRelayerBase, OrderSafeRelay
         if (IOFT(oft).approvalRequired()) {
             IERC20 token = IERC20(IOFT(oft).token());
             token.approve(oft, _amount);
+            token.safeTransfer(msg.sender, _amount);
         }
         uint16 index = 0;
         uint128 lzReceiveGas = 200000;
@@ -40,10 +41,9 @@ contract OrderSafeRelayer is IOrderSafeRelayer, OrderRelayerBase, OrderSafeRelay
             oftCmd: ""
         });
 
-        //
         MessagingFee memory fee = IOFT(oft).quoteSend(sendParam, false);
         require(msg.value >= fee.nativeFee, "OrderSafeRelayer: insufficient lz fee");
-        IOFT(oft).send{ value: msg.value }(sendParam, fee, payable(_staker));
+        IOFT(oft).send{ value: fee.nativeFee }(sendParam, fee, payable(_staker));
     }
 
     /* ========================= Only Owner ========================= */
@@ -59,8 +59,12 @@ contract OrderSafeRelayer is IOrderSafeRelayer, OrderRelayerBase, OrderSafeRelay
         orderBoxRelayer = _orderBoxRelayer;
     }
 
-    function setOrderChainId(uint256 _orderChainId) public onlyOwner {
+    function setOrderChainId(uint256 _orderChainId, uint32 _orderEid) public onlyOwner {
+        require(_orderChainId > 0, "OrderSafeRelayer: zero order chain id");
+        require(_orderEid > 0, "OrderSafeRelayer: zero order eid");
         orderChainId = _orderChainId;
+        eidMap[_orderChainId] = _orderEid;
+        chainIdMap[_orderEid] = _orderChainId;
     }
 
     /* ========================= Internal ========================= */
@@ -68,4 +72,7 @@ contract OrderSafeRelayer is IOrderSafeRelayer, OrderRelayerBase, OrderSafeRelay
     function _getOrderEid() internal view returns (uint32) {
         return eidMap[orderChainId];
     }
+
+    fallback() external payable {}
+    receive() external payable {}
 }

@@ -24,7 +24,7 @@ contract OrderSafe is IOrderSafe, OrderBase, OrderSafeStorage {
         token.safeTransferFrom(staker, safeRelayer, amount);
         // Call the relayer contract to send the stake message
         IOrderSafeRelayer(safeRelayer).sendStakeMsg{ value: msg.value }(staker, amount);
-        emit OrderStaked(staker, amount);
+        // emit OrderStaked(staker, amount);
     }
 
     /* ========================= Only Owner ========================= */

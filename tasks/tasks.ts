@@ -135,33 +135,34 @@ task("order:init", "Initializes the contract on a specific network")
             const contract = await hre.ethers.getContractAt(contractName, contractAddress, signer)
             
             const lzConfig = getLzConfig(hre.network.name)
+            const orderLzConfig = getLzConfig("orderlysepolia")
             const oftName = oftContractName(hre.network.name)
             const oftAddress = await loadContractAddress(env, hre.network.name, oftName) as string
             if (contractName === 'OrderSafeRelayer' || contractName === 'OrderBoxRelayer') {
-                const tx1 = await contract.setEndpoint(lzConfig.endpointAddress)
-                await tx1.wait()
-                const tx2 = await contract.setOft(oftAddress)
-                await tx2.wait()
-                const tx3 = await contract.setComposeMsgSender(oftAddress, true)
-                await tx3.wait()
-                const tx4 = await contract.setEid(lzConfig.chainId, lzConfig.endpointId)
-                await tx4.wait()
+                // const tx1 = await contract.setEndpoint(lzConfig.endpointAddress)
+                // await tx1.wait()
+                // const tx2 = await contract.setOft(oftAddress)
+                // await tx2.wait()
+                // const tx3 = await contract.setComposeMsgSender(oftAddress, true)
+                // await tx3.wait()
+                // const tx4 = await contract.setEid(lzConfig.chainId, lzConfig.endpointId)
+                // await tx4.wait()
                 
                 if (contractName === 'OrderSafeRelayer') {
-                    const safeRelayerTx1 = await contract.setOrderChainId(4460)
+                    const safeRelayerTx1 = await contract.setOrderChainId(orderLzConfig.chainId, orderLzConfig.endpointId)
                     await safeRelayerTx1.wait()
                     const safeAddress = await loadContractAddress(env, hre.network.name, 'OrderSafe')
-                    if (safeAddress) {
-                        const safeRelayerTx2 = await contract.setOrderSafe(safeAddress)
-                        await safeRelayerTx2.wait()
-                    } else {
-                        console.log(`OrderSafe contract not found on ${env} ${hre.network.name}, please set it later`)
-                    }
-                    const boxRelayerAddress = await loadContractAddress(env, "orderlysepolia", 'OrderBoxRelayer')
-                    if (boxRelayerAddress) {
-                        const safeRelayerTx3 = await contract.setOrderBoxRelayer(boxRelayerAddress)
-                        await safeRelayerTx3.wait()
-                    }
+                    // if (safeAddress) {
+                    //     const safeRelayerTx2 = await contract.setOrderSafe(safeAddress)
+                    //     await safeRelayerTx2.wait()
+                    // } else {
+                    //     console.log(`OrderSafe contract not found on ${env} ${hre.network.name}, please set it later`)
+                    // }
+                    // const boxRelayerAddress = await loadContractAddress(env, "orderlysepolia", 'OrderBoxRelayer')
+                    // if (boxRelayerAddress) {
+                    //     const safeRelayerTx3 = await contract.setOrderBoxRelayer(boxRelayerAddress)
+                    //     await safeRelayerTx3.wait()
+                    // }
                 } else {
                     const boxAddress = await loadContractAddress(env, hre.network.name, 'OrderBox')
                     if (boxAddress) {
@@ -215,7 +216,7 @@ task("order:upgrade", "Upgrades the contract to a specific network")
             const [ signer ] = await hre.ethers.getSigners();
             let implAddress = ""
             if (contractName === 'OrderSafe') {
-                const salt = hre.ethers.utils.id(process.env.SAFE_DEPLOYMENT_SALT + `${env}` || "deterministicDeployment")
+                const salt = hre.ethers.utils.id(process.env.ORDER_DEPLOYMENT_SALT + `${env}` || "deterministicDeployment")
                 const baseDeployArgs = {
                     from: signer.address,
                     log:true,
@@ -227,19 +228,19 @@ task("order:upgrade", "Upgrades the contract to a specific network")
                 })
                 implAddress = OrderSafeContract.address
                 console.log(`Order Safe implementation deployed to ${OrderSafeContract.address} with tx hash ${OrderSafeContract.transactionHash}`);
-            } else if (contractName === 'OrderBox') {
-                const salt = hre.ethers.utils.id(process.env.BOX_DEPLOYMENT_SALT + `${env}` || "deterministicDeployment")
+            }  else if (contractName === 'OrderSafeRelayer') {
+                const salt = hre.ethers.utils.id(process.env.ORDER_DEPLOYMENT_SALT + `${env}` || "deterministicDeployment")
                 const baseDeployArgs = {
                     from: signer.address,
                     log:true,
                     deterministicDeployment: salt
                 }
 
-                const OrderSafeContract = await deploy("OrderBox", {
+                const OrderSafeContract = await deploy(contractName, {
                     ...baseDeployArgs
                 })
                 implAddress = OrderSafeContract.address
-                console.log(`Order Box implementation deployed to ${OrderSafeContract.address} with tx hash ${OrderSafeContract.transactionHash}`);
+                console.log(`${contractName} implementation deployed to ${OrderSafeContract.address} with tx hash ${OrderSafeContract.transactionHash}`);
             }
             else {
                 throw new Error(`Contract ${contractName} not found`)
@@ -387,6 +388,54 @@ task("order:bridge:token", "Send tokens to a specific address on a specific netw
             {   value: fee.nativeFee,
                 gasLimit:500000,
                 nonce: nonce
+            })
+            console.log(`Sending tokens from ${fromNetwork} to ${toNetwork} with tx hash ${sendTx.hash}`)
+        }
+        catch (e) {
+            console.log(`Error: ${e}`)
+        }
+    })
+
+task("order:stake", "Send stakes to a specific address on a specific network")
+    .addParam("env", "The environment to send the stakes", undefined, types.string)
+    .addParam("amount", "The amount of stakes to send", undefined, types.string)
+    .setAction(async (taskArgs, hre) => {
+        checkNetwork(hre.network.name)
+        try {
+            fromNetwork = hre.network.name
+            console.log(`Running on ${fromNetwork}`)
+
+            toNetwork = "orderlysepolia"
+            
+            if (fromNetwork === toNetwork) {
+                throw new Error(`Cannot bridge tokens to the same network`)
+            } else {
+                localContractName = "OrderSafe"
+                remoteContractName = oftContractName(toNetwork)
+            }
+
+            localContractAddress = await loadContractAddress(taskArgs.env, fromNetwork, "OrderSafe") as string
+
+            const erc20ContractName = tokenContractName(fromNetwork)
+            const erc20ContractAddress = await loadContractAddress(taskArgs.env, fromNetwork, erc20ContractName) as string
+
+            const [ signer ] = await hre.ethers.getSigners()
+            const localContract = await hre.ethers.getContractAt(localContractName, localContractAddress, signer)
+            const erc20Contract = await hre.ethers.getContractAt(erc20ContractName, erc20ContractAddress, signer)
+            
+            const deciamls = await erc20Contract.decimals() 
+            const tokenAmount = hre.ethers.utils.parseUnits(taskArgs.amount, deciamls)
+            let nonce = await signer.getTransactionCount()
+
+            
+            const approveTx = await erc20Contract.approve(localContractAddress, tokenAmount)
+            approveTx.wait()
+            console.log(`Approving ${localContractName} to spend ${tokenAmount} on ${erc20ContractName} with tx hash ${approveTx.hash}`)
+            
+            
+            // TODO: test with different gasLimit 
+            const sendTx = await localContract.stakeOrder(signer.address, tokenAmount, {
+                gasLimit: 500000,
             })
             console.log(`Sending tokens from ${fromNetwork} to ${toNetwork} with tx hash ${sendTx.hash}`)
         }
