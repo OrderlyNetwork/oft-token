@@ -1,6 +1,11 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.20;
 
+struct Staker {
+    uint256 orderAmount;
+    uint256 blockNumber;
+}
+
 interface IOrderBox {
     event OrderStaked(uint256 indexed chainId, address indexed staker, uint256 amount);
     event OrderRelayerSet(address indexed orderRelayer);

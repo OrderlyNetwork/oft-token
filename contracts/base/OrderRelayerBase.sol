@@ -6,9 +6,13 @@ import { OrderBase } from "./OrderBase.sol";
 import { IOrderRelayer } from "../interfaces/IOrderRelayer.sol";
 
 abstract contract OrderRelayerBase is IOrderRelayer, OrderBase, OrderRelayerStorage {
-    /* ========== Public ========== */
-    function setComposeMsgSender(address _composeMsgSender, bool _allowed) public onlyOwner {
-        composeMsgSender[_composeMsgSender] = _allowed;
+    /* ========== Only Owner ========== */
+    function setLocalComposeMsgSender(address _addr, bool _allowed) public onlyOwner {
+        localComposeMsgSender[_addr] = _allowed;
+    }
+
+    function setRemoteComposeMsgSender(uint32 _eid, address _addr, bool _allowed) public onlyOwner {
+        remoteComposeMsgSender[_eid][_addr] = _allowed;
     }
 
     function setEndpoint(address _endpoint) public onlyOwner {
@@ -25,8 +29,12 @@ abstract contract OrderRelayerBase is IOrderRelayer, OrderBase, OrderRelayerStor
     }
 
     /* ========== Internal ========== */
-    function _isComposeMsgSender(address _composeMsgSender) internal view returns (bool) {
-        return composeMsgSender[_composeMsgSender];
+    function _isLocalComposeMsgSender(address _addr) internal view returns (bool) {
+        return localComposeMsgSender[_addr];
+    }
+
+    function _isRemoteComposeMsgSender(uint32 _eid, address _addr) internal view returns (bool) {
+        return remoteComposeMsgSender[_eid][_addr];
     }
 
     function _getEid(uint256 _chainId) internal view returns (uint32) {

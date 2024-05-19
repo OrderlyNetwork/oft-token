@@ -10,11 +10,11 @@ import { OrderBoxStorage } from "../storage/OrderBoxStorage.sol";
 import { IOrderBox } from "../interfaces/IOrderBox.sol";
 
 contract OrderBox is IOrderBox, OrderBase, OrderBoxStorage {
-    function stakeOrder(uint256 _chainId, address _staker, uint256 _amount) public {
+    function stakeOrder(uint256 _chainId, address _addr, uint256 _amount) public {
         require(msg.sender == boxRelayer, "OrderBox: Only OrderBoxRelayer can call");
-        stakers[_staker].orderAmount += _amount;
-        stakers[_staker].blockNumber = block.number;
-        emit OrderStaked(_chainId, _staker, _amount);
+        staker[_addr].orderAmount += _amount;
+        staker[_addr].blockNumber = block.number;
+        emit OrderStaked(_chainId, _addr, _amount);
     }
 
     /* ========================= Only Owner ========================= */

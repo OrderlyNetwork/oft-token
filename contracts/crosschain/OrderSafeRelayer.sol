@@ -46,6 +46,8 @@ contract OrderSafeRelayer is IOrderSafeRelayer, OrderRelayerBase, OrderSafeRelay
         IOFT(oft).send{ value: fee.nativeFee }(sendParam, fee, payable(_staker));
     }
 
+    function sendUnstakeMsg(address _staker, uint256 _amount) public {}
+
     /* ========================= Only Owner ========================= */
 
     // Set the order safe address on vault side
@@ -65,6 +67,32 @@ contract OrderSafeRelayer is IOrderSafeRelayer, OrderRelayerBase, OrderSafeRelay
         orderChainId = _orderChainId;
         eidMap[_orderChainId] = _orderEid;
         chainIdMap[_orderEid] = _orderChainId;
+    }
+
+    /* ========================= View ========================= */
+
+    function getStakeFee(address _staker, uint256 _amount) public view override returns (uint256) {
+        uint16 index = 0;
+        uint128 lzReceiveGas = 200000;
+        uint128 lzComposeGas = 500000;
+        uint128 airdropValue = 0;
+        bytes memory options = OptionsBuilder
+            .newOptions()
+            .addExecutorLzReceiveOption(lzReceiveGas, airdropValue)
+            .addExecutorLzComposeOption(index, lzComposeGas, airdropValue);
+        bytes memory composeMsg = abi.encode(_staker, _amount);
+        SendParam memory sendParam = SendParam({
+            dstEid: _getOrderEid(),
+            to: OFTMsgCodec.addressToBytes32(orderBoxRelayer),
+            amountLD: _amount,
+            minAmountLD: _amount,
+            extraOptions: options,
+            composeMsg: composeMsg,
+            oftCmd: ""
+        });
+
+        MessagingFee memory fee = IOFT(oft).quoteSend(sendParam, false);
+        return fee.nativeFee;
     }
 
     /* ========================= Internal ========================= */

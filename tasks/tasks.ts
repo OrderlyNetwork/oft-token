@@ -113,8 +113,7 @@ task("order:deploy", "Deploys the contract to a specific network")
             }
             console.log(`${contractName} contract deployed to ${deployedContract.address} with tx hash ${deployedContract.transactionHash}`);
             contractAddress = deployedContract.address
-            await saveContractAddress(env, hre.network.name, contractName, contractAddress)  
-            await hre.run("order:init", {env: env, contract: contractName})          
+            await saveContractAddress(env, hre.network.name, contractName, contractAddress)       
         }
         catch (e) {
             console.log(`Error: ${e}`)
@@ -139,61 +138,137 @@ task("order:init", "Initializes the contract on a specific network")
             const oftName = oftContractName(hre.network.name)
             const oftAddress = await loadContractAddress(env, hre.network.name, oftName) as string
             if (contractName === 'OrderSafeRelayer' || contractName === 'OrderBoxRelayer') {
-                // const tx1 = await contract.setEndpoint(lzConfig.endpointAddress)
-                // await tx1.wait()
-                // const tx2 = await contract.setOft(oftAddress)
-                // await tx2.wait()
-                // const tx3 = await contract.setComposeMsgSender(oftAddress, true)
-                // await tx3.wait()
-                // const tx4 = await contract.setEid(lzConfig.chainId, lzConfig.endpointId)
-                // await tx4.wait()
+
+                const endPointAddressOnContract = await contract.endpoint()
+                if (endPointAddressOnContract !== lzConfig.endpointAddress) {
+                    const txSetEndpointAddress = await contract.setEndpoint(lzConfig.endpointAddress)
+                    await txSetEndpointAddress.wait()
+                    console.log(`Endpoint set to ${lzConfig.endpointAddress} on ${contractName}`)
+                } else {
+                    console.log(`Endpoint already set to ${lzConfig.endpointAddress}`)
+                }
+                const oftAddressOnContract = await contract.oft()
+                if (oftAddressOnContract !== oftAddress) {
+                    const txSetOft = await contract.setOft(oftAddress)
+                    await txSetOft.wait()
+                    const txSetLocalSender = await contract.setLocalComposeMsgSender(oftAddress, true)
+                    await txSetLocalSender.wait()
+                    console.log(`OFT set to ${oftAddress} on ${contractName} and set as local composeMsgSender`)
+                } else {
+                    console.log(`OFT already set to ${oftAddress}`)
+                }
+    
+                const eidMapped = await contract.eidMap(lzConfig.chainId)
+                const chainIdMapped = await contract.chainIdMap(lzConfig.endpointId)
+        
+                if (Number(eidMapped) !== lzConfig.endpointId || Number(chainIdMapped) !== lzConfig.chainId) {
+                    const txSetEid = await contract.setEid(lzConfig.chainId, lzConfig.endpointId)
+                    await txSetEid.wait()
+                    console.log(`Set eid ${lzConfig.endpointId} and chainId ${lzConfig.chainId} on ${contractName}`)
+                }
+                else {
+                    console.log(`Eid ${lzConfig.endpointId} and chainId ${lzConfig.chainId} already set on ${contractName}`)
+                }
+
                 
                 if (contractName === 'OrderSafeRelayer') {
-                    const safeRelayerTx1 = await contract.setOrderChainId(orderLzConfig.chainId, orderLzConfig.endpointId)
-                    await safeRelayerTx1.wait()
-                    const safeAddress = await loadContractAddress(env, hre.network.name, 'OrderSafe')
-                    // if (safeAddress) {
-                    //     const safeRelayerTx2 = await contract.setOrderSafe(safeAddress)
-                    //     await safeRelayerTx2.wait()
-                    // } else {
-                    //     console.log(`OrderSafe contract not found on ${env} ${hre.network.name}, please set it later`)
-                    // }
-                    // const boxRelayerAddress = await loadContractAddress(env, "orderlysepolia", 'OrderBoxRelayer')
-                    // if (boxRelayerAddress) {
-                    //     const safeRelayerTx3 = await contract.setOrderBoxRelayer(boxRelayerAddress)
-                    //     await safeRelayerTx3.wait()
-                    // }
-                } else {
-                    const boxAddress = await loadContractAddress(env, hre.network.name, 'OrderBox')
-                    if (boxAddress) {
-                        const boxRelayerTx1 = await contract.setOrderBox(boxAddress)
-                        await boxRelayerTx1.wait()
+
+                    const orderChainIdOnContract = await contract.chainIdMap(orderLzConfig.endpointId)
+                    const orderEndpointIdOnContract = await contract.eidMap(orderLzConfig.chainId)
+                    if (Number(orderChainIdOnContract) !== orderLzConfig.chainId || Number(orderEndpointIdOnContract) !== orderLzConfig.endpointId) {
+                        const txSetOrderChainId = await contract.setOrderChainId(orderLzConfig.chainId, orderLzConfig.endpointId)
+                        await txSetOrderChainId.wait()
+                        console.log(`Set order chainId ${orderLzConfig.chainId} and endpointId ${orderLzConfig.endpointId} on ${contractName}`)
                     } else {
-                        console.log(`OrderBox contract not found on ${env} ${hre.network.name}, please set it later`)
+                        console.log(`Order chainId ${orderLzConfig.chainId} and endpointId ${orderLzConfig.endpointId} already set on ${contractName}`)
                     }
-                }
+                    
+                    const safeAddressOnContract = await contract.orderSafe()
+                    const safeAddress = await loadContractAddress(env, hre.network.name, 'OrderSafe')
+                   
+                    // be careful here
+                    if (safeAddress && (safeAddressOnContract !== safeAddress)) {
+                        const txSetSafeAddress = await contract.setOrderSafe(safeAddress)
+                        await txSetSafeAddress.wait()
+                        console.log(`Set OrderSafe address ${safeAddress} on ${contractName}`)
+                    } else {
+                        console.log(`OrderSafe contract not found on ${env} ${hre.network.name}, or already set on ${contractName}`)
+                    }
+                    
+                    const boxRelayerAddressOnContract = await contract.orderBoxRelayer()
+                    const boxRelayerAddress = await loadContractAddress(env, "orderlysepolia", 'OrderBoxRelayer')
+                    if (boxRelayerAddress && (boxRelayerAddressOnContract !== boxRelayerAddress)) {
+                        const txSetBoxRelayer = await contract.setOrderBoxRelayer(boxRelayerAddress)
+                        await txSetBoxRelayer.wait()
+                        const txSetRemoteSender = await contract.setRemoteComposeMsgSender(orderLzConfig.endpointId, boxRelayerAddress, true)
+                        await txSetRemoteSender.wait()
+                        console.log(`Set OrderBoxRelayer address ${boxRelayerAddress} on ${contractName} and set as remote composeMsgSender`)
+                    } else {
+                        console.log(`OrderBoxRelayer contract not found on ${env} orderlysepolia, or already set on ${contractName}`)
+                    }
+                } else {
+                    const boxAddressOnContract = await contract.orderBox()
+                    const boxAddress = await loadContractAddress(env, hre.network.name, 'OrderBox')
+                    if (boxAddress && (boxAddressOnContract !== boxAddress)) {
+                        const setBoxAddressTx = await contract.setOrderBox(boxAddress)
+                        await setBoxAddressTx.wait()
+                        console.log(`Set OrderBox address ${boxAddress} on ${contractName}`)
+                    } else {
+                        console.log(`OrderBox contract not found on ${env} ${hre.network.name}, or already set on ${contractName}`)
+                    }
+
+                    const safeNetwork = "arbitrumsepolia"
+                    const safeLzConfig = getLzConfig(safeNetwork)
+                    const safeRelayerAddress = await loadContractAddress(env, safeNetwork, 'OrderSafeRelayer')
+                    const isRemoteSender = await contract.remoteComposeMsgSender(safeLzConfig.endpointId, safeRelayerAddress)
+                    if (!isRemoteSender) {
+                        const txSetRemoteComposeMsgSender = await contract.setRemoteComposeMsgSender(safeLzConfig.endpointId, safeRelayerAddress, true)
+                        await txSetRemoteComposeMsgSender.wait()
+                        const txSetEid = await contract.setEid(safeLzConfig.chainId, safeLzConfig.endpointId)
+                        await txSetEid.wait()
+                        console.log(`Set remote composeMsgSender ${safeRelayerAddress} of ${safeNetwork} on ${contractName} and corresponding eid and chainId`)
+                    } else {
+                        console.log(`Remote composeMsgSender ${safeRelayerAddress} of ${safeNetwork} already set on ${contractName}`)
+                    }
+
+                    // TODO set Eids, ChainIds and Addresses for each SafeRelayer
+                } 
                 
             } else if (contractName === 'OrderSafe' || contractName === 'OrderBox') {
-                const tx1 = await contract.setOft(oftAddress)
-                await tx1.wait()
+
+                const oftAddressOnContract = await contract.oft()
+                const oftAddress = await loadContractAddress(env, hre.network.name, oftName)
+                if (oftAddressOnContract !== oftAddress) {
+                    const txSetOft = await contract.setOft(oftAddress)
+                    await txSetOft.wait()
+                    console.log(`Set OFT address ${oftAddress} on ${contractName}`)
+                } else {
+                    console.log(`OFT already set on ${contractName}`)
+                }
                 if (contractName === 'OrderSafe') {
+                    const orderRelayerAddressOnContract = await contract.safeRelayer()
                     const orderRelayerAddress = await loadContractAddress(env, hre.network.name, 'OrderSafeRelayer')
-                    if (orderRelayerAddress) {
-                        const orderSafeTx1 = await contract.setOrderRelayer(orderRelayerAddress)
-                        await orderSafeTx1.wait()
+                    if (orderRelayerAddress !== orderRelayerAddressOnContract) {
+                        const setSafeRelayerTx = await contract.setOrderRelayer(orderRelayerAddress)
+                        await setSafeRelayerTx.wait()
+                        console.log(`Set OrderSafeRelayer address ${orderRelayerAddress} on ${contractName}`)
                     } else {
-                        console.log(`OrderSafeRelayer contract not found on ${env} ${hre.network.name}, please set it later`)
+                        console.log(`OrderSafeRelayer already set on ${contractName}`)
                     }
                 } else {
+                    const orderRelayerAddressOnContract = await contract.boxRelayer()
                     const orderRelayerAddress = await loadContractAddress(env, hre.network.name, 'OrderBoxRelayer')
-                    if (orderRelayerAddress) {
-                        const orderBoxTx1 = await contract.setOrderRelayer(orderRelayerAddress)
-                        await orderBoxTx1.wait()
+                    if (orderRelayerAddress !== orderRelayerAddressOnContract) {
+                        const setBoxRelayerTx = await contract.setOrderRelayer(orderRelayerAddress)
+                        await setBoxRelayerTx.wait()
+                        console.log(`Set OrderBoxRelayer address ${orderRelayerAddress} on ${contractName}`)
                     } else {
-                        console.log(`OrderBoxRelayer contract not found on ${env} ${hre.network.name}, please set it later`)
+                        console.log(`OrderBoxRelayer already set on ${contractName}`)
                     }
-                }
-            } 
+                } 
+            }  else {
+                throw new Error(`Contract ${contractName} not found`)
+            }
 
             console.log(`Initialized ${contractName} on ${hre.network.name} for ${env}`)
         }
@@ -414,13 +489,13 @@ task("order:stake", "Send stakes to a specific address on a specific network")
                 remoteContractName = oftContractName(toNetwork)
             }
 
-            localContractAddress = await loadContractAddress(taskArgs.env, fromNetwork, "OrderSafe") as string
+            localContractAddress = await loadContractAddress(taskArgs.env, fromNetwork, localContractName) as string
 
             const erc20ContractName = tokenContractName(fromNetwork)
             const erc20ContractAddress = await loadContractAddress(taskArgs.env, fromNetwork, erc20ContractName) as string
 
             const [ signer ] = await hre.ethers.getSigners()
-            const localContract = await hre.ethers.getContractAt(localContractName, localContractAddress, signer)
+            const safeContract = await hre.ethers.getContractAt(localContractName, localContractAddress, signer)
             const erc20Contract = await hre.ethers.getContractAt(erc20ContractName, erc20ContractAddress, signer)
             
             const deciamls = await erc20Contract.decimals() 
@@ -432,12 +507,19 @@ task("order:stake", "Send stakes to a specific address on a specific network")
             approveTx.wait()
             console.log(`Approving ${localContractName} to spend ${tokenAmount} on ${erc20ContractName} with tx hash ${approveTx.hash}`)
             
+            const index = 0;
+            const lzReceiveGas = 200000;
+            const lzComposeGas = 500000;
+            const airdropValue = 0;
+            const option = Options.newOptions().addExecutorLzReceiveOption(lzReceiveGas, airdropValue).addExecutorComposeOption(index, lzComposeGas, airdropValue)
+            const lzFee = await safeContract.getStakeFee(signer.address, tokenAmount)
+            console.log(`Stake fee: ${lzFee}`)
             
-            // TODO: test with different gasLimit 
-            const sendTx = await localContract.stakeOrder(signer.address, tokenAmount, {
+            const stakeTx = await safeContract.stakeOrder(signer.address, tokenAmount, {
                 gasLimit: 500000,
+                value: lzFee,
             })
-            console.log(`Sending tokens from ${fromNetwork} to ${toNetwork} with tx hash ${sendTx.hash}`)
+            console.log(`Sending tokens from ${fromNetwork} to ${toNetwork} with tx hash ${stakeTx.hash}`)
         }
         catch (e) {
             console.log(`Error: ${e}`)

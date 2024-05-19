@@ -24,12 +24,15 @@ contract OrderBoxRelayer is IOrderBoxRelayer, ILayerZeroComposer, OrderRelayerBa
         bytes calldata _extraData
     ) public payable override {
         require(msg.sender == endpoint, "OrderlyBox: only endpoint can call this function");
-        require(_isComposeMsgSender(_from), "OrderlyBox: only allowed composer can send msg to relayer contract");
+        require(_isLocalComposeMsgSender(_from), "OrderlyBox: only allowed composer can send msg to relayer contract");
         bytes memory composeMsg = _message.composeMsg();
+        address remoteSender = OFTComposeMsgCodec.bytes32ToAddress(_message.composeFrom());
+        uint32 srcEid = _message.srcEid();
+        require(_isRemoteComposeMsgSender(srcEid, remoteSender), "OrderlyBox: remote sender not allowed");
         (address staker, uint256 amount) = abi.decode(composeMsg, (address, uint256));
         IERC20 token = IERC20(IOFT(oft).token());
         token.safeTransfer(orderBox, amount);
-        IOrderBox(orderBox).stakeOrder(_getChainId(_message.srcEid()), staker, amount);
+        IOrderBox(orderBox).stakeOrder(_getChainId(srcEid), staker, amount);
     }
 
     /* ========================= Only Owner ========================= */

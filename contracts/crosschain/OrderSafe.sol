@@ -8,23 +8,29 @@ import { OrderBase } from "../base/OrderBase.sol";
 import { OrderSafeStorage } from "../storage/OrderSafeStorage.sol";
 import { IOrderSafe } from "../interfaces/IOrderSafe.sol";
 
-import { IOrderSafeRelayer } from "../interfaces/IOrderSafeRelayer.sol";
+import { IOrderSafeRelayer, StakeMsg } from "../interfaces/IOrderSafeRelayer.sol";
 
 contract OrderSafe is IOrderSafe, OrderBase, OrderSafeStorage {
     // using OFTComposeMsgCodec for bytes;
     using SafeERC20 for IERC20;
 
-    function stakeOrder(address staker, uint256 amount) public payable whenNotPaused {
-        require(msg.sender == staker, "OrderSafe: sender must be staker");
+    function stakeOrder(address _staker, uint256 _amount) public payable whenNotPaused {
+        require(msg.sender == _staker, "OrderSafe: sender must be staker");
         // Get the token address from the of contract, it could be the oft contract itself or a native erc20 contract
         IERC20 token = IERC20(IOFT(oft).token());
 
         // Transfer the amount from the staker to the relayer contract
         // Staker should approve the relayer contract to spend the amount first
-        token.safeTransferFrom(staker, safeRelayer, amount);
+        token.safeTransferFrom(_staker, safeRelayer, _amount);
         // Call the relayer contract to send the stake message
-        IOrderSafeRelayer(safeRelayer).sendStakeMsg{ value: msg.value }(staker, amount);
-        // emit OrderStaked(staker, amount);
+        IOrderSafeRelayer(safeRelayer).sendStakeMsg{ value: msg.value }(_staker, _amount);
+        emit OrderStaked(_staker, _amount);
+    }
+
+    function unstakeOrder(address _staker, uint256 _amount) public whenNotPaused {
+        require(msg.sender == _staker, "OrderSafe: sender must be staker");
+        // Call the relayer contract to send the unstake message
+        IOrderSafeRelayer(safeRelayer).sendUnstakeMsg(_staker, _amount);
     }
 
     /* ========================= Only Owner ========================= */
@@ -38,5 +44,11 @@ contract OrderSafe is IOrderSafe, OrderBase, OrderSafeStorage {
     function setOft(address _oft) public onlyOwner {
         require(_oft != address(0), "OrderSafe: invalid oft address");
         oft = _oft;
+    }
+
+    /* ========================= View ========================= */
+
+    function getStakeFee(address _staker, uint256 _amount) public view returns (uint256) {
+        return IOrderSafeRelayer(safeRelayer).getStakeFee(_staker, _amount);
     }
 }
