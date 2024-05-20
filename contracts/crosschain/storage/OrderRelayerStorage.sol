@@ -13,7 +13,7 @@ contract OrderRelayerStorage {
     // record of trusted remote composeMsgSender: eid => address => bool
     mapping(uint32 => mapping(address => bool)) public remoteComposeMsgSender;
     // mapping of optionId to gasLimit
-    mapping(uint8 => uint256) public optionsGasLimit;
+    mapping(uint8 => uint256) public optionsGaslimit;
 
     /* ========== Storage Slots + Gap == 50 ========== */
     uint256[50] private _gap;

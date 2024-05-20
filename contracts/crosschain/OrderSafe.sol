@@ -1,14 +1,13 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.20;
 
+import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import { IOFT } from "@layerzerolabs/lz-evm-oapp-v2/contracts/oft/interfaces/IOFT.sol";
-import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import { OrderBase } from "../base/OrderBase.sol";
-import { OrderSafeStorage } from "../storage/OrderSafeStorage.sol";
-import { IOrderSafe } from "../interfaces/IOrderSafe.sol";
-
-import { IOrderSafeRelayer, StakeMsg } from "../interfaces/IOrderSafeRelayer.sol";
+import { OrderBase } from "./base/OrderBase.sol";
+import { OrderSafeStorage } from "./storage/OrderSafeStorage.sol";
+import { IOrderSafe } from "./interfaces/IOrderSafe.sol";
+import { IOrderSafeRelayer, StakeMsg } from "./interfaces/IOrderSafeRelayer.sol";
 
 contract OrderSafe is IOrderSafe, OrderBase, OrderSafeStorage {
     // using OFTComposeMsgCodec for bytes;

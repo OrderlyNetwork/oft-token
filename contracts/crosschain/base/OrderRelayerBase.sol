@@ -28,6 +28,10 @@ abstract contract OrderRelayerBase is IOrderRelayer, OrderBase, OrderRelayerStor
         chainIdMap[_eid] = _chainId;
     }
 
+    function setOptionGaslimit(uint8 _option, uint256 _limit) public onlyOwner {
+        optionsGaslimit[_option] = _limit;
+    }
+
     /* ========== Internal ========== */
     function _isLocalComposeMsgSender(address _addr) internal view returns (bool) {
         return localComposeMsgSender[_addr];
@@ -44,4 +48,7 @@ abstract contract OrderRelayerBase is IOrderRelayer, OrderBase, OrderRelayerStor
     function _getChainId(uint32 _eid) internal view returns (uint256) {
         return chainIdMap[_eid];
     }
+
+    fallback() external payable {}
+    receive() external payable {}
 }

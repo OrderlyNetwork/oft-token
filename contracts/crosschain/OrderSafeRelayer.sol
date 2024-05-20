@@ -6,10 +6,10 @@ import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.s
 import { OFTMsgCodec, MessagingFee, MessagingReceipt } from "@layerzerolabs/lz-evm-oapp-v2/contracts/oft/OFTCore.sol";
 import { IOFT, SendParam, OFTReceipt } from "@layerzerolabs/lz-evm-oapp-v2/contracts/oft/interfaces/IOFT.sol";
 import { OptionsBuilder } from "@layerzerolabs/lz-evm-oapp-v2/contracts/oapp/libs/OptionsBuilder.sol";
-import { OrderRelayerBase } from "../base/OrderRelayerBase.sol";
-import { IOrderSafeRelayer } from "../interfaces/IOrderSafeRelayer.sol";
-import { OrderRelayerStorage } from "../storage/OrderRelayerStorage.sol";
-import { OrderSafeRelayerStorage } from "../storage/OrderSafeRelayerStorage.sol";
+import { OrderRelayerBase } from "./base/OrderRelayerBase.sol";
+import { IOrderSafeRelayer } from "./interfaces/IOrderSafeRelayer.sol";
+import { OrderRelayerStorage } from "./storage/OrderRelayerStorage.sol";
+import { OrderSafeRelayerStorage } from "./storage/OrderSafeRelayerStorage.sol";
 
 contract OrderSafeRelayer is IOrderSafeRelayer, OrderRelayerBase, OrderSafeRelayerStorage {
     using SafeERC20 for IERC20;
@@ -100,7 +100,4 @@ contract OrderSafeRelayer is IOrderSafeRelayer, OrderRelayerBase, OrderSafeRelay
     function _getOrderEid() internal view returns (uint32) {
         return eidMap[orderChainId];
     }
-
-    fallback() external payable {}
-    receive() external payable {}
 }
