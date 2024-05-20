@@ -49,6 +49,18 @@ abstract contract OrderRelayerBase is IOrderRelayer, OrderBase, OrderRelayerStor
         return chainIdMap[_eid];
     }
 
+    function _composeMsgSenderCheck(
+        address _endpoint,
+        address _localSender,
+        uint32 _eid,
+        address _remoteSender
+    ) internal view returns (bool) {
+        return
+            endpoint == _endpoint &&
+            _isLocalComposeMsgSender(_localSender) &&
+            _isRemoteComposeMsgSender(_eid, _remoteSender);
+    }
+
     fallback() external payable {}
     receive() external payable {}
 }

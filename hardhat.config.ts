@@ -38,7 +38,7 @@ const config: HardhatUserConfig = {
     solidity: {
         compilers: [
             {
-                version: '0.8.19',
+                version: '0.8.20',
                 settings: {
                     optimizer: {
                         enabled: true,
@@ -49,6 +49,7 @@ const config: HardhatUserConfig = {
         ],
     },
     networks: {
+        
         sepolia: {
             eid: EndpointId.SEPOLIA_V2_TESTNET,
             url: process.env.RPC_URL_SEPOLIA || RPC["sepolia"],
@@ -65,18 +66,18 @@ const config: HardhatUserConfig = {
             accounts,
         },
         amoy: {
-          eid: EndpointId.AMOY_V2_TESTNET,
-          url: process.env.RPC_URL_AMOYSEPOLIA || RPC["amoy"],
-          accounts,
+            eid: EndpointId.AMOY_V2_TESTNET,
+            url: process.env.RPC_URL_AMOYSEPOLIA || RPC["amoy"],
+            accounts,
+          },
+        mantlesepolia: {
+            eid: EndpointId.MANTLESEP_V2_TESTNET,
+            url: process.env.RPC_URL_MANTLESEPOLIA || RPC["mantlesepolia"],
+            accounts,
         },
         basesepolia: {
             eid: EndpointId.BASESEP_V2_TESTNET,
             url: process.env.RPC_URL_BASESEPOLIA || RPC["basesepolia"],
-            accounts,
-        },
-        mantlesepolia: {
-            eid: EndpointId.MANTLESEP_V2_TESTNET,
-            url: process.env.RPC_URL_MANTLESEPOLIA || RPC["mantlesepolia"],
             accounts,
         },
         orderlysepolia: {
