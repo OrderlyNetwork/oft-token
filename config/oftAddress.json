@@ -6,16 +6,16 @@
     },
     "arbitrumsepolia": {
       "OrderOFT": "0x78e1f20eBbFB0f9E1e94a92a3c1A004b8DDfFF36",
-      "OrderSafe": "0xD9104D3498c8d12454EB53eD71a8e4ad71333B08",
-      "OrderSafeRelayer": "0x5a0Dc3061623a45d40f5877138b6DB1E0f8B4296"
+      "OrderSafe": "0x5259B79aDd4c8281ce4ebb0EC371342441dD01cb",
+      "OrderSafeRelayer": "0xDeB796d1Ad2147088B3E70e494c890CF74354516"
     },
     "opsepolia": {
       "OrderOFT": "0x78e1f20eBbFB0f9E1e94a92a3c1A004b8DDfFF36"
     },
     "orderlysepolia": {
       "OrderOFT": "0x78e1f20eBbFB0f9E1e94a92a3c1A004b8DDfFF36",
-      "OrderBox": "0x10a55B320e06ceB57896F0efd931D59b6B37d55a",
-      "OrderBoxRelayer": "0xa38ecAb22b37004d6Ce539ac2e412a87C7Be3277"
+      "OrderBox": "0xf73413f29475F29D22F5541018B29f7a782e9EdC",
+      "OrderBoxRelayer": "0x5066528948DFE339b99eeC650b25bF0308632B9C"
     }
   },
   "qa": {
