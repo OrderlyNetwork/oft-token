@@ -8,6 +8,7 @@ import { IOFT, SendParam, OFTReceipt } from "@layerzerolabs/lz-evm-oapp-v2/contr
 import { OptionsBuilder } from "@layerzerolabs/lz-evm-oapp-v2/contracts/oapp/libs/OptionsBuilder.sol";
 import { OrderRelayerBase } from "./base/OrderRelayerBase.sol";
 import { IOrderSafeRelayer } from "./interfaces/IOrderSafeRelayer.sol";
+import { Options } from "./interfaces/IOrderRelayer.sol";
 import { OrderRelayerStorage } from "./storage/OrderRelayerStorage.sol";
 import { OrderSafeRelayerStorage } from "./storage/OrderSafeRelayerStorage.sol";
 
@@ -22,17 +23,11 @@ contract OrderSafeRelayer is IOrderSafeRelayer, OrderRelayerBase, OrderSafeRelay
             token.approve(oft, _amount);
             token.safeTransfer(msg.sender, _amount);
         }
-        uint16 index = 0;
-        uint128 lzReceiveGas = 200000;
-        uint128 lzComposeGas = 500000;
-        uint128 airdropValue = 0;
-        bytes memory options = OptionsBuilder
-            .newOptions()
-            .addExecutorLzReceiveOption(lzReceiveGas, airdropValue)
-            .addExecutorLzComposeOption(index, lzComposeGas, airdropValue);
+        uint32 srcEid = _getOrderEid();
+        bytes memory options = _getOption(uint8(Options.STAKE_ORDER));
         bytes memory composeMsg = abi.encode(_staker, _amount);
         SendParam memory sendParam = SendParam({
-            dstEid: _getOrderEid(),
+            dstEid: srcEid,
             to: OFTMsgCodec.addressToBytes32(orderBoxRelayer),
             amountLD: _amount,
             minAmountLD: _amount,

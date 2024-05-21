@@ -1,6 +1,22 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.20;
 
+enum Options {
+    LZ_RECEIVE,
+    STAKE_ORDER,
+    UNSTAKE_ORDER,
+    STAKE_ESORDER,
+    UNSTAKE_ESORDER,
+    CLAIM_ORDER,
+    CLAIM_ESORDER,
+    VEST_ESORDER
+}
+
+struct OptionsAirdrop {
+    uint128 gas;
+    uint128 value;
+}
+
 interface IOrderRelayer {
     /* ========== Errors ========== */
     error NotComposeMsgSender(address sender);

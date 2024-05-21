@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.20;
 
+import { OptionsAirdrop } from "../interfaces/IOrderRelayer.sol";
+
 contract OrderRelayerStorage {
     address public endpoint;
     address public oft;
@@ -12,8 +14,8 @@ contract OrderRelayerStorage {
     mapping(address => bool) public localComposeMsgSender;
     // record of trusted remote composeMsgSender: eid => address => bool
     mapping(uint32 => mapping(address => bool)) public remoteComposeMsgSender;
-    // mapping of optionId to gasLimit
-    mapping(uint8 => uint256) public optionsGaslimit;
+    // mapping option => eid => airdropped gas/value limit
+    mapping(uint8 => OptionsAirdrop) public optionsAirdrop;
 
     /* ========== Storage Slots + Gap == 50 ========== */
     uint256[50] private _gap;

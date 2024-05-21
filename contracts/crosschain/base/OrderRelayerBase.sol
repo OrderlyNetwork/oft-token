@@ -1,11 +1,13 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.20;
 
+import { OptionsBuilder } from "@layerzerolabs/lz-evm-oapp-v2/contracts/oapp/libs/OptionsBuilder.sol";
 import { OrderRelayerStorage } from "../storage/OrderRelayerStorage.sol";
 import { OrderBase } from "./OrderBase.sol";
-import { IOrderRelayer } from "../interfaces/IOrderRelayer.sol";
+import { IOrderRelayer, Options, OptionsAirdrop } from "../interfaces/IOrderRelayer.sol";
 
 abstract contract OrderRelayerBase is IOrderRelayer, OrderBase, OrderRelayerStorage {
+    using OptionsBuilder for bytes;
     /* ========== Only Owner ========== */
     function setLocalComposeMsgSender(address _addr, bool _allowed) public onlyOwner {
         localComposeMsgSender[_addr] = _allowed;
@@ -28,8 +30,8 @@ abstract contract OrderRelayerBase is IOrderRelayer, OrderBase, OrderRelayerStor
         chainIdMap[_eid] = _chainId;
     }
 
-    function setOptionGaslimit(uint8 _option, uint256 _limit) public onlyOwner {
-        optionsGaslimit[_option] = _limit;
+    function setOptionsAirdrop(uint8 _option, uint128 _gas, uint128 _value) public onlyOwner {
+        optionsAirdrop[_option] = OptionsAirdrop(_gas, _value);
     }
 
     /* ========== Internal ========== */
@@ -49,7 +51,24 @@ abstract contract OrderRelayerBase is IOrderRelayer, OrderBase, OrderRelayerStor
         return chainIdMap[_eid];
     }
 
-    function _composeMsgSenderCheck(
+    function _getOptionsAirdrop(uint8 _option) internal view returns (uint128 gas, uint128 value) {
+        gas = optionsAirdrop[_option].gas;
+        value = optionsAirdrop[_option].value;
+    }
+
+    function _getOption(uint8 _option) internal view returns (bytes memory options) {
+        (uint128 lzReceiveGas, uint128 lzReceiveValue) = _getOptionsAirdrop(uint8(Options.LZ_RECEIVE));
+        (uint128 optionGas, uint128 optionValue) = _getOptionsAirdrop(_option);
+        uint16 index = 0; // only one message can be composed in a transaction
+        if (_option == uint8(Options.STAKE_ORDER)) {
+            options = OptionsBuilder
+                .newOptions()
+                .addExecutorLzReceiveOption(lzReceiveGas, lzReceiveValue)
+                .addExecutorLzComposeOption(index, optionGas, optionValue);
+        }
+    }
+
+    function _authorizeComposeMsgSender(
         address _endpoint,
         address _localSender,
         uint32 _eid,
