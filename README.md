@@ -190,6 +190,9 @@ To connect an OFT contract on one network to other OFT contracts on other networ
 ```
 // npx hardhat order:oft:set --env dev --network fromNetwork
 npx hardhat order:oft:set --env dev --network sepolia
+npx hardhat order:oft:set --env dev --network arbitrumsepolia
+npx hardhat order:oft:set --env dev --network opsepolia
+npx hardhat order:oft:set --env dev --network orderlysepolia
 ```
 
 The task `order:oft:set` will try to connect the OFT(or Adapter) contract on the network specified in the `--network` parameter to the OFT contracts on other networks (Supported networks are defined by the `TEST_NETWORKS` or `MAIN_NETWORKS` in `tasks/const.ts`). The connection status will be recorded in the `config/oftPeers.json` file.
@@ -235,7 +238,7 @@ Sending tokens from sepolia to orderlysepolia with tx hash 0x701678c3976f0c53c21
 ```
 
 ```
-npx hardhat order:bridge:token --env dev --network sepolia --dst-network arbitrumsepolia --receiver 0xDd3287043493E0a08d2B348397554096728B459c --amount 1000000
+npx hardhat order:oft:send --env dev --network sepolia --dst-network arbitrumsepolia --receiver 0xDd3287043493E0a08d2B348397554096728B459c --amount 1000000
 
 Running on sepolia
 Approving OrderAdapter to spend 1000000000000000000000000 on OrderToken with tx hash 0xf9fc78ac90eb6524ad5b94d48d33f785336b948298f3516b96dc0c60c1a82c0f
@@ -325,7 +328,7 @@ npx hardhat order:deploy --env dev --network orderlysepolia --contract OrderBox
 
 ```
 // Verify SafeRelayer contract
-npx @layerzerolabs/verify-contract -d "./deployments" --contracts "OrderSafeRelayer" -n "opsepolia" -u $API_URL_OPSEPOLIA -k $API_KEY_OPSEPOLIA
+npx @layerzerolabs/verify-contract -d "./deployments" --contracts "OrderSafeRelayer" -n "arbitrumsepolia" -u $API_URL_ARBITRUMSEPOLIA -k $API_KEY_ARBITRUMSEPOLIA
 
 // Verify Safe contract
 npx @layerzerolabs/verify-contract -d "./deployments" --contracts "OrderSafe" -n "arbitrumsepolia" -u $API_URL_ARBITRUMSEPOLIA -k $API_KEY_ARBITRUMSEPOLIA
@@ -371,7 +374,3 @@ Through the [LayerZero](https://testnet.layerzeroscan.com/tx/0x31f74192d1bd685e4
 
 - The [received tx](https://explorerl2new-orderly-l2-4460-sepolia-8tc3sd7dvy.t.conduit.xyz/tx/0xd06a8e7dd8373927c52b11a2e8d6a574c7ac90cb9aa508ca389a4539ea5789e1) on Orderly network
 - The [composed tx](https://explorerl2new-orderly-l2-4460-sepolia-8tc3sd7dvy.t.conduit.xyz/tx/0x384d03949bf6cc7b3b01cbd232d40cc8c2c3fdeb8691a9e971cb1ec52771de6a) on Orderly network
-
-```
-
-```

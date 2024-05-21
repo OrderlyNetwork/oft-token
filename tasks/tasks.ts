@@ -600,7 +600,7 @@ task("order:stake", "Send stakes to a specific address on a specific network")
             
             const approveTx = await erc20Contract.approve(localContractAddress, tokenAmount)
             approveTx.wait()
-            console.log(`Approving ${localContractName} to spend ${tokenAmount} on ${erc20ContractName} with tx hash ${approveTx.hash}`)
+            console.log(`Approving ${localContractName} to spend ${taskArgs.amount} on ${erc20ContractName} with tx hash ${approveTx.hash}`)
             
             const index = 0;
             const lzReceiveGas = 200000;
@@ -613,7 +613,7 @@ task("order:stake", "Send stakes to a specific address on a specific network")
                 gasLimit: 500000,
                 value: lzFee,
             })
-            console.log(`Sending tokens from ${fromNetwork} to ${toNetwork} with tx hash ${stakeTx.hash}`)
+            console.log(`Staking tokens from ${fromNetwork} to ${toNetwork} with tx hash ${stakeTx.hash}`)
         }
         catch (e) {
             console.log(`Error: ${e}`)
