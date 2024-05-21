@@ -1,21 +1,21 @@
 {
   "dev": {
     "sepolia": {
-      "OrderToken": "0x7eE793D7272a933d6908F9bfca53221954E3bBaf",
-      "OrderAdapter": "0xb9f92144D49f73D7483a74DDE6A42E93aD630B5D"
+      "OrderToken": "0xbd6e8840078b20714aC93F6C5758974bc2B55327",
+      "OrderAdapter": "0x0AE866922d11158A0C369f04ad67FF4f81005B1C"
     },
     "arbitrumsepolia": {
-      "OrderOFT": "0x78e1f20eBbFB0f9E1e94a92a3c1A004b8DDfFF36",
-      "OrderSafe": "0x5259B79aDd4c8281ce4ebb0EC371342441dD01cb",
-      "OrderSafeRelayer": "0xDeB796d1Ad2147088B3E70e494c890CF74354516"
+      "OrderOFT": "0xEE0f08ec11faC2947AC73FC34d4565F30e53aD28",
+      "OrderSafe": "0xA47DEEbA5FF6706cC41F105D17824378a3dc6cf6",
+      "OrderSafeRelayer": "0x76f33d0dFeb32e38d90fB5E05b49ddEe848CB7ca"
     },
     "opsepolia": {
-      "OrderOFT": "0x78e1f20eBbFB0f9E1e94a92a3c1A004b8DDfFF36"
+      "OrderOFT": "0xEE0f08ec11faC2947AC73FC34d4565F30e53aD28"
     },
     "orderlysepolia": {
-      "OrderOFT": "0x78e1f20eBbFB0f9E1e94a92a3c1A004b8DDfFF36",
-      "OrderBox": "0xf73413f29475F29D22F5541018B29f7a782e9EdC",
-      "OrderBoxRelayer": "0x5066528948DFE339b99eeC650b25bF0308632B9C"
+      "OrderOFT": "0xEE0f08ec11faC2947AC73FC34d4565F30e53aD28",
+      "OrderBox": "0xB1f0c0208b496143216AB1Bc554358A90de0dE33",
+      "OrderBoxRelayer": "0xfE713e87401DB4b4D8Aef2Bd44508B8de33aD3de"
     }
   },
   "qa": {
