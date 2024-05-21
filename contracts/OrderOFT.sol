@@ -12,7 +12,7 @@ contract OrderOFT is OFT {
         address _delegate
     ) OFT("Orderly Network", "ORDER", _lzEndpoint, _delegate) Ownable(_delegate) {}
 
-    // disable zero token transfer
+    // omit zero token transfer to allow raw composeMsg relay
     function _debit(
         address _from,
         uint256 _amountLD,
@@ -32,5 +32,25 @@ contract OrderOFT is OFT {
         if (_amountLD > 0) {
             amountReceivedLD = super._credit(_to, _amountLD, _srcEid);
         }
+    }
+
+    function _acceptNonce(uint32 _srcEid, bytes32 _sender, uint64 _nonce) internal {
+        receivedNonce[_srcEid][_sender] += 1;
+        require(_nonce == receivedNonce[_srcEid][_sender], "OApp: invalid nonce");
+    }
+
+    function nextNonce(uint32 _srcEid, bytes32 _sender) public view override returns (uint64) {
+        return receivedNonce[_srcEid][_sender] + 1;
+    }
+
+    function _lzReceive(
+        Origin calldata _origin,
+        bytes32 _guid,
+        bytes calldata _message,
+        address _executor, // @dev unused in the default implementation.
+        bytes calldata _extraData // @dev unused in the default implementation.
+    ) internal override {
+        _acceptNonce(_origin.srcEid, _origin.sender, _origin.nonce);
+        super._lzReceive(_origin, _guid, _message, _executor, _extraData);
     }
 }
