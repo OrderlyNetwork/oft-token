@@ -1,5 +1,8 @@
 # Orderly Token Contract
 
+> This project is to deploy ORDER token on Ethereum and its OFT version on other networks to enable the multi-chain token transfer within LayerZero V2 protocol.
+> Only OFT and Adapter contracts are under mainly development, the OrderSafe(Relayer) and OrderBox(Relayer) contracts are used to test the Cross-Chain token transfer and message relay.
+
 This project is built using Layerzero [dev-tool](https://github.com/LayerZero-Labs/devtools), which has integrated Hardhat and Foundry for development, testing and deployment.
 
 This repo contains the Orderly Token contract in native ERC20 standard and its cooresponding [OFT version](https://docs.layerzero.network/v2/developers/evm/oft/quickstart)to enable multi-chain token transfer within [LayerZero V2 protocol](https://github.com/LayerZero-Labs/LayerZero-v2).
@@ -14,7 +17,6 @@ npm install
 The contracts structure is as follows:
 
 ```
-
                     +-----------+   +-----------+                 +-----------+   +-----------+
                     |           |   |           |    LayerZero    |           |   |           |
                     |   ERC20   |   |    OFT    |-----------------|    OFT    |   |   ERC20   |
@@ -26,7 +28,7 @@ The contracts structure is as follows:
                           |               |                             |               |
 +----------+        +---------------------------+                 +---------------------------+        +----------+
 |          |        |                           |                 |                           |        |          |
-|OrderSafe |------- |     OrderSafeRelayer      |                 |     OrderBoxRelayer       | -------| OrderBox |
+|OrderSafe |------- |     OrderSafeRelayer      |                 |      OrderBoxRelayer      | -------| OrderBox |
 |          |        |                           |                 |                           |        |          |
 +----------+        +---------------------------+                 +---------------------------+        +----------+
 ```
@@ -67,11 +69,15 @@ AVAILABLE TASKS:
   export-artifacts
   flatten                               Flattens and prints contracts and their dependencies. If no file is passed, all the contracts in the project will be flattened.
   help                                  Prints this message
-  order:bridge:token                    Send tokens to a specific address on a specific network
-  order:deploy                          Deploys the contract to a specific network
-  order:peer:init                       Initialize the network connections in oftPeers.json file
-  order:peer:set                        Connect OFT contracs on different networks
+  order:bridge:send                     Send tokens to a specific address on a specific network
+  order:deploy                          Deploys the contract to a specific network: OrderToken, OrderAdapter, OrderOFT, OrderSafeRelayer, OrderBoxRelayer, OrderSafe, OrderBox
+  order:init                            Initializes the contract on a specific network: OrderSafe, OrderSafeRelayer, OrderBox, OrderBoxRelayer
+  order:oft:distribute                  Distribute tokens to all OFT contracts on different networks
+  order:oft:set                         Connect OFT contracs on different networks: OrderOFT, OrderAdapter
   order:print                           Prints the address of the OFT contract
+  order:stake                           Send stakes to a specific address on a specific network
+  order:test                            Used to test code snippets
+  order:upgrade                         Upgrades the contract to a specific network: OrderSafe, OrderSafeRelayer, OrderBox, OrderBoxRelayer
   run                                   Runs a user-defined script after compiling the project
   size-contracts                        Output the size of compiled contracts
   sourcify                              submit contract source code to sourcify (https://sourcify.dev)
@@ -158,15 +164,6 @@ npx @layerzerolabs/verify-contract -d "./deployments" --contracts "OrderOFT" -n 
 npx @layerzerolabs/verify-contract -d "./deployments" --contracts "OrderOFT" -n "mantlesepolia" -u $API_URL_MANTLESEPOLIA -k $API_KEY_MANTLESEPOLIA
 
 npx @layerzerolabs/verify-contract -d "./deployments/" --contracts "OrderOFT" -n "orderlysepolia" -u $API_URL_ORDERLYSEPOLIA
-
-npx @layerzerolabs/verify-contract -d "./deployments" --contracts "OrderSafeRelayer" -n "arbitrumsepolia" -u $API_URL_ARBITRUMSEPOLIA -k $API_KEY_ARBITRUMSEPOLIA
-
-npx @layerzerolabs/verify-contract -d "./deployments" --contracts "OrderSafe" -n "arbitrumsepolia" -u $API_URL_ARBITRUMSEPOLIA -k $API_KEY_ARBITRUMSEPOLIA
-
-npx @layerzerolabs/verify-contract -d "./deployments/" --contracts "OrderBoxRelayer" -n "orderlysepolia" -u $API_URL_ORDERLYSEPOLIA
-
-npx @layerzerolabs/verify-contract -d "./deployments/" --contracts "OrderBox" -n "orderlysepolia" -u $API_URL_ORDERLYSEPOLIA
-
 ```
 
 ### Peer Connection
@@ -191,14 +188,14 @@ To give the maximum token tranfer flexibility, we can connect the OFT contracts 
 To connect an OFT contract on one network to other OFT contracts on other networks, we can run the following command:
 
 ```
-// npx hardhat order:peer:set --env dev --network fromNetwork
-npx hardhat order:peer:set --env dev --network sepolia
+// npx hardhat order:oft:set --env dev --network fromNetwork
+npx hardhat order:oft:set --env dev --network sepolia
 ```
 
-The task `order:peer:set` will try to connect the OFT(or Adapter) contract on the network specified in the `--network` parameter to the OFT contracts on other networks (Supported networks are defined by the `TEST_NETWORKS` or `MAIN_NETWORKS` in `tasks/const.ts`). The connection status will be recorded in the `config/oftPeers.json` file.
+The task `order:oft:set` will try to connect the OFT(or Adapter) contract on the network specified in the `--network` parameter to the OFT contracts on other networks (Supported networks are defined by the `TEST_NETWORKS` or `MAIN_NETWORKS` in `tasks/const.ts`). The connection status will be recorded in the `config/oftPeers.json` file.
 
 ```
-npx hardhat order:peer:set --env dev --network arbitrumsepolia
+npx hardhat order:oft:set --env dev --network arbitrumsepolia
 
 Running on arbitrumsepolia
 Setting peer from arbitrumsepolia to sepolia with tx hash 0x18e8c44af4ae59b7be6669338d2faf653abc12a634e1c732cf7345a255819dd6
@@ -206,17 +203,36 @@ Setting peer from arbitrumsepolia to opsepolia with tx hash 0xcfced93bc51c9a2f0e
 Setting peer from arbitrumsepolia to orderlysepolia with tx hash 0x1d3fd4dd47c8b8f2fb9c06ffd78fc11bdbd48ac8515eb14643de1bb835791f27
 ```
 
-After we have executed the `order:peer:set` task on each supported network, it is supposed that the OFT contracts on different networks are connected together. The transfer between any two of them is enabled.
+After we have executed the `order:oft:set` task on each supported network, it is supposed that the OFT contracts on different networks are connected together. The transfer between any two of them is enabled.
 
 ### Token Transfer
 
-To test the token transfer across chains, we can use `order:bridge:token` task to send the token from one network to another network. The task is defined as follows:
+> Notice: The very first token transfer should be executed on the network where the native ERC20 token is deployed (Sepolia or Ethereum). And to transfer from the ERC20 token to the OFT token, the task will try to approve the OrderAdapter contract to spend the token on behalf of the sender.
+
+After OFT contracts deployed on other networks are connected together, there is no ORDER token on these networks. We can only initiate the token transfer from Sepolia/Ethereum to other networks through OFT Adapter contract.
 
 ```
-npx hardhat order:bridge:token --env dev --network fromNetwork --dst-network toNetwork --receiver toAddress --amount amount
+npx hardhat order:oft:distribute --env dev --network sepolia --receiver 0xdd3287043493e0a08d2b348397554096728b459c --amount 1000000
+
+Approving OrderAdapter to spend 1000000 on OrderToken with tx hash 0x76af63c37b1b8b76ec9bebc2cc577cc5455aceb0c29481e5f81aa9175eb7f274
+Sending tokens from sepolia to arbitrumsepolia with tx hash 0x592da906d5724167d8f726a1f0dc3558c12cf334edc211e59a85c4073c31efa0
+Approving OrderAdapter to spend 1000000 on OrderToken with tx hash 0x684943a0c9b200f4ca067db5a3bb07cd98ef0f7bfd9598db5bfd8f6f25d96dd8
+Sending tokens from sepolia to opsepolia with tx hash 0xbcf41528934ad5b03d6d7016ebede1904c29f0226dac9a50f709d9d91791b163
+Approving OrderAdapter to spend 1000000 on OrderToken with tx hash 0x61ea4d21053f4ea6587bb4a932566df192bfcf8f3a3e3b71513ecbaa7a327e30
+Sending tokens from sepolia to orderlysepolia with tx hash 0xc25c6bfaef2feff535e0efe50c8d469d9a483df86d731dc8177e208d536551e1
 ```
 
-Notice: The very first token transfer should be executed on the network where the native ERC20 token is deployed (Sepolia or Ethereum). And to transfer from the ERC20 token to the OFT token, the task will try to approve the OrderAdapter contract to spend the token on behalf of the sender.
+To test the token transfer across chains, we can use `order:oft:send` task to send the token from one network to another network. The task is defined as follows:
+
+```
+// npx hardhat order:oft:send --env dev --network fromNetwork --dst-network toNetwork --receiver toAddress --amount amount
+
+npx hardhat order:oft:send --env dev --network sepolia --dst-network orderlysepolia --receiver 0xdd3287043493e0a08d2b348397554096728b459c --amount 100
+
+Running on sepolia
+Approving OrderAdapter to spend 100 on OrderToken with tx hash 0xbf2b81d73a4007256e84ca2f8407fec4bcabda73aaeb6a63343382626264dbc1
+Sending tokens from sepolia to orderlysepolia with tx hash 0x701678c3976f0c53c2169c771feea91d037abf82863d49a7a110dde2afcb2c8c
+```
 
 ```
 npx hardhat order:bridge:token --env dev --network sepolia --dst-network arbitrumsepolia --receiver 0xDd3287043493E0a08d2B348397554096728B459c --amount 1000000
@@ -234,43 +250,45 @@ OFT protocal also supports the cross-chain message relay with token transfer. Th
 
 ```
 struct SendParam {
-    uint32 dstEid; // Destination endpoint ID.
-    bytes32 to; // Recipient address.
-    uint256 amountLD; // Amount to send in local decimals.
-    uint256 minAmountLD; // Minimum amount to send in local decimals.
-    bytes extraOptions; // Additional options supplied by the caller to be used in the LayerZero message.
-    bytes composeMsg; // The composed message for the send() operation.
-    bytes oftCmd; // The OFT command to be executed, unused in default OFT implementations.
+uint32 dstEid; // Destination endpoint ID.
+bytes32 to; // Recipient address.
+uint256 amountLD; // Amount to send in local decimals.
+uint256 minAmountLD; // Minimum amount to send in local decimals.
+bytes extraOptions; // Additional options supplied by the caller to be used in the LayerZero message.
+bytes composeMsg; // The composed message for the send() operation.
+bytes oftCmd; // The OFT command to be executed, unused in default OFT implementations.
 }
 function send(
-        SendParam calldata _sendParam,
-        MessagingFee calldata _fee,
-        address _refundAddress
-    )
+SendParam calldata _sendParam,
+MessagingFee calldata _fee,
+address _refundAddress
+)
+
 ```
 
 The relayed message should be encoded as bytes before calling `send()` function, and will be sent to the `_sendParam.to` address on the destination network. The `_sendParam.to` contract must inherit the `ILayerZeroComposer` and implement its `lzCompose()` function to receive and decode the composed message.
 
 ```
 function lzCompose(
-        address _from,
-        bytes32 _guid,
-        bytes calldata _message,
-        address _executor,
-        bytes calldata _extraData
-    ) public payable override {
-        bytes memory composeMsg = _message.composeMsg();
-        uint32 srcEid = _message.srcEid();
-        address remoteSender = OFTComposeMsgCodec.bytes32ToAddress(_message.composeFrom());
-        require(
-            _composeMsgSenderCheck(msg.sender, _from, srcEid, remoteSender),
-            "OrderlyBox: composeMsg sender check failed"
-        );
-        (address staker, uint256 amount) = abi.decode(composeMsg, (address, uint256));
-        IERC20 token = IERC20(IOFT(oft).token());
-        token.safeTransfer(orderBox, amount);
-        IOrderBox(orderBox).stakeOrder(_getChainId(srcEid), staker, amount);
-    }
+address _from,
+bytes32 _guid,
+bytes calldata _message,
+address _executor,
+bytes calldata _extraData
+) public payable override {
+bytes memory composeMsg = _message.composeMsg();
+uint32 srcEid = _message.srcEid();
+address remoteSender = OFTComposeMsgCodec.bytes32ToAddress(_message.composeFrom());
+require(
+_composeMsgSenderCheck(msg.sender, _from, srcEid, remoteSender),
+"OrderlyBox: composeMsg sender check failed"
+);
+(address staker, uint256 amount) = abi.decode(composeMsg, (address, uint256));
+IERC20 token = IERC20(IOFT(oft).token());
+token.safeTransfer(orderBox, amount);
+IOrderBox(orderBox).stakeOrder(_getChainId(srcEid), staker, amount);
+}
+
 ```
 
 ### Contracts
@@ -295,13 +313,11 @@ npx hardhat compile
 
 // On Vault side
 npx hardhat order:deploy --env dev --network arbitrumsepolia --contract OrderSafeRelayer
-npx hardhat order:deploy  --contract OrderSafe
-
-
+npx hardhat order:deploy --env dev --network arbitrumsepolia --contract OrderSafe
 
 // On Ledger side
-npx hardhat order:deploy --env dev --network orderlysepolia  --contract OrderBoxRelayer
-npx hardhat order:deploy --env dev --network orderlysepolia  --contract OrderBox
+npx hardhat order:deploy --env dev --network orderlysepolia --contract OrderBoxRelayer
+npx hardhat order:deploy --env dev --network orderlysepolia --contract OrderBox
 
 ```
 
@@ -314,7 +330,6 @@ npx @layerzerolabs/verify-contract -d "./deployments" --contracts "OrderSafeRela
 // Verify Safe contract
 npx @layerzerolabs/verify-contract -d "./deployments" --contracts "OrderSafe" -n "arbitrumsepolia" -u $API_URL_ARBITRUMSEPOLIA -k $API_KEY_ARBITRUMSEPOLIA
 
-
 // Verify BoxRelayer contract
 npx @layerzerolabs/verify-contract -d "./deployments" --contracts "OrderBoxRelayer" -n "orderlysepolia" -u $API_URL_ORDERLYSEPOLIA
 
@@ -325,14 +340,16 @@ npx @layerzerolabs/verify-contract -d "./deployments" --contracts "OrderBox" -n 
 
 ### Initializatino
 
-Before running the task to initialize the contracts, you must have to deployed all the four contracts (`OrderSafe, OrderSafeRelayer` on Vault side, `OrderBox, OrderBoxRelayer` on Ledger side) on the corresponding networks to generate the corresponding addresses.
+Before running the task to initialize the contracts, you **must have deploy** all the four contracts (`OrderSafe, OrderSafeRelayer` on Vault side, `OrderBox, OrderBoxRelayer` on Ledger side) on the corresponding networks to generate the corresponding addresses.
 
 ```
+
 npx hardhat order:init --env dev --network arbitrumsepolia --contract OrderSafeRelayer
 npx hardhat order:init --env dev --network arbitrumsepolia --contract OrderSafe
 
 npx hardhat order:init --env dev --network orderlysepolia --contract OrderBoxRelayer
 npx hardhat order:init --env dev --network orderlysepolia --contract OrderBox
+
 ```
 
 This `init` task will set correponding addresses on the contracts to enable the **TRUSTED** cross-chain message relay.
@@ -342,14 +359,19 @@ This `init` task will set correponding addresses on the contracts to enable the 
 To stake token on the ledger side, we can use the `stakeOrder` function on the `OrderSafe` contract. The `OrderSafe` contract will relay the token to `OrderSafeRelayer`, the later will call `send()` function on the OFT contract to send the token to the `OrderBoxRelayer` contract on the Ledger side and composed with a message to trigger stake action on Ledger side.
 
 ```
+
 npx hardhat order:stake --env dev --amount 100 --network arbitrumsepolia
 Running on arbitrumsepolia
 Approving OrderSafe to spend 100000000000000000000 on OrderOFT with tx hash 0xa969eceae9be923231713d167cc1ef8dc0ab686866802237896b9e402315fb38
-Stake fee: 73427651215045
 Sending tokens from arbitrumsepolia to orderlysepolia with tx hash 0x31f74192d1bd685e4b1bac36a433bd5d208fc43a660e57bf8f826579a43560d1
+
 ```
 
 Through the [LayerZero](https://testnet.layerzeroscan.com/tx/0x31f74192d1bd685e4b1bac36a433bd5d208fc43a660e57bf8f826579a43560d1) scan to monitor the token transfer status.
 
 - The [received tx](https://explorerl2new-orderly-l2-4460-sepolia-8tc3sd7dvy.t.conduit.xyz/tx/0xd06a8e7dd8373927c52b11a2e8d6a574c7ac90cb9aa508ca389a4539ea5789e1) on Orderly network
 - The [composed tx](https://explorerl2new-orderly-l2-4460-sepolia-8tc3sd7dvy.t.conduit.xyz/tx/0x384d03949bf6cc7b3b01cbd232d40cc8c2c3fdeb8691a9e971cb1ec52771de6a) on Orderly network
+
+```
+
+```

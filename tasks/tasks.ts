@@ -5,6 +5,7 @@ import { loadContractAddress, saveContractAddress,  setPeer, isPeered } from "./
 import { Options } from '@layerzerolabs/lz-v2-utilities'
 import { AbiCoder } from "ethers/lib/utils"
 import { DeployResult } from "hardhat-deploy/dist/types"
+import { urlToHttpOptions } from "url"
 
 let fromNetwork: string = ""
 let toNetwork: string = ""
@@ -15,15 +16,16 @@ let localContractName: string = ""
 let remoteContractAddress: string = ""
 let remoteContractName: string = ""
 
-task("test:task", "Used to test code snippets")
+task("order:test", "Used to test code snippets")
+    .addParam("dstNetwork", "The network to receive the tokens", undefined, types.string)
     .setAction(async (taskArgs, hre) => {
-        console.log("Running on", hre.network.name)
-        checkNetwork(hre.network.name)
+        console.log(`Destination network: ${taskArgs.dstNetwork}`)
 
     })
 
 task("order:print", "Prints the address of the OFT contract")
     .addParam("env", "The environment to deploy the OFT contract", undefined, types.string)
+    .addParam("contract", "The contract to deploy", undefined, types.string)
     .setAction(async (taskArgs, hre) => {
         const contractName: OFTContractType = taskArgs.contract as OFTContractType
         const env: EnvType = taskArgs.env as EnvType
@@ -31,7 +33,7 @@ task("order:print", "Prints the address of the OFT contract")
         console.log(`Printing contract address on ${taskArgs.env} ${hre.network.name}`, await loadContractAddress(env, hre.network.name, contractName))
     })
 
-task("order:deploy", "Deploys the contract to a specific network")
+task("order:deploy", "Deploys the contract to a specific network: OrderToken, OrderAdapter, OrderOFT, OrderSafeRelayer, OrderBoxRelayer, OrderSafe, OrderBox")
     .addParam("env", "The environment to deploy the OFT contract", undefined, types.string)
     .addParam("contract", "The contract to deploy", undefined, types.string)
     .setAction(async (taskArgs, hre) => {
@@ -120,7 +122,7 @@ task("order:deploy", "Deploys the contract to a specific network")
         }
     })
 
-task("order:init", "Initializes the contract on a specific network")
+task("order:init", "Initializes the contract on a specific network: OrderSafe, OrderSafeRelayer, OrderBox, OrderBoxRelayer")
     .addParam("env", "The environment to deploy the OFT contract", undefined, types.string)
     .addParam("contract", "The contract to deploy", undefined, types.string)
     .setAction(async (taskArgs, hre) => {
@@ -169,6 +171,22 @@ task("order:init", "Initializes the contract on a specific network")
                 else {
                     console.log(`Eid ${lzConfig.endpointId} and chainId ${lzConfig.chainId} already set on ${contractName}`)
                 }
+                
+                // set options
+                const lzReceive = 0
+                const lzReceiveGas = 200000
+                const lzReceiveValue = 0
+
+                const stake = 1
+                const stakeGas = 500000
+                const stakeValue = 0
+
+                const txSetOptionsAirdropReceive = await contract.setOptionsAirdrop(lzReceive, lzReceiveGas, lzReceiveValue)
+                await txSetOptionsAirdropReceive.wait()
+                console.log(`Set options for airdrop receive on ${contractName}`)
+                const txSetOptionsAridropStake = await contract.setOptionsAirdrop(stake, stakeGas, stakeValue)
+                await txSetOptionsAridropStake.wait()
+                console.log(`Set options for airdrop stake on ${contractName}`)
 
                 
                 if (contractName === 'OrderSafeRelayer') {
@@ -266,7 +284,8 @@ task("order:init", "Initializes the contract on a specific network")
                         console.log(`OrderBoxRelayer already set on ${contractName}`)
                     }
                 } 
-            }  else {
+            } 
+            else {
                 throw new Error(`Contract ${contractName} not found`)
             }
 
@@ -277,7 +296,7 @@ task("order:init", "Initializes the contract on a specific network")
         }
     })
 
-task("order:upgrade", "Upgrades the contract to a specific network")
+task("order:upgrade", "Upgrades the contract to a specific network: OrderSafe, OrderSafeRelayer, OrderBox, OrderBoxRelayer")
     .addParam("env", "The environment to upgrade the OFT contract", undefined, types.string)
     .addParam("contract", "The contract to upgrade", undefined, types.string)
     .setAction(async (taskArgs, hre) => {
@@ -333,7 +352,7 @@ task("order:upgrade", "Upgrades the contract to a specific network")
         }
     })
 
-task("order:peer:set", "Connect OFT contracs on different networks")
+task("order:oft:set", "Connect OFT contracs on different networks: OrderOFT, OrderAdapter")
     .addParam("env", "The environment to connect the OFT contracts", undefined, types.string)
     .setAction(async (taskArgs, hre) => {
         checkNetwork(hre.network.name)
@@ -341,53 +360,60 @@ task("order:peer:set", "Connect OFT contracs on different networks")
             const fromNetwork = hre.network.name
             const NETWORKS = taskArgs.env === 'mainnet' ? MAIN_NETWORKS : TEST_NETWORKS
             console.log(`Running on ${fromNetwork}`)
+            const [ signer ] = await hre.ethers.getSigners()
+            let nonce = await signer.getTransactionCount()
+            let enforcedOptions = []
+            const localContractName = oftContractName(fromNetwork)
+            const localContractAddress = await loadContractAddress(taskArgs.env, fromNetwork, localContractName) as string
+            const localContract = await hre.ethers.getContractAt(localContractName, localContractAddress, signer)
+
             for (const toNetwork of NETWORKS) {
                 if (fromNetwork !== toNetwork) {
                     
-                    localContractName = oftContractName(fromNetwork)
+                    
                     remoteContractName = oftContractName(toNetwork)
-
-                    localContractAddress = await loadContractAddress(taskArgs.env, fromNetwork, localContractName) as string
                     remoteContractAddress = await loadContractAddress(taskArgs.env, toNetwork, remoteContractName) as string
 
-                    const [ signer ] = await hre.ethers.getSigners()
-                    const contract = await hre.ethers.getContractAt(localContractName, localContractAddress, signer)
                     
                     const lzConfig = getLzConfig(toNetwork)
-                    
                     const paddedPeerAddress = hre.ethers.utils.hexZeroPad(remoteContractAddress, 32)
                     // lzConfig! to avoid undefined error
-                    const isPeer = await contract.isPeer(lzConfig["endpointId"], paddedPeerAddress)
+                    const isPeer = await localContract.isPeer(lzConfig["endpointId"], paddedPeerAddress)
+                    
                     if (!isPeer) {
-                        const tx = await contract.setPeer(lzConfig["endpointId"], paddedPeerAddress)
+                        const tx = await localContract.setPeer(lzConfig["endpointId"], paddedPeerAddress, {
+                            nonce: nonce++
+                        })
                         tx.wait()
                         console.log(`Setting peer from ${fromNetwork} to ${toNetwork} with tx hash ${tx.hash}`)
                         await setPeer(taskArgs.env, fromNetwork, toNetwork, true)
                     } else {
                         console.log(`Already peered from ${fromNetwork} to ${toNetwork}`)
                     }
+                    const types = [1,2]
+                    for (const type of types) {
+                        const typeOptionOnContract = await localContract.enforcedOptions(lzConfig["endpointId"], type)
+
+                        const enforcedOrderedOption = Options.newOptions().addExecutorOrderedExecutionOption().toHex()
+                        if (typeOptionOnContract !== enforcedOrderedOption) {
+                            const optionsToAdd = {
+                                eid: lzConfig["endpointId"],
+                                msgType: type,
+                                options: enforcedOrderedOption
+                            }
+                            enforcedOptions.push(optionsToAdd)
+                        }
+                    }
                     
                 }
             }
-
-        }
-        catch (e) {
-            console.log(`Error: ${e}`)
-        }
-    })
-
-task("order:peer:init", "Initialize the network connections in oftPeers.json file")
-    .addParam("env", "The environment to connect the OFT contracts", undefined, types.string)
-    .addFlag("writeFile", "Write the connections to the file")
-    .setAction(async (taskArgs, hre) => {
-        try {
-            const NETWORKS = taskArgs.env === 'mainnet' ? MAIN_NETWORKS : TEST_NETWORKS
-            for (const fromNetwork of NETWORKS) {
-                for (const toNetwork of NETWORKS) {
-                    if (fromNetwork !== toNetwork) {
-                        await setPeer(taskArgs.env, fromNetwork, toNetwork, false)
-                    }
-                }
+            if (enforcedOptions.length > 0) {
+                const txSetEnforcedOptions = await localContract.setEnforcedOptions(enforcedOptions)
+                txSetEnforcedOptions.wait()
+                console.log(`Enforced options set with tx hash ${txSetEnforcedOptions.hash}`)
+            } else {
+                console.log(`Enforced options already set`)
+            
             }
         }
         catch (e) {
@@ -396,7 +422,79 @@ task("order:peer:init", "Initialize the network connections in oftPeers.json fil
     })
 
 
-task("order:bridge:token", "Send tokens to a specific address on a specific network")
+task("order:oft:distribute", "Distribute tokens to all OFT contracts on different networks")
+    .addParam("env", "The environment to send the tokens", undefined, types.string)
+    .addParam("receiver", "The address to receive the tokens", undefined, types.string)
+    .addParam("amount", "The amount of tokens to send", undefined, types.string)
+    .setAction(async (taskArgs, hre) => {
+        checkNetwork(hre.network.name)
+        try {
+            fromNetwork = hre.network.name
+            const receiver = taskArgs.receiver
+            const [ signer ] = await hre.ethers.getSigners()
+            const NETWORKS = taskArgs.env === 'mainnet' ? MAIN_NETWORKS : TEST_NETWORKS
+            console.log(`Running on ${fromNetwork}`)
+            let nonce = await signer.getTransactionCount()
+            for (const toNetwork of NETWORKS) {
+                if (fromNetwork !== toNetwork) {
+                    
+                    localContractName = oftContractName(fromNetwork)
+                    remoteContractName = oftContractName(toNetwork)                    
+                    localContractAddress = await loadContractAddress(taskArgs.env, fromNetwork, localContractName) as string
+                    remoteContractAddress = await loadContractAddress(taskArgs.env, toNetwork, remoteContractName) as string
+
+                    const erc20ContractName = tokenContractName(fromNetwork)
+                    const erc20ContractAddress = await loadContractAddress(taskArgs.env, fromNetwork, erc20ContractName) as string
+
+                    const localContract = await hre.ethers.getContractAt(localContractName, localContractAddress, signer)
+                    const erc20Contract = await hre.ethers.getContractAt(erc20ContractName, erc20ContractAddress, signer)
+                    
+                    const deciamls = await erc20Contract.decimals() 
+                    const tokenAmount = hre.ethers.utils.parseUnits(taskArgs.amount, deciamls)
+                    if (await localContract.approvalRequired() && (tokenAmount > await erc20Contract.allowance(signer.address, localContractAddress))) {
+                        const approveTx = await erc20Contract.approve(localContractAddress, tokenAmount, {nonce: nonce++})
+                        approveTx.wait()
+                        console.log(`Approving ${localContractName} to spend ${taskArgs.amount} on ${erc20ContractName} with tx hash ${approveTx.hash}`)
+                    }
+                    
+                    // TODO: test with different gasLimit 
+                    const gasLimit = 50000
+                    const msgValue = 0
+                    const index = 0
+                    // const option = Options.newOptions().addExecutorLzReceiveOption(gasLimit, msgValue)
+                    const option = Options.newOptions().addExecutorLzReceiveOption(gasLimit, msgValue).toHex()
+                    // const option = Options.newOptions().addExecutorLzReceiveOption(gasLimit, msgValue).addExecutorComposeOption(index, gasLimit, msgValue)
+                    // const composedMsg = await hre.ethers.utils.defaultAbiCoder.encode(["uint256"], ["5"])
+                    // const stakeComposeMsg = await hre.ethers.utils.defaultAbiCoder.encode(["(address,uint256)"], [[signer.address, tokenAmount]])
+                    const composeMsg = "0x"
+                    const param = {
+                        dstEid: getLzConfig(toNetwork)["endpointId"],
+                        to: hre.ethers.utils.hexZeroPad(receiver, 32),
+                        amountLD: tokenAmount,
+                        minAmountLD: tokenAmount,
+                        extraOptions: option,
+                        composeMsg: composeMsg,
+                        oftCmd: "0x"
+                    }
+                    const payLzToken = false
+                    let fee = await localContract.quoteSend(param, payLzToken);
+                    const sendTx = await localContract.send(param, fee, signer.address, 
+                    {   value: fee.nativeFee,
+                        gasLimit:500000,
+                        nonce: nonce++
+                    })
+                    sendTx.wait()
+                    console.log(`Sending tokens from ${fromNetwork} to ${toNetwork} with tx hash ${sendTx.hash}`)
+                        }}
+            
+            }
+        catch(e) {
+            console.log(`Error: ${e}`)
+        
+        }
+    })
+
+task("order:oft:send", "Send tokens to a specific address on a specific network")
     .addParam("env", "The environment to send the tokens", undefined, types.string)
     .addParam("dstNetwork", "The network to receive the tokens", undefined, types.string)
     .addParam("receiver", "The address to receive the tokens", undefined, types.string)
@@ -432,28 +530,24 @@ task("order:bridge:token", "Send tokens to a specific address on a specific netw
             const tokenAmount = hre.ethers.utils.parseUnits(taskArgs.amount, deciamls)
             let nonce = await signer.getTransactionCount()
 
-            if (await localContract.approvalRequired()) {
+            if (await localContract.approvalRequired() && (tokenAmount > await erc20Contract.allowance(signer.address, localContractAddress))) {
                 const approveTx = await erc20Contract.approve(localContractAddress, tokenAmount, {nonce: nonce++})
                 approveTx.wait()
-                console.log(`Approving ${localContractName} to spend ${tokenAmount} on ${erc20ContractName} with tx hash ${approveTx.hash}`)
+                console.log(`Approving ${localContractName} to spend ${taskArgs.amount} on ${erc20ContractName} with tx hash ${approveTx.hash}`)
             }
             
             // TODO: test with different gasLimit 
             const gasLimit = 50000
             const msgValue = 0
             const index = 0
-            const option = Options.newOptions().addExecutorLzReceiveOption(gasLimit, msgValue)
-            // const option = Options.newOptions().addExecutorLzReceiveOption(gasLimit, msgValue).addExecutorComposeOption(index, gasLimit, msgValue)
-            // const composedMsg = await hre.ethers.utils.defaultAbiCoder.encode(["uint256"], ["5"])
-            // const stakeComposeMsg = await hre.ethers.utils.defaultAbiCoder.encode(["(address,uint256)"], [[signer.address, tokenAmount]])
+            const option = Options.newOptions().addExecutorLzReceiveOption(gasLimit, msgValue).toHex()
             const composeMsg = "0x"
-            console.log(`Composed message: ${composeMsg}`)
             const param = {
                 dstEid: getLzConfig(toNetwork)["endpointId"],
                 to: hre.ethers.utils.hexZeroPad(receiver, 32),
                 amountLD: tokenAmount,
                 minAmountLD: tokenAmount,
-                extraOptions: option.toHex(),
+                extraOptions: option,
                 composeMsg: composeMsg,
                 oftCmd: "0x"
             }
@@ -464,6 +558,7 @@ task("order:bridge:token", "Send tokens to a specific address on a specific netw
                 gasLimit:500000,
                 nonce: nonce
             })
+            sendTx.wait()
             console.log(`Sending tokens from ${fromNetwork} to ${toNetwork} with tx hash ${sendTx.hash}`)
         }
         catch (e) {
@@ -513,7 +608,6 @@ task("order:stake", "Send stakes to a specific address on a specific network")
             const airdropValue = 0;
             const option = Options.newOptions().addExecutorLzReceiveOption(lzReceiveGas, airdropValue).addExecutorComposeOption(index, lzComposeGas, airdropValue)
             const lzFee = await safeContract.getStakeFee(signer.address, tokenAmount)
-            console.log(`Stake fee: ${lzFee}`)
             
             const stakeTx = await safeContract.stakeOrder(signer.address, tokenAmount, {
                 gasLimit: 500000,
@@ -525,5 +619,3 @@ task("order:stake", "Send stakes to a specific address on a specific network")
             console.log(`Error: ${e}`)
         }
     })
-
-
