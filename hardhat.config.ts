@@ -38,7 +38,7 @@ const config: HardhatUserConfig = {
     solidity: {
         compilers: [
             {
-                version: '0.8.22',
+                version: '0.8.20',
                 settings: {
                     optimizer: {
                         enabled: true,
@@ -49,6 +49,7 @@ const config: HardhatUserConfig = {
         ],
     },
     networks: {
+        
         sepolia: {
             eid: EndpointId.SEPOLIA_V2_TESTNET,
             url: process.env.RPC_URL_SEPOLIA || RPC["sepolia"],
@@ -65,18 +66,18 @@ const config: HardhatUserConfig = {
             accounts,
         },
         amoy: {
-          eid: EndpointId.AMOY_V2_TESTNET,
-          url: process.env.RPC_URL_AMOYSEPOLIA || RPC["amoy"],
-          accounts,
+            eid: EndpointId.AMOY_V2_TESTNET,
+            url: process.env.RPC_URL_AMOYSEPOLIA || RPC["amoy"],
+            accounts,
+          },
+        mantlesepolia: {
+            eid: EndpointId.MANTLESEP_V2_TESTNET,
+            url: process.env.RPC_URL_MANTLESEPOLIA || RPC["mantlesepolia"],
+            accounts,
         },
         basesepolia: {
             eid: EndpointId.BASESEP_V2_TESTNET,
             url: process.env.RPC_URL_BASESEPOLIA || RPC["basesepolia"],
-            accounts,
-        },
-        mantlesepolia: {
-            eid: EndpointId.MANTLESEP_V2_TESTNET,
-            url: process.env.RPC_URL_MANTLESEPOLIA || RPC["mantlesepolia"],
             accounts,
         },
         orderlysepolia: {
@@ -86,31 +87,31 @@ const config: HardhatUserConfig = {
         },
         // mainnets
         ethereum: {
-            url: process.env.RPC_URL_ETHEREUM || '',
+            url: process.env.RPC_URL_ETHEREUM || RPC["ethereum"],
             accounts,
         },
         arbitrum: {
-            url: process.env.RPC_URL_ARBITRUM || '',
+            url: process.env.RPC_URL_ARBITRUM || RPC["arbitrum"],
             accounts,
         },
         optimism: {
-            url: process.env.RPC_URL_OPTIMISM || '',
+            url: process.env.RPC_URL_OPTIMISM || RPC["optimism"],
             accounts,
         },
         polygon: {
-            url: process.env.RPC_URL_POLYGON || '',
+            url: process.env.RPC_URL_POLYGON || RPC["polygon"],
             accounts,
         },
         base: {
-            url: process.env.RPC_URL_BASE || '',
+            url: process.env.RPC_URL_BASE || RPC["base"],
             accounts,
         },
         mantle: {
-            url: process.env.RPC_URL_MANTLE || '',
+            url: process.env.RPC_URL_MANTLE || RPC["mantle"],
             accounts,
         },
         orderly: {
-            url: process.env.RPC_URL_ORDERLY || '',
+            url: process.env.RPC_URL_ORDERLY || RPC["orderly"],
             accounts,
         }
     },

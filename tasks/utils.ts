@@ -6,7 +6,7 @@ const PEERS_PATH = "./config/oftPeers.json"
 
 
 
-export async function saveOFTAddress(env: env, network: string, name: name, address: string) {
+export async function saveContractAddress(env: env, network: string, name: name, address: string) {
     if (fs.existsSync(ADDRESS_PATH)) {
         const data = fs.readFileSync(ADDRESS_PATH, 'utf-8');
         const oftAddress: OFTData = JSON.parse(data);
@@ -24,7 +24,7 @@ export async function saveOFTAddress(env: env, network: string, name: name, addr
     }
  }
 
-export async function loadOFTAddress(env: env, network: string, name: name) {
+export async function loadContractAddress(env: env, network: string, name: name) {
  
     if (fs.existsSync(ADDRESS_PATH)) {
         const data = fs.readFileSync(ADDRESS_PATH, 'utf-8');
