@@ -41,7 +41,16 @@ export type OFTContractType = 'OrderToken' | 'OrderAdapter' | 'OrderOFT' | 'Orde
 
 export const TEST_NETWORKS = ['sepolia', 'arbitrumsepolia', 'opsepolia', 'orderlysepolia']  //  'amoy', 'basesepolia', 'mantlesepolia', 
 export const MAIN_NETWORKS = ['ethereum', 'arbitrum', 'optimism', 'polygon', 'base', 'mantle', 'orderly']
-
+export const OPTIONS = {
+    "1": {
+        "gas": 55000,
+        "value": 0
+    },
+    "2": {
+        "gas": 150000,
+        "value": 0
+    }
+}
 
 export const RPC: { [key: network]: string } = {
     // testnets
