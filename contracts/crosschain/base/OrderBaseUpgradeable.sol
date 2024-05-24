@@ -5,7 +5,7 @@ import { UUPSUpgradeable } from "@openzeppelin/contracts-upgradeable/proxy/utils
 import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import { PausableUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
 
-abstract contract OrderBase is UUPSUpgradeable, OwnableUpgradeable, PausableUpgradeable {
+abstract contract OrderBaseUpgradeable is UUPSUpgradeable, OwnableUpgradeable, PausableUpgradeable {
     function initialize(address _owner) public initializer {
         __UUPSUpgradeable_init();
         __Ownable_init(_owner);

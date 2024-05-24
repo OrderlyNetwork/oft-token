@@ -9,7 +9,6 @@ import { OFTComposeMsgCodec } from "@layerzerolabs/lz-evm-oapp-v2/contracts/oft/
 import { OrderBoxRelayerStorage } from "./storage/OrderBoxRelayerStorage.sol";
 import { IOrderBoxRelayer } from "./interfaces/IOrderBoxRelayer.sol";
 import { OrderRelayerBase } from "./base/OrderRelayerBase.sol";
-import { OrderBase } from "./base/OrderBase.sol";
 import { IOrderBox } from "./interfaces/IOrderBox.sol";
 
 contract OrderBoxRelayer is IOrderBoxRelayer, ILayerZeroComposer, OrderRelayerBase, OrderBoxRelayerStorage {

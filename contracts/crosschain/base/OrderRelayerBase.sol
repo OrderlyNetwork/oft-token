@@ -3,10 +3,10 @@ pragma solidity ^0.8.20;
 
 import { OptionsBuilder } from "@layerzerolabs/lz-evm-oapp-v2/contracts/oapp/libs/OptionsBuilder.sol";
 import { OrderRelayerStorage } from "../storage/OrderRelayerStorage.sol";
-import { OrderBase } from "./OrderBase.sol";
+import { OrderBaseUpgradeable } from "./OrderBaseUpgradeable.sol";
 import { IOrderRelayer, Options, OptionsAirdrop } from "../interfaces/IOrderRelayer.sol";
 
-abstract contract OrderRelayerBase is IOrderRelayer, OrderBase, OrderRelayerStorage {
+abstract contract OrderRelayerBase is IOrderRelayer, OrderBaseUpgradeable, OrderRelayerStorage {
     using OptionsBuilder for bytes;
     /* ========== Only Owner ========== */
     function setLocalComposeMsgSender(address _addr, bool _allowed) public onlyOwner {
