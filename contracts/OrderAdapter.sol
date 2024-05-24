@@ -6,8 +6,8 @@ import { OFTAdapter } from "@layerzerolabs/lz-evm-oapp-v2/contracts/oft/OFTAdapt
 import { Origin } from "@layerzerolabs/lz-evm-oapp-v2/contracts/oft/OFTCore.sol";
 
 contract OrderAdapter is OFTAdapter {
-    mapping(uint32 => mapping(bytes32 => uint64)) public receivedNonce;
-
+    mapping(uint32 => mapping(bytes32 => uint64)) public maxReceivedNonce;
+    bool public orderedNonce;
     constructor(
         address _orderToken,
         address _lzEndpoint,
@@ -37,12 +37,30 @@ contract OrderAdapter is OFTAdapter {
     }
 
     function _acceptNonce(uint32 _srcEid, bytes32 _sender, uint64 _nonce) internal {
-        receivedNonce[_srcEid][_sender] += 1;
-        require(_nonce == receivedNonce[_srcEid][_sender], "OApp: invalid nonce");
+        uint64 curNonce = maxReceivedNonce[_srcEid][_sender];
+        if (orderedNonce) {
+            require(_nonce == curNonce + 1, "OApp: invalid nonce");
+        }
+
+        if (_nonce > curNonce) {
+            maxReceivedNonce[_srcEid][_sender] = _nonce;
+        }
     }
 
     function nextNonce(uint32 _srcEid, bytes32 _sender) public view override returns (uint64) {
-        return receivedNonce[_srcEid][_sender] + 1;
+        if (orderedNonce) {
+            return maxReceivedNonce[_srcEid][_sender] + 1;
+        } else {
+            return 0;
+        }
+    }
+
+    // skip a nonce, which is not verified by lz yet
+    function skipInboundNonce(uint32 _srcEid, bytes32 _sender, uint64 _nonce) public onlyOwner {
+        endpoint.skip(address(this), _srcEid, _sender, _nonce);
+        if (orderedNonce) {
+            maxReceivedNonce[_srcEid][_sender]++;
+        }
     }
 
     function _lzReceive(

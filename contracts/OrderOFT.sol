@@ -6,11 +6,19 @@ import { OFT } from "@layerzerolabs/lz-evm-oapp-v2/contracts/oft/OFT.sol";
 import { Origin } from "@layerzerolabs/lz-evm-oapp-v2/contracts/oft/OFTCore.sol";
 
 contract OrderOFT is OFT {
-    mapping(uint32 => mapping(bytes32 => uint64)) public receivedNonce;
+    // srcEid => sender => nonce
+    mapping(uint32 => mapping(bytes32 => uint64)) public maxReceivedNonce;
+    bool public orderedNonce;
     constructor(
         address _lzEndpoint,
         address _delegate
     ) OFT("Orderly Network", "ORDER", _lzEndpoint, _delegate) Ownable(_delegate) {}
+
+    /* ========== OWNER FUNCTIONS ========== */
+
+    function setOrderedNonce(bool _orderedNonce) external onlyOwner {
+        orderedNonce = _orderedNonce;
+    }
 
     // omit zero token transfer to allow raw composeMsg relay
     function _debit(
@@ -35,12 +43,30 @@ contract OrderOFT is OFT {
     }
 
     function _acceptNonce(uint32 _srcEid, bytes32 _sender, uint64 _nonce) internal {
-        receivedNonce[_srcEid][_sender] += 1;
-        require(_nonce == receivedNonce[_srcEid][_sender], "OApp: invalid nonce");
+        uint64 curNonce = maxReceivedNonce[_srcEid][_sender];
+        if (orderedNonce) {
+            require(_nonce == curNonce + 1, "OApp: invalid nonce");
+        }
+
+        if (_nonce > curNonce) {
+            maxReceivedNonce[_srcEid][_sender] = _nonce;
+        }
     }
 
     function nextNonce(uint32 _srcEid, bytes32 _sender) public view override returns (uint64) {
-        return receivedNonce[_srcEid][_sender] + 1;
+        if (orderedNonce) {
+            return maxReceivedNonce[_srcEid][_sender] + 1;
+        } else {
+            return 0;
+        }
+    }
+
+    // skip a nonce, which is not verified by lz yet
+    function skipInboundNonce(uint32 _srcEid, bytes32 _sender, uint64 _nonce) public onlyOwner {
+        endpoint.skip(address(this), _srcEid, _sender, _nonce);
+        if (orderedNonce) {
+            maxReceivedNonce[_srcEid][_sender]++;
+        }
     }
 
     function _lzReceive(
