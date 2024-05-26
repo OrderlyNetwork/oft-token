@@ -1,6 +1,6 @@
 
 import { task, types } from "hardhat/config"
-import { EnvType, OFTContractType, TEST_NETWORKS, MAIN_NETWORKS, tokenContractName, oftContractName, getLzConfig, checkNetwork } from "./const"
+import { EnvType, OFTContractType, TEST_NETWORKS, MAIN_NETWORKS, tokenContractName, oftContractName, getLzConfig, checkNetwork, OPTIONS } from "./const"
 import { loadContractAddress, saveContractAddress,  setPeer, isPeered } from "./utils"
 import { Options } from '@layerzerolabs/lz-v2-utilities'
 import { AbiCoder } from "ethers/lib/utils"
@@ -393,8 +393,12 @@ task("order:oft:set", "Connect OFT contracs on different networks: OrderOFT, Ord
                     const types = [1,2]
                     for (const type of types) {
                         const typeOptionOnContract = await localContract.enforcedOptions(lzConfig["endpointId"], type)
-
-                        const enforcedOrderedOption = Options.newOptions().addExecutorOrderedExecutionOption().toHex()
+                        let enforcedOrderedOption = ""
+                        if ( type === 1) {
+                            enforcedOrderedOption = Options.newOptions().addExecutorLzReceiveOption(OPTIONS[1].gas, OPTIONS[1].value).addExecutorOrderedExecutionOption().toHex()
+                        } else if (type === 2) {
+                            enforcedOrderedOption = Options.newOptions().addExecutorLzReceiveOption(OPTIONS[1].gas, OPTIONS[1].value).addExecutorComposeOption(0, OPTIONS[2].gas, OPTIONS[2].value).addExecutorOrderedExecutionOption().toHex()
+                        }
                         if (typeOptionOnContract !== enforcedOrderedOption) {
                             const optionsToAdd = {
                                 eid: lzConfig["endpointId"],
@@ -536,18 +540,13 @@ task("order:oft:send", "Send tokens to a specific address on a specific network"
                 console.log(`Approving ${localContractName} to spend ${taskArgs.amount} on ${erc20ContractName} with tx hash ${approveTx.hash}`)
             }
             
-            // TODO: test with different gasLimit 
-            const gasLimit = 50000
-            const msgValue = 0
-            const index = 0
-            const option = Options.newOptions().addExecutorLzReceiveOption(gasLimit, msgValue).toHex()
             const composeMsg = "0x"
             const param = {
                 dstEid: getLzConfig(toNetwork)["endpointId"],
                 to: hre.ethers.utils.hexZeroPad(receiver, 32),
                 amountLD: tokenAmount,
                 minAmountLD: tokenAmount,
-                extraOptions: option,
+                extraOptions: "0x",
                 composeMsg: composeMsg,
                 oftCmd: "0x"
             }
@@ -602,13 +601,8 @@ task("order:stake", "Send stakes to a specific address on a specific network")
             approveTx.wait()
             console.log(`Approving ${localContractName} to spend ${taskArgs.amount} on ${erc20ContractName} with tx hash ${approveTx.hash}`)
             
-            const index = 0;
-            const lzReceiveGas = 200000;
-            const lzComposeGas = 500000;
-            const airdropValue = 0;
-            const option = Options.newOptions().addExecutorLzReceiveOption(lzReceiveGas, airdropValue).addExecutorComposeOption(index, lzComposeGas, airdropValue)
             const lzFee = await safeContract.getStakeFee(signer.address, tokenAmount)
-            
+
             const stakeTx = await safeContract.stakeOrder(signer.address, tokenAmount, {
                 gasLimit: 500000,
                 value: lzFee,
