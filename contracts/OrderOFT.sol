@@ -35,26 +35,9 @@ contract OrderOFT is OFT {
     }
 
     /**
-     * @dev check and accept the nonce of the message
-     * @param _srcEid the eid of the source chain
-     * @param _sender the address of the remote sender (oft or adapter)
-     * @param _nonce the nonce of the message
-     */
-    function _acceptNonce(uint32 _srcEid, bytes32 _sender, uint64 _nonce) internal {
-        uint64 curNonce = maxReceivedNonce[_srcEid][_sender];
-        if (orderedNonce) {
-            require(_nonce == curNonce + 1, "OApp: invalid nonce");
-        }
-
-        if (_nonce > curNonce) {
-            maxReceivedNonce[_srcEid][_sender] = _nonce;
-        }
-    }
-
-    /**
      * @dev Get the next nonce for the sender
-     * @param _srcEid the eid of the source chain
-     * @param _sender the address of the remote sender (oft or adapter)
+     * @param _srcEid The eid of the source chain
+     * @param _sender The address of the remote sender (oft or adapter)
      */
     function nextNonce(uint32 _srcEid, bytes32 _sender) public view override returns (uint64) {
         if (orderedNonce) {
@@ -65,15 +48,69 @@ contract OrderOFT is OFT {
     }
 
     /**
-     * @dev Skip a nonce which is not verified by lz yet
+     * @dev Skip a nonce which is not verified by lz yet (that is: inboundPayloadHash[_receiver][_srcEid][_sender][_nonce] == EMPTY_PAYLOAD_HASH)
      * @param _srcEid the eid of the source chain
      * @param _sender the address of the remote sender (oft or adapter)
-     * @param _nonce the nonce to skip
+     * @param _nonce the nonce of the message to skip
      */
     function skipInboundNonce(uint32 _srcEid, bytes32 _sender, uint64 _nonce) public onlyOwner {
+        _acceptNonce(_srcEid, _sender, _nonce);
         endpoint.skip(address(this), _srcEid, _sender, _nonce);
+    }
+
+    /**
+     * @dev
+     * @param _origin the origin of the message
+     *  - srcEid: The source chain endpoint ID.
+     *  - sender: The sender address from the src chain.
+     *  - nonce: The nonce of the LayerZero message.
+     * @param _guid the guid of the message
+     * @param _message the message data
+     */
+
+    function clearInboundNonce(Origin calldata _origin, bytes32 _guid, bytes calldata _message) public onlyOwner {
+        _acceptNonce(_origin.srcEid, _origin.sender, _origin.nonce);
+        endpoint.clear(address(this), _origin, _guid, _message);
+    }
+
+    /**
+     * @dev Nilify the inbound nonce to mark a message as verified, but disallows execution until it is re-verified.
+     * @param _srcEid The eid of the source chain
+     * @param _sender The address of the remote sender (oft or adapter)
+     * @param _nonce The nonce of the message to burn
+     * @param _payloadHash The hash of the message to burn
+     */
+    function nilifyInboundNonce(uint32 _srcEid, bytes32 _sender, uint64 _nonce, bytes32 _payloadHash) public onlyOwner {
+        _acceptNonce(_srcEid, _sender, _nonce);
+        endpoint.nilify(address(this), _srcEid, _sender, _nonce, _payloadHash);
+    }
+
+    /**
+     * @dev Burn the inbound nonce to mark a message as unexecutable and un-verifiable. The nonce can never be re-verified or executed.
+     * @param _srcEid The eid of the source chain
+     * @param _sender The address of the remote sender (oft or adapter)
+     * @param _nonce The nonce of the message to burn
+     * @param _payloadHash The hash of the message to burn
+     */
+    function burnInboundNonce(uint32 _srcEid, bytes32 _sender, uint64 _nonce, bytes32 _payloadHash) public onlyOwner {
+        _acceptNonce(_srcEid, _sender, _nonce);
+        endpoint.burn(address(this), _srcEid, _sender, _nonce, _payloadHash);
+    }
+
+    /**
+     * @dev Check and accept the nonce of the inbound message
+     * @param _srcEid The eid of the source chain
+     * @param _sender The address of the remote sender (oft or adapter)
+     * @param _nonce The nonce of the message
+     */
+    function _acceptNonce(uint32 _srcEid, bytes32 _sender, uint64 _nonce) internal {
+        uint64 curNonce = maxReceivedNonce[_srcEid][_sender];
         if (orderedNonce) {
-            maxReceivedNonce[_srcEid][_sender]++;
+            require(_nonce == curNonce + 1, "OApp: invalid nonce");
+        }
+
+        if (_nonce > curNonce) {
+            maxReceivedNonce[_srcEid][_sender] = _nonce;
         }
     }
 
