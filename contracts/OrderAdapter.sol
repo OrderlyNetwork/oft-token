@@ -62,7 +62,8 @@ contract OrderAdapter is OFTAdapter {
     }
 
     /**
-     * @dev
+     * @dev Clear the inbound nonce to ignore a message
+     * @dev this is a PULL mode versus the PUSH mode of lzReceive
      * @param _origin the origin of the message
      *  - srcEid: The source chain endpoint ID.
      *  - sender: The sender address from the src chain.
@@ -70,7 +71,6 @@ contract OrderAdapter is OFTAdapter {
      * @param _guid the guid of the message
      * @param _message the message data
      */
-
     function clearInboundNonce(Origin calldata _origin, bytes32 _guid, bytes calldata _message) public onlyOwner {
         _acceptNonce(_origin.srcEid, _origin.sender, _origin.nonce);
         endpoint.clear(address(this), _origin, _guid, _message);
