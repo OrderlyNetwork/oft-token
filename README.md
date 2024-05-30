@@ -261,6 +261,16 @@ Approving OrderAdapter to spend 100 on OrderToken with tx hash 0xbf2b81d73a40072
 Sending tokens from sepolia to orderlysepolia with tx hash 0x701678c3976f0c53c2169c771feea91d037abf82863d49a7a110dde2afcb2c8c
 ```
 
+### Generate ABI
+
+To generate the ABI for the deployed contracts, we use `forge` to generate the ABI for the contracts.
+
+```
+forge in contracts/OrderToken.sol:OrderToken abi > abi/abi/latest/OrderToken.json
+forge in contracts/OrderAdapter.sol:OrderAdapter abi > abi/abi/latest/OrderAdapter.json
+forge in contracts/OrderOFT.sol:OrderOFT abi > abi/abi/latest/OrderOFT.json
+```
+
 Using [LayerZero](https://testnet.layerzeroscan.com/tx/0x774db31149ba43cd85342bf654ff2fc884c8fe21863911f055a3e281dd9766aa) scan to monitor the token transfer status
 
 ## Cross-Chain Msg with Token Transfer
