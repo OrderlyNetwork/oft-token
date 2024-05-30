@@ -23,17 +23,10 @@ abstract contract OAppUpgradeable is
     OAppSenderUpgradeable,
     OAppReceiverUpgradeable
 {
-    // /**
-    //  * @dev Constructor to initialize the OApp with the provided endpoint and owner.
-    //  * @param _endpoint The address of the LOCAL LayerZero endpoint.
-    //  * @param _delegate The delegate capable of making OApp configurations inside of the endpoint.
-    //  */
-    // constructor(address _endpoint, address _delegate) OAppCore(_endpoint, _delegate) {}
-
     /**
-     * @dev Initializer for the upgradeable OApp with the provided endpoint and owner.
-     * @param _endpoint The address of the LOCAL LayerZero endpoint.
-     * @param _delegate The address of the owner of the OApp.
+     * @dev Initializer for the upgradeable OApp with the provided endpoint and delegate(owner).
+     * @param _endpoint The address of the LayerZero endpoint on LOCAL network.
+     * @param _delegate The delegate address for the OApp on the endpoint.
      */
     function __initializeOApp(address _endpoint, address _delegate) internal virtual onlyInitializing {
         __initializeOAppCore(_endpoint, _delegate);

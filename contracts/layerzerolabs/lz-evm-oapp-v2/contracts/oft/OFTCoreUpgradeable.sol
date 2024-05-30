@@ -49,23 +49,11 @@ abstract contract OFTCoreUpgradeable is
     // Address of an optional contract to inspect both 'message' and 'options'
     address public msgInspector;
     event MsgInspectorSet(address inspector);
-
-    // /**
-    //  * @dev Constructor.
-    //  * @param _localDecimals The decimals of the token on the local chain (this chain).
-    //  * @param _endpoint The address of the LayerZero endpoint.
-    //  * @param _delegate The delegate capable of making OApp configurations inside of the endpoint.
-    //  */
-    // constructor(uint8 _localDecimals, address _endpoint, address _delegate) OApp(_endpoint, _delegate) {
-    //     if (_localDecimals < sharedDecimals()) revert InvalidLocalDecimals();
-    //     decimalConversionRate = 10 ** (_localDecimals - sharedDecimals());
-    // }
-
     /**
      * @dev Initializer.
      * @param _localDecimals The decimals of the token on the local chain (this chain).
      * @param _endpoint The address of the LayerZero endpoint.
-     * @param _delegate The address of the OFT owner.
+     * @param _delegate The address of delegate for the OFT owner on the endpoint.
      */
     function __initializeOFTCore(
         uint8 _localDecimals,

@@ -10,25 +10,11 @@ import { IOFT, OFTCoreUpgradeable } from "./OFTCoreUpgradeable.sol";
  * @dev OFT is an ERC-20 token that extends the functionality of the OFTCore contract.
  */
 abstract contract OFTUpgradeable is OFTCoreUpgradeable, ERC20Upgradeable {
-    // /**
-    //  * @dev Constructor for the OFT contract.
-    //  * @param _name The name of the OFT.
-    //  * @param _symbol The symbol of the OFT.
-    //  * @param _lzEndpoint The LayerZero endpoint address.
-    //  * @param _delegate The delegate capable of making OApp configurations inside of the endpoint.
-    //  */
-    // constructor(
-    //     string memory _name,
-    //     string memory _symbol,
-    //     address _lzEndpoint,
-    //     address _delegate
-    // ) ERC20(_name, _symbol) OFTCore(decimals(), _lzEndpoint, _delegate) {}
-
     /**
      * @dev Initializer for the OFT contract.
      * @param _name The name of the OFT.
      * @param _symbol The symbol of the OFT.
-     * @param _lzEndpoint The LayerZero endpoint address.
+     * @param _lzEndpoint The LayerZero endpoint address on LOCAL network.
      * @param _delegate The owner of the contract.
      */
     function __initializeOFT(

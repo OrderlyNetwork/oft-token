@@ -22,20 +22,12 @@ abstract contract OFTAdapterUpgradeable is OFTCoreUpgradeable {
 
     IERC20 internal innerToken;
 
-    // /**
-    //  * @dev Constructor for the OFTAdapter contract.
-    //  * @param _token The address of the ERC-20 token to be adapted.
-    //  * @param _lzEndpoint The LayerZero endpoint address.
-    //  * @param _delegate The delegate capable of making OApp configurations inside of the endpoint.
-    //  */
-    // constructor(
-    //     address _token,
-    //     address _lzEndpoint,
-    //     address _delegate
-    // ) OFTCore(IERC20Metadata(_token).decimals(), _lzEndpoint, _delegate) {
-    //     innerToken = IERC20(_token);
-    // }
-
+    /**
+     * @dev Initializer for the OFTAdapter contract.
+     * @param _token The address of the ERC-20 token to be adapted.
+     * @param _lzEndpoint The LayerZero endpoint address.
+     * @param _delegate The delegate capable of making OApp configurations inside of the endpoint.
+     */
     function __initializeOFTAdapter(
         address _token,
         address _lzEndpoint,
