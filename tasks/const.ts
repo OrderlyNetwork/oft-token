@@ -39,7 +39,7 @@ export type MainNetworkType = 'ethereum' | 'arbitrum' | 'optimism' | 'polygon' |
 export type AllNetworkType = TestNetworkType | MainNetworkType
 export type OFTContractType = 'OrderToken' | 'OrderAdapter' | 'OrderOFT' | 'OrderSafe' | 'OrderBox' | 'OrderSafeRelayer' | 'OrderBoxRelayer'
 
-export const TEST_NETWORKS = ['sepolia', 'arbitrumsepolia', 'opsepolia', 'orderlysepolia']  //  'amoy', 'basesepolia', 'mantlesepolia', 
+export const TEST_NETWORKS = ['sepolia', 'arbitrumsepolia', 'opsepolia', 'amoy', 'basesepolia', 'orderlysepolia']  //   ,  
 export const MAIN_NETWORKS = ['ethereum', 'arbitrum', 'optimism', 'polygon', 'base', 'mantle', 'orderly']
 export const OPTIONS = {
     "1": {
@@ -55,11 +55,11 @@ export const OPTIONS = {
 export const RPC: { [key: network]: string } = {
     // testnets
     "sepolia": "https://rpc.sepolia.org",
-    "arbitrumsepolia": "https://arbitrum-sepolia.blockpi.network/v1/rpc/public",
+    "arbitrumsepolia": "https://public.stackup.sh/api/v1/node/arbitrum-sepolia",
     "opsepolia": "https://endpoints.omniatech.io/v1/op/sepolia/public",
     "amoy": "https://polygon-amoy-bor-rpc.publicnode.com",
     "basesepolia": "https://base-sepolia-rpc.publicnode.com",
-    "mantlesepolia": "https://rpc.sepolia.mantle.xyz",
+    "mantlesepolia": "https://rpc.testnet.mantle.xyz",
     "orderlysepolia": "https://testnet-rpc.orderly.org/8jbWg77mA6PCwHe13tEiv6rFqT1UJLPEB",
     // mainnets
     "ethereum": "https://ethereum-rpc.publicnode.com",

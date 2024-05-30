@@ -1,9 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.20;
 
-import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
-import { OFTAdapter } from "@layerzerolabs/lz-evm-oapp-v2/contracts/oft/OFTAdapter.sol";
-import { Origin } from "@layerzerolabs/lz-evm-oapp-v2/contracts/oft/OFTCore.sol";
+import { OFTAdapterUpgradeable } from "./layerzerolabs/lz-evm-oapp-v2/contracts/oft/OFTAdapterUpgradeable.sol";
+import { Origin } from "./layerzerolabs/lz-evm-oapp-v2/contracts/oft/OFTCoreUpgradeable.sol";
 
 /**
  * @title OrderAdapter
@@ -11,30 +10,28 @@ import { Origin } from "@layerzerolabs/lz-evm-oapp-v2/contracts/oft/OFTCore.sol"
  * @dev OrderAdapter is an adapter contract to connect the OrderToken contract with the LayerZero endpoint
  * throught OFT protocol. It is only deployed on the network where the OrderToken contract is deployed.
  */
-contract OrderAdapter is OFTAdapter {
+contract OrderAdapter is OFTAdapterUpgradeable {
     // @dev Reord nonce for inbound messages: srcEid => sender => nonce
     mapping(uint32 => mapping(bytes32 => uint64)) public maxReceivedNonce;
     // @dev Flag to enforce ordered nonce, if true, the nonce must be strictly increasing by 1
     bool public orderedNonce;
 
     /**
-     * @dev Constructor for the OrderAdapter contract.
-     * @param _orderToken The address of the OrderToken contract.
-     * @param _lzEndpoint The address of the LayerZero endpoint.
-     * @param _delegate The address as the a delegator to set OApp configurations on the endpoint and the owner of adapter contract.
+     * @dev Initialize the OrderAdapter contract and set the ordered nonce flag
+     * @param _lzEndpoint The LayerZero endpoint address
+     * @param _delegate The delegate address of this OApp on the endpoint
      */
-    constructor(
-        address _orderToken,
-        address _lzEndpoint,
-        address _delegate
-    ) OFTAdapter(_orderToken, _lzEndpoint, _delegate) Ownable(_delegate) {}
+    function initialize(address _orderToken, address _lzEndpoint, address _delegate) external initializer {
+        __initializeOFTAdapter(_orderToken, _lzEndpoint, _delegate);
+        _setOrderedNonce(true);
+    }
 
     /**
      * @dev Set the flag to enforce ordered nonce or not
      * @param _orderedNonce the flag to enforce ordered nonce or not
      */
-    function setOrderedNonce(bool _orderedNonce) external onlyOwner {
-        orderedNonce = _orderedNonce;
+    function setOrderedNonce(bool _orderedNonce) public onlyOwner {
+        _setOrderedNonce(_orderedNonce);
     }
 
     /**
@@ -115,6 +112,10 @@ contract OrderAdapter is OFTAdapter {
         if (_nonce > curNonce) {
             maxReceivedNonce[_srcEid][_sender] = _nonce;
         }
+    }
+
+    function _setOrderedNonce(bool _orderedNonce) internal {
+        orderedNonce = _orderedNonce;
     }
 
     /**

@@ -3,9 +3,7 @@ import { task, types } from "hardhat/config"
 import { EnvType, OFTContractType, TEST_NETWORKS, MAIN_NETWORKS, tokenContractName, oftContractName, getLzConfig, checkNetwork, OPTIONS } from "./const"
 import { loadContractAddress, saveContractAddress,  setPeer, isPeered } from "./utils"
 import { Options } from '@layerzerolabs/lz-v2-utilities'
-import { AbiCoder } from "ethers/lib/utils"
 import { DeployResult } from "hardhat-deploy/dist/types"
-import { urlToHttpOptions } from "url"
 
 let fromNetwork: string = ""
 let toNetwork: string = ""
@@ -48,6 +46,7 @@ task("order:deploy", "Deploys the contract to a specific network: OrderToken, Or
             // let variables for deployment and initialization
             let contractAddress: string = ""
             let proxy: boolean = false
+            let methodName: string = ""
             let orderTokenAddress: string | undefined = ""
             let lzEndpointAddress: string | undefined= ""
             let distributorAddress: string | undefined = ""
@@ -62,14 +61,14 @@ task("order:deploy", "Deploys the contract to a specific network: OrderToken, Or
                 initArgs = [distributorAddress]
 
             } else if (contractName === 'OrderAdapter') {
-
+                proxy = true
                 orderTokenAddress = await loadContractAddress(env, hre.network.name, 'OrderToken')
                 lzEndpointAddress = getLzConfig(hre.network.name).endpointAddress
                 owner = signer.address
                 initArgs = [orderTokenAddress, lzEndpointAddress, owner]
 
             } else if (contractName === 'OrderOFT') {
-
+                proxy = true
                 lzEndpointAddress = getLzConfig(hre.network.name).endpointAddress
                 owner = signer.address
                 initArgs = [lzEndpointAddress, owner]
@@ -105,7 +104,7 @@ task("order:deploy", "Deploys the contract to a specific network: OrderToken, Or
                             args: initArgs
                         }
                     },
-                    gasLimit: 800000
+                    // gasLimit: 800000
                 })
             } else {
                 deployedContract = await deploy(contractName, {
@@ -309,32 +308,18 @@ task("order:upgrade", "Upgrades the contract to a specific network: OrderSafe, O
             const { deploy } = hre.deployments;
             const [ signer ] = await hre.ethers.getSigners();
             let implAddress = ""
-            if (contractName === 'OrderSafe') {
-                const salt = hre.ethers.utils.id(process.env.ORDER_DEPLOYMENT_SALT + `${env}` || "deterministicDeployment")
+            const salt = hre.ethers.utils.id(process.env.ORDER_DEPLOYMENT_SALT + `${env}` || "deterministicDeployment")
+            if (contractName === 'OrderAdapter' || contractName === 'OrderOFT' || contractName === 'OrderSafe' || contractName === 'OrderBox' || contractName === 'OrderSafeRelayer' || contractName === 'OrderBoxRelayer') {
                 const baseDeployArgs = {
                     from: signer.address,
                     log:true,
                     deterministicDeployment: salt
                 }
-
-                const OrderSafeContract = await deploy("OrderSafe", {
+                const contract = await deploy(contractName, {
                     ...baseDeployArgs
                 })
-                implAddress = OrderSafeContract.address
-                console.log(`Order Safe implementation deployed to ${OrderSafeContract.address} with tx hash ${OrderSafeContract.transactionHash}`);
-            }  else if (contractName === 'OrderSafeRelayer') {
-                const salt = hre.ethers.utils.id(process.env.ORDER_DEPLOYMENT_SALT + `${env}` || "deterministicDeployment")
-                const baseDeployArgs = {
-                    from: signer.address,
-                    log:true,
-                    deterministicDeployment: salt
-                }
-
-                const OrderSafeContract = await deploy(contractName, {
-                    ...baseDeployArgs
-                })
-                implAddress = OrderSafeContract.address
-                console.log(`${contractName} implementation deployed to ${OrderSafeContract.address} with tx hash ${OrderSafeContract.transactionHash}`);
+                implAddress = contract.address
+                console.log(`${contractName} implementation deployed to ${implAddress} with tx hash ${contract.transactionHash}`);
             }
             else {
                 throw new Error(`Contract ${contractName} not found`)
@@ -455,7 +440,7 @@ task("order:oft:distribute", "Distribute tokens to all OFT contracts on differen
                     
                     const deciamls = await erc20Contract.decimals() 
                     const tokenAmount = hre.ethers.utils.parseUnits(taskArgs.amount, deciamls)
-                    if (await localContract.approvalRequired() && (tokenAmount > await erc20Contract.allowance(signer.address, localContractAddress))) {
+                    if (await localContract.approvalRequired()) {
                         const approveTx = await erc20Contract.approve(localContractAddress, tokenAmount, {nonce: nonce++})
                         approveTx.wait()
                         console.log(`Approving ${localContractName} to spend ${taskArgs.amount} on ${erc20ContractName} with tx hash ${approveTx.hash}`)
@@ -464,12 +449,7 @@ task("order:oft:distribute", "Distribute tokens to all OFT contracts on differen
                     // TODO: test with different gasLimit 
                     const gasLimit = 50000
                     const msgValue = 0
-                    const index = 0
-                    // const option = Options.newOptions().addExecutorLzReceiveOption(gasLimit, msgValue)
                     const option = Options.newOptions().addExecutorLzReceiveOption(gasLimit, msgValue).toHex()
-                    // const option = Options.newOptions().addExecutorLzReceiveOption(gasLimit, msgValue).addExecutorComposeOption(index, gasLimit, msgValue)
-                    // const composedMsg = await hre.ethers.utils.defaultAbiCoder.encode(["uint256"], ["5"])
-                    // const stakeComposeMsg = await hre.ethers.utils.defaultAbiCoder.encode(["(address,uint256)"], [[signer.address, tokenAmount]])
                     const composeMsg = "0x"
                     const param = {
                         dstEid: getLzConfig(toNetwork)["endpointId"],
@@ -484,7 +464,6 @@ task("order:oft:distribute", "Distribute tokens to all OFT contracts on differen
                     let fee = await localContract.quoteSend(param, payLzToken);
                     const sendTx = await localContract.send(param, fee, signer.address, 
                     {   value: fee.nativeFee,
-                        gasLimit:500000,
                         nonce: nonce++
                     })
                     sendTx.wait()
@@ -552,10 +531,10 @@ task("order:oft:send", "Send tokens to a specific address on a specific network"
             }
             const payLzToken = false
             let fee = await localContract.quoteSend(param, payLzToken);
+            console.log(`Fee in native: ${fee.nativeFee}`)
             const sendTx = await localContract.send(param, fee, signer.address, 
             {   value: fee.nativeFee,
-                gasLimit:500000,
-                nonce: nonce
+                nonce: nonce++
             })
             sendTx.wait()
             console.log(`Sending tokens from ${fromNetwork} to ${toNetwork} with tx hash ${sendTx.hash}`)
@@ -597,15 +576,18 @@ task("order:stake", "Send stakes to a specific address on a specific network")
             let nonce = await signer.getTransactionCount()
 
             
-            const approveTx = await erc20Contract.approve(localContractAddress, tokenAmount)
+            const approveTx = await erc20Contract.approve(localContractAddress, tokenAmount, {
+                nonce: nonce++
+            
+            })
             approveTx.wait()
             console.log(`Approving ${localContractName} to spend ${taskArgs.amount} on ${erc20ContractName} with tx hash ${approveTx.hash}`)
             
             const lzFee = await safeContract.getStakeFee(signer.address, tokenAmount)
 
             const stakeTx = await safeContract.stakeOrder(signer.address, tokenAmount, {
-                gasLimit: 500000,
                 value: lzFee,
+                nonce: nonce++
             })
             console.log(`Staking tokens from ${fromNetwork} to ${toNetwork} with tx hash ${stakeTx.hash}`)
         }
