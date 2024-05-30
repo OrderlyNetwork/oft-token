@@ -1,0 +1,3 @@
+[submodule "abi"]
+	path = abi
+	url = git@gitlab.com:orderlynetwork/orderly-v2/oft-contract-abi.git
