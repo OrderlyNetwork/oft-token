@@ -59,6 +59,7 @@ const config: HardhatUserConfig = {
             eid: EndpointId.ARBSEP_V2_TESTNET,
             url: process.env.RPC_URL_ARBITRUMSEPOLIA || RPC["arbitrumsepolia"],
             accounts,
+            gasMultiplier: 3,
         },
         opsepolia: {
             eid: EndpointId.OPTSEP_V2_TESTNET,
@@ -74,6 +75,7 @@ const config: HardhatUserConfig = {
             eid: EndpointId.MANTLESEP_V2_TESTNET,
             url: process.env.RPC_URL_MANTLESEPOLIA || RPC["mantlesepolia"],
             accounts,
+            // gas: 2000000000000000,
         },
         basesepolia: {
             eid: EndpointId.BASESEP_V2_TESTNET,

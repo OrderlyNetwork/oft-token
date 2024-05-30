@@ -92,7 +92,8 @@ Before you can run the task to deplyment, you need to set up the `.env` file to 
 
 All contracts are deployed with `create2` method, which means the contract address is determined by the contract bytecode and the `salt` value defined in the `.env` file. The `salt` value is used to generate the contract address deterministically.
 
-> [!WARNING]: OderToken, OrderOFT/OrderAdapter are non-upgradable contracts, so the deployment should be carefully considered.
+> ~~[!WARNING]: OderToken, OrderOFT/OrderAdapter are non-upgradable contracts, so the deployment should be carefully considered.~~
+> The OrderToken and OrderOFT contracts are deployed with UUPS pattern, which means the contract logic can be upgraded by the owner.
 
 To deploy native ERC20 token contract on Ethereum:
 
@@ -129,7 +130,6 @@ npx hardhat order:deploy --env dev --network arbitrumsepolia --contract OrderOFT
 npx hardhat order:deploy --env dev --network opsepolia --contract OrderOFT
 npx hardhat order:deploy --env dev --network amoy --contract OrderOFT
 npx hardhat order:deploy --env dev --network basesepolia --contract OrderOFT
-npx hardhat order:deploy --env dev --network mantlesepolia --contract OrderOFT
 npx hardhat order:deploy --env dev --network orderlysepolia  --contract OrderOFT
 
 // On mainnet
@@ -137,8 +137,30 @@ npx hardhat order:deploy --env mainnet --network arbitrum --contract OrderOFT
 npx hardhat order:deploy --env mainnet --network optimism --contract OrderOFT
 npx hardhat order:deploy --env mainnet --network polygon --contract OrderOFT
 npx hardhat order:deploy --env mainnet --network base --contract OrderOFT
-npx hardhat order:deploy --env mainnet --network mantle --contract OrderOFT
 npx hardhat order:deploy --env mainnet --network orderly --contract OrderOFT
+```
+
+### Upgrade Contracts
+
+To upgradee the contract, we can use the `order:upgrade` task to upgrade the contract on the specified network.
+
+```
+// npx hardhat order:upgrade --env envName --network networkName --contract contractName
+// On testnet
+npx hardhat order:upgrade --env dev --network sepolia --contract OrderAdapter
+npx hardhat order:upgrade --env dev --network arbitrumsepolia --contract OrderOFT
+npx hardhat order:upgrade --env dev --network opsepolia --contract OrderOFT
+npx hardhat order:upgrade --env dev --network amoy --contract OrderOFT
+npx hardhat order:upgrade --env dev --network basesepolia --contract OrderOFT
+npx hardhat order:upgrade --env dev --network orderlysepolia --contract OrderOFT
+
+// On mainnet
+npx hardhat order:upgrade --env mainnet --network ethereum --contract OrderAdapter
+npx hardhat order:upgrade --env mainnet --network arbitrum --contract OrderOFT
+npx hardhat order:upgrade --env mainnet --network optimism --contract OrderOFT
+npx hardhat order:upgrade --env mainnet --network polygon --contract OrderOFT
+npx hardhat order:upgrade --env mainnet --network base --contract OrderOFT
+npx hardhat order:upgrade --env mainnet --network orderly --contract OrderOFT
 ```
 
 ### Verify Contracts
@@ -176,12 +198,12 @@ To give the maximum token tranfer flexibility, we can connect the OFT contracts 
 
 ```
 {
-  "env: {
-    "fromNetwork1": {
-      "toNetwork1": true,
-      "toNetwork2": false,
-    }
-  }
+"env: {
+"fromNetwork1": {
+"toNetwork1": true,
+"toNetwork2": false,
+}
+}
 }
 ```
 
@@ -192,6 +214,8 @@ To connect an OFT contract on one network to other OFT contracts on other networ
 npx hardhat order:oft:set --env dev --network sepolia
 npx hardhat order:oft:set --env dev --network arbitrumsepolia
 npx hardhat order:oft:set --env dev --network opsepolia
+npx hardhat order:oft:set --env dev --network amoy
+npx hardhat order:oft:set --env dev --network basesepolia
 npx hardhat order:oft:set --env dev --network orderlysepolia
 ```
 
@@ -237,14 +261,6 @@ Approving OrderAdapter to spend 100 on OrderToken with tx hash 0xbf2b81d73a40072
 Sending tokens from sepolia to orderlysepolia with tx hash 0x701678c3976f0c53c2169c771feea91d037abf82863d49a7a110dde2afcb2c8c
 ```
 
-```
-npx hardhat order:oft:send --env dev --network sepolia --dst-network arbitrumsepolia --receiver 0xDd3287043493E0a08d2B348397554096728B459c --amount 1000000
-
-Running on sepolia
-Approving OrderAdapter to spend 1000000000000000000000000 on OrderToken with tx hash 0xf9fc78ac90eb6524ad5b94d48d33f785336b948298f3516b96dc0c60c1a82c0f
-Sending tokens from sepolia to arbitrumsepolia with tx hash 0x774db31149ba43cd85342bf654ff2fc884c8fe21863911f055a3e281dd9766aa
-```
-
 Using [LayerZero](https://testnet.layerzeroscan.com/tx/0x774db31149ba43cd85342bf654ff2fc884c8fe21863911f055a3e281dd9766aa) scan to monitor the token transfer status
 
 ## Cross-Chain Msg with Token Transfer
@@ -262,36 +278,34 @@ bytes composeMsg; // The composed message for the send() operation.
 bytes oftCmd; // The OFT command to be executed, unused in default OFT implementations.
 }
 function send(
-SendParam calldata _sendParam,
-MessagingFee calldata _fee,
-address _refundAddress
+SendParam calldata \_sendParam,
+MessagingFee calldata \_fee,
+address \_refundAddress
 )
-
 ```
 
 The relayed message should be encoded as bytes before calling `send()` function, and will be sent to the `_sendParam.to` address on the destination network. The `_sendParam.to` contract must inherit the `ILayerZeroComposer` and implement its `lzCompose()` function to receive and decode the composed message.
 
 ```
 function lzCompose(
-address _from,
-bytes32 _guid,
-bytes calldata _message,
-address _executor,
-bytes calldata _extraData
+address \_from,
+bytes32 \_guid,
+bytes calldata \_message,
+address \_executor,
+bytes calldata \_extraData
 ) public payable override {
-bytes memory composeMsg = _message.composeMsg();
-uint32 srcEid = _message.srcEid();
-address remoteSender = OFTComposeMsgCodec.bytes32ToAddress(_message.composeFrom());
+bytes memory composeMsg = \_message.composeMsg();
+uint32 srcEid = \_message.srcEid();
+address remoteSender = OFTComposeMsgCodec.bytes32ToAddress(\_message.composeFrom());
 require(
-_composeMsgSenderCheck(msg.sender, _from, srcEid, remoteSender),
+\_composeMsgSenderCheck(msg.sender, \_from, srcEid, remoteSender),
 "OrderlyBox: composeMsg sender check failed"
 );
 (address staker, uint256 amount) = abi.decode(composeMsg, (address, uint256));
 IERC20 token = IERC20(IOFT(oft).token());
 token.safeTransfer(orderBox, amount);
-IOrderBox(orderBox).stakeOrder(_getChainId(srcEid), staker, amount);
+IOrderBox(orderBox).stakeOrder(\_getChainId(srcEid), staker, amount);
 }
-
 ```
 
 ### Contracts
@@ -321,7 +335,18 @@ npx hardhat order:deploy --env dev --network arbitrumsepolia --contract OrderSaf
 // On Ledger side
 npx hardhat order:deploy --env dev --network orderlysepolia --contract OrderBoxRelayer
 npx hardhat order:deploy --env dev --network orderlysepolia --contract OrderBox
+```
 
+### Upgrade
+
+To upgrade the cross-chain message relay contracts, we can use the `order:upgrade` task to upgrade the contract on the specified network.
+
+```
+npx hardhat order:upgrade --env dev --network arbitrumsepolia --contract OrderSafeRelayer
+npx hardhat order:upgrade --env dev --network arbitrumsepolia --contract OrderSafe
+
+npx hardhat order:upgrade --env dev --network orderlysepolia --contract OrderBoxRelayer
+npx hardhat order:upgrade --env dev --network orderlysepolia --contract OrderBox
 ```
 
 ### Verification
@@ -338,7 +363,6 @@ npx @layerzerolabs/verify-contract -d "./deployments" --contracts "OrderBoxRelay
 
 // Verify Box contract
 npx @layerzerolabs/verify-contract -d "./deployments" --contracts "OrderBox" -n "orderlysepolia" -u $API_URL_ORDERLYSEPOLIA
-
 ```
 
 ### Initializatino
@@ -346,7 +370,6 @@ npx @layerzerolabs/verify-contract -d "./deployments" --contracts "OrderBox" -n 
 Before running the task to initialize the contracts, you **must have deploy** all the four contracts (`OrderSafe, OrderSafeRelayer` on Vault side, `OrderBox, OrderBoxRelayer` on Ledger side) on the corresponding networks to generate the corresponding addresses.
 
 ```
-
 npx hardhat order:init --env dev --network arbitrumsepolia --contract OrderSafeRelayer
 npx hardhat order:init --env dev --network arbitrumsepolia --contract OrderSafe
 
@@ -365,7 +388,7 @@ To stake token on the ledger side, we can use the `stakeOrder` function on the `
 
 npx hardhat order:stake --env dev --amount 100 --network arbitrumsepolia
 Running on arbitrumsepolia
-Approving OrderSafe to spend 100000000000000000000 on OrderOFT with tx hash 0xa969eceae9be923231713d167cc1ef8dc0ab686866802237896b9e402315fb38
+Approving OrderSafe to spend 100 on OrderOFT with tx hash 0xa969eceae9be923231713d167cc1ef8dc0ab686866802237896b9e402315fb38
 Sending tokens from arbitrumsepolia to orderlysepolia with tx hash 0x31f74192d1bd685e4b1bac36a433bd5d208fc43a660e57bf8f826579a43560d1
 
 ```
@@ -374,3 +397,7 @@ Through the [LayerZero](https://testnet.layerzeroscan.com/tx/0x31f74192d1bd685e4
 
 - The [received tx](https://explorerl2new-orderly-l2-4460-sepolia-8tc3sd7dvy.t.conduit.xyz/tx/0xd06a8e7dd8373927c52b11a2e8d6a574c7ac90cb9aa508ca389a4539ea5789e1) on Orderly network
 - The [composed tx](https://explorerl2new-orderly-l2-4460-sepolia-8tc3sd7dvy.t.conduit.xyz/tx/0x384d03949bf6cc7b3b01cbd232d40cc8c2c3fdeb8691a9e971cb1ec52771de6a) on Orderly network
+
+```
+
+```

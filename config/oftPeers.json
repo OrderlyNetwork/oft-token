@@ -3,44 +3,102 @@
     "sepolia": {
       "arbitrumsepolia": true,
       "orderlysepolia": true,
-      "opsepolia": true
+      "opsepolia": true,
+      "amoy": true,
+      "basesepolia": true,
+      "mantlesepolia": true
     },
     "arbitrumsepolia": {
       "sepolia": true,
       "orderlysepolia": true,
-      "opsepolia": true
+      "opsepolia": true,
+      "amoy": true,
+      "basesepolia": true,
+      "mantlesepolia": true
     },
     "orderlysepolia": {
       "sepolia": true,
       "arbitrumsepolia": true,
-      "opsepolia": true
+      "opsepolia": true,
+      "amoy": true,
+      "basesepolia": true,
+      "mantlesepolia": true
     },
     "opsepolia": {
       "sepolia": true,
       "arbitrumsepolia": true,
+      "orderlysepolia": true,
+      "basesepolia": true,
+      "mantlesepolia": true,
+      "amoy": true
+    },
+    "amoy": {
+      "sepolia": true,
+      "arbitrumsepolia": true,
+      "opsepolia": true,
+      "basesepolia": true,
+      "mantlesepolia": true,
+      "orderlysepolia": true
+    },
+    "basesepolia": {
+      "sepolia": true,
+      "arbitrumsepolia": true,
+      "opsepolia": true,
+      "amoy": true,
+      "mantlesepolia": true,
+      "orderlysepolia": true
+    },
+    "mantlesepolia": {
+      "sepolia": true,
+      "arbitrumsepolia": true,
+      "opsepolia": true,
+      "amoy": true,
+      "basesepolia": true,
       "orderlysepolia": true
     }
   },
   "qa": {
     "sepolia": {
-      "arbitrumsepolia": false,
-      "orderlysepolia": false,
-      "opsepolia": false
+      "arbitrumsepolia": true,
+      "orderlysepolia": true,
+      "opsepolia": true,
+      "amoy": true,
+      "basesepolia": true
     },
     "arbitrumsepolia": {
-      "sepolia": false,
-      "opsepolia": false,
-      "orderlysepolia": false
+      "sepolia": true,
+      "opsepolia": true,
+      "orderlysepolia": true,
+      "amoy": true,
+      "basesepolia": true
     },
     "orderlysepolia": {
-      "sepolia": false,
-      "arbitrumsepolia": false,
-      "opsepolia": false
+      "sepolia": true,
+      "arbitrumsepolia": true,
+      "opsepolia": true,
+      "amoy": true,
+      "basesepolia": true
     },
     "opsepolia": {
-      "sepolia": false,
-      "arbitrumsepolia": false,
-      "orderlysepolia": false
+      "sepolia": true,
+      "arbitrumsepolia": true,
+      "orderlysepolia": true,
+      "amoy": true,
+      "basesepolia": true
+    },
+    "amoy": {
+      "sepolia": true,
+      "arbitrumsepolia": true,
+      "opsepolia": true,
+      "basesepolia": true,
+      "orderlysepolia": true
+    },
+    "basesepolia": {
+      "sepolia": true,
+      "arbitrumsepolia": true,
+      "opsepolia": true,
+      "amoy": true,
+      "orderlysepolia": true
     }
   }
 }

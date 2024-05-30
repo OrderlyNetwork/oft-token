@@ -1,36 +1,48 @@
 {
   "dev": {
     "sepolia": {
-      "OrderToken": "0xbd6e8840078b20714aC93F6C5758974bc2B55327",
-      "OrderAdapter": "0x0AE866922d11158A0C369f04ad67FF4f81005B1C"
+      "OrderToken": "0xEE75DD3A00acCbE2AB6b486a9C1763B02468C3e1",
+      "OrderAdapter": "0x581BE804Ba3A74DFcD86014c093042EB93508876"
     },
     "arbitrumsepolia": {
-      "OrderOFT": "0xEE0f08ec11faC2947AC73FC34d4565F30e53aD28",
-      "OrderSafe": "0xA47DEEbA5FF6706cC41F105D17824378a3dc6cf6",
-      "OrderSafeRelayer": "0x76f33d0dFeb32e38d90fB5E05b49ddEe848CB7ca"
+      "OrderOFT": "0x6850bdEe5a830AE53b161B3246d68F202a6C14B7",
+      "OrderSafe": "0xD368c0A57FCacB04Fa9B2e1eFB377d0EC2816304",
+      "OrderSafeRelayer": "0x35e9DB7F1eE48Ee640c12E76057DecBEB9d62007"
     },
     "opsepolia": {
-      "OrderOFT": "0xEE0f08ec11faC2947AC73FC34d4565F30e53aD28"
+      "OrderOFT": "0x6850bdEe5a830AE53b161B3246d68F202a6C14B7"
+    },
+    "amoy": {
+      "OrderOFT": "0x6850bdEe5a830AE53b161B3246d68F202a6C14B7"
+    },
+    "basesepolia": {
+      "OrderOFT": "0x6850bdEe5a830AE53b161B3246d68F202a6C14B7"
     },
     "orderlysepolia": {
-      "OrderOFT": "0xEE0f08ec11faC2947AC73FC34d4565F30e53aD28",
-      "OrderBox": "0xB1f0c0208b496143216AB1Bc554358A90de0dE33",
-      "OrderBoxRelayer": "0xfE713e87401DB4b4D8Aef2Bd44508B8de33aD3de"
+      "OrderOFT": "0x6850bdEe5a830AE53b161B3246d68F202a6C14B7",
+      "OrderBox": "0xEbd68f0Aac42cFb13f9a69f83e1e0c0b48BeB32a",
+      "OrderBoxRelayer": "0x4dc9DD48d9043daf8D3844725a6c8acAB9ba4F42"
     }
   },
   "qa": {
     "sepolia": {
-      "OrderToken": "0xae8151CAF9683e4e6f5e60A4b427b661Dc414a34",
-      "OrderAdapter": "0x3779feAB72df04AE18F3E03196a0aa750DF6a407"
+      "OrderToken": "0x3D3791D96C9C6d9A429D68Ac5c90210C1c269bB6",
+      "OrderAdapter": "0x90573a6725202A16cd7d786167d947FC3fB1e628"
     },
     "arbitrumsepolia": {
-      "OrderOFT": "0x9a4f391795097d567EB9dFF5c8FB461230592B29"
+      "OrderOFT": "0xb6B4CCe7da1d67d720a5C79143e6383D5ff8b16D"
+    },
+    "amoy": {
+      "OrderOFT": "0xb6B4CCe7da1d67d720a5C79143e6383D5ff8b16D"
     },
     "opsepolia": {
-      "OrderOFT": "0x9a4f391795097d567EB9dFF5c8FB461230592B29"
+      "OrderOFT": "0xb6B4CCe7da1d67d720a5C79143e6383D5ff8b16D"
+    },
+    "basesepolia": {
+      "OrderOFT": "0xb6B4CCe7da1d67d720a5C79143e6383D5ff8b16D"
     },
     "orderlysepolia": {
-      "OrderOFT": "0x9a4f391795097d567EB9dFF5c8FB461230592B29"
+      "OrderOFT": "0xb6B4CCe7da1d67d720a5C79143e6383D5ff8b16D"
     }
   }
 }
