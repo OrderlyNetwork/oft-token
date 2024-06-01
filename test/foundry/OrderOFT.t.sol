@@ -39,79 +39,68 @@ contract OrderOFTTest is TestHelperOz5 {
         SEND_AND_CALL
     }
 
+    uint256 public constant INIT_MINT = 1_000_000_000 ether;
     uint128 public constant RECEIVE_GAS = 200000;
     uint128 public constant COMPOSE_GAS = 500000;
     uint128 public constant VALUE = 0;
 
     EnforcedOptionParam[] public enforcedOptions;
 
-    uint8 public constant MAX_OFTS = 3;
-    uint32[] public eids;
-    address[] public ofts;
-
-    address public userA = address(0x1);
-    address public userB = address(0x2);
-    uint256 public initialBalance = 100 ether;
-
     OrderToken token;
     OrderAdapter oftA;
     OrderOFT oftB;
     OrderOFT oftC;
+
+    uint8 public constant MAX_OFTS = 4;
+    uint32[] public eids;
+    address[] public ofts;
+    OrderOFT[] public oftInstances;
 
     function setUp() public override {
         vm.deal(address(this), 1000 ether);
 
         super.setUp();
         setUpEndpoints(MAX_OFTS, LibraryType.UltraLightNode);
-        uint32 aEid = 1; // endpoint id on ethereum side
-        uint32 bEid = 2; // endpoint id on vault side
-        uint32 cEid = 3; // endpoint id on ledge side
-
-        eids = new uint32[](MAX_OFTS);
-        eids[0] = aEid;
-        eids[1] = bEid;
-        eids[2] = cEid;
 
         token = new OrderToken(address(this));
-
         OrderAdapter orderAdapterImpl = new OrderAdapter();
         OrderOFT orderOFTImpl = new OrderOFT();
 
-        bytes memory orderOFTInitDataA = abi.encodeWithSignature(
-            "initialize(address,address,address)",
-            address(token),
-            address(endpoints[eids[0]]),
-            address(this)
-        );
-        ERC1967Proxy oftProxyA = new ERC1967Proxy(address(orderAdapterImpl), orderOFTInitDataA);
-        oftA = OrderAdapter(address(oftProxyA));
-
-        bytes memory orderOFTInitDataB = abi.encodeWithSignature(
-            "initialize(address,address)",
-            address(endpoints[eids[1]]),
-            address(this)
-        );
-
-        ERC1967Proxy orderOFTProxyB = new ERC1967Proxy(address(orderOFTImpl), orderOFTInitDataB);
-        oftB = OrderOFT(address(orderOFTProxyB));
-
-        bytes memory orderOFTInitDataC = abi.encodeWithSignature(
-            "initialize(address,address)",
-            address(endpoints[eids[2]]),
-            address(this)
-        );
-
-        ERC1967Proxy orderOFTProxy = new ERC1967Proxy(address(orderOFTImpl), orderOFTInitDataC);
-        oftC = OrderOFT(address(orderOFTProxy));
+        // eid = 1: endpoint id on ethereum side
+        // eid = 2: endpoint id on vault side: arb
+        // eid = 3: endpoint id on vault side: op
+        // eid = 4: endpoint id on ledge side: orderly
+        eids = new uint32[](MAX_OFTS);
 
         ofts = new address[](MAX_OFTS);
-        ofts[0] = address(oftA);
-        ofts[1] = address(oftB);
-        ofts[2] = address(oftC);
+        oftInstances = new OrderOFT[](MAX_OFTS);
+        bytes memory oftInitDate;
+        for (uint8 i = 0; i < MAX_OFTS; i++) {
+            eids[i] = i + 1;
+            if (i == 0) {
+                oftInitDate = abi.encodeWithSignature(
+                    "initialize(address,address,address)",
+                    address(token),
+                    address(endpoints[eids[i]]),
+                    address(this)
+                );
+            } else {
+                oftInitDate = abi.encodeWithSignature(
+                    "initialize(address,address)",
+                    address(endpoints[eids[i]]),
+                    address(this)
+                );
+            }
+
+            ERC1967Proxy oftProxy = new ERC1967Proxy(
+                i == 0 ? address(orderAdapterImpl) : address(orderOFTImpl),
+                oftInitDate
+            );
+            ofts[i] = address(oftProxy);
+            oftInstances[i] = OrderOFT(address(oftProxy));
+        }
 
         this.wireOApps(ofts);
-        vm.deal(userA, 1000 ether);
-        vm.deal(userB, 1000 ether);
 
         for (uint256 i = 0; i < MAX_OFTS; i++) {
             for (uint256 j = 0; j < MAX_OFTS; j++) {
@@ -136,34 +125,32 @@ contract OrderOFTTest is TestHelperOz5 {
                 enforcedOptions.push(enforcedOptionSend);
                 enforcedOptions.push(enforcedOptionSendAndCall);
             }
-            OrderOFT(ofts[i]).setEnforcedOptions(enforcedOptions);
+            oftInstances[i].setEnforcedOptions(enforcedOptions);
         }
     }
 
     function test_init() public {
-        assertEq(token.balanceOf(address(this)), 1_000_000_000 ether);
-
-        assertEq(ofts.length, 3);
-        assertEq(oftA.owner(), address(this));
-        assertEq(oftA.token(), address(token));
-        assertEq(oftA.approvalRequired(), true);
-        assertEq(oftA.orderedNonce(), true);
-
-        assertEq(oftB.owner(), address(this));
-        assertEq(oftB.token(), address(oftB));
-        assertEq(oftB.approvalRequired(), false);
-        assertEq(oftB.orderedNonce(), true);
-
-        assertEq(oftC.owner(), address(this));
-        assertEq(oftC.token(), address(oftC));
-        assertEq(oftC.approvalRequired(), false);
-        assertEq(oftC.orderedNonce(), true);
+        for (uint8 i = 0; i < MAX_OFTS; i++) {
+            assertEq(oftInstances[i].owner(), address(this));
+            assertEq(oftInstances[i].endpoint().eid(), eids[i]);
+            assertEq(address(oftInstances[i].endpoint()), endpoints[eids[i]]);
+            if (i == 0) {
+                assertEq(oftInstances[i].token(), address(token));
+                assertEq(oftInstances[i].approvalRequired(), true);
+                assertEq(IERC20(oftInstances[i].token()).balanceOf(address(this)), INIT_MINT);
+            } else {
+                assertEq(oftInstances[i].token(), ofts[i]);
+                assertEq(oftInstances[i].approvalRequired(), false);
+                assertEq(oftInstances[i].balanceOf(address(this)), 0);
+            }
+            assertEq(oftInstances[i].orderedNonce(), true);
+        }
 
         // fully connected ofts
         for (uint256 i = 0; i < ofts.length; i++) {
             for (uint256 j = 0; j < ofts.length; j++) {
                 if (i == j) continue;
-                assertEq(OrderOFT(ofts[i]).isPeer(eids[j], addressToBytes32(ofts[j])), true);
+                assertEq(oftInstances[i].isPeer(eids[j], addressToBytes32(ofts[j])), true);
             }
         }
     }
@@ -171,28 +158,32 @@ contract OrderOFTTest is TestHelperOz5 {
     function test_distribute() public {
         uint256 tokenToSend = 1_000_000 ether;
         bytes memory options = OptionsBuilder.newOptions().addExecutorLzReceiveOption(200000, 0);
-        for (uint256 i = 0; i < ofts.length; i++) {
-            for (uint256 j = 0; j < ofts.length; j++) {
+        for (uint256 i = 0; i < 1; i++) {
+            for (uint256 j = 0; j < MAX_OFTS; j++) {
                 if (i == j) continue;
+                if (oftInstances[i].approvalRequired()) {
+                    IERC20(oftInstances[i].token()).approve(ofts[i], tokenToSend);
+                }
 
-                uint32 dstEid = eids[j];
-                bytes32 to = addressToBytes32(address(this));
-                uint256 amountLD = tokenToSend;
-                uint256 minAmountLD = tokenToSend;
-                bytes memory extraOptions = options;
-                bytes memory composeMsg = "";
-                bytes memory oftCmd = "";
                 SendParam memory sendParam = SendParam(
-                    dstEid,
-                    to,
-                    amountLD,
-                    minAmountLD,
-                    extraOptions,
-                    composeMsg,
-                    oftCmd
+                    eids[j],
+                    addressToBytes32(address(this)),
+                    tokenToSend,
+                    tokenToSend,
+                    options,
+                    "",
+                    ""
                 );
-                MessagingFee memory fee = oftA.quoteSend(sendParam, false);
+                MessagingFee memory fee = oftInstances[i].quoteSend(sendParam, false);
+
+                oftInstances[i].send{ value: fee.nativeFee }(sendParam, fee, payable(address(this)));
+                verifyPackets(eids[j], addressToBytes32(ofts[j]));
+                assertEq(IERC20(oftInstances[j].token()).balanceOf(address(this)), tokenToSend);
             }
+            assertEq(
+                IERC20(oftInstances[i].token()).balanceOf(address(this)),
+                INIT_MINT - tokenToSend * (MAX_OFTS - 1)
+            );
         }
     }
     // TODO import the rest of oft tests?
