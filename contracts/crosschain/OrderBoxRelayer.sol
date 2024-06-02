@@ -4,8 +4,8 @@ pragma solidity ^0.8.20;
 import { IERC20Metadata, IERC20 } from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import { ILayerZeroComposer } from "@layerzerolabs/lz-evm-protocol-v2/contracts/interfaces/ILayerZeroComposer.sol";
-import { IOFT } from "@layerzerolabs/lz-evm-oapp-v2/contracts/oft/interfaces/IOFT.sol";
-import { OFTComposeMsgCodec } from "@layerzerolabs/lz-evm-oapp-v2/contracts/oft/libs/OFTComposeMsgCodec.sol";
+import { IOFT } from "../layerzerolabs/lz-evm-oapp-v2/contracts/oft/interfaces/IOFT.sol";
+import { OFTComposeMsgCodec } from "../layerzerolabs/lz-evm-oapp-v2/contracts/oft/libs/OFTComposeMsgCodec.sol";
 import { OrderBoxRelayerStorage } from "./storage/OrderBoxRelayerStorage.sol";
 import { IOrderBoxRelayer } from "./interfaces/IOrderBoxRelayer.sol";
 import { OrderRelayerBase } from "./base/OrderRelayerBase.sol";
@@ -17,10 +17,10 @@ contract OrderBoxRelayer is IOrderBoxRelayer, ILayerZeroComposer, OrderRelayerBa
 
     function lzCompose(
         address _from,
-        bytes32 _guid,
+        bytes32 /*_guid*/,
         bytes calldata _message,
-        address _executor,
-        bytes calldata _extraData
+        address /*_executor*/,
+        bytes calldata /*_extraData*/
     ) public payable override {
         bytes memory composeMsg = _message.composeMsg();
         uint32 srcEid = _message.srcEid();
