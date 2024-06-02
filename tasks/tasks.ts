@@ -440,8 +440,14 @@ task("order:oft:distribute", "Distribute tokens to all OFT contracts on differen
                     
                     const deciamls = await erc20Contract.decimals() 
                     const tokenAmount = hre.ethers.utils.parseUnits(taskArgs.amount, deciamls)
-                    if (await localContract.approvalRequired()) {
-                        const approveTx = await erc20Contract.approve(localContractAddress, tokenAmount, {nonce: nonce++})
+                    if (await localContract.approvalRequired() && (tokenAmount > await erc20Contract.allowance(signer.address, localContractAddress))) {
+                        const estimateGas = await erc20Contract.estimateGas.approve(localContractAddress, tokenAmount, {nonce: nonce})
+                        // console.log(`Estimated gas: ${estimateGas}`)
+                        const approveTx = await erc20Contract.approve(localContractAddress, tokenAmount, 
+                            {
+                                gasLimit: 3 * Number(estimateGas),
+                                nonce: nonce++
+                            })
                         approveTx.wait()
                         console.log(`Approving ${localContractName} to spend ${taskArgs.amount} on ${erc20ContractName} with tx hash ${approveTx.hash}`)
                     }
@@ -462,8 +468,17 @@ task("order:oft:distribute", "Distribute tokens to all OFT contracts on differen
                     }
                     const payLzToken = false
                     let fee = await localContract.quoteSend(param, payLzToken);
+
+                    const estimateGas = await localContract.estimateGas.send(param, fee, signer.address, 
+                        {  
+                            value: fee.nativeFee,
+                            nonce: nonce
+                        })
+                    console.log(`Estimated gas: ${estimateGas}`)
                     const sendTx = await localContract.send(param, fee, signer.address, 
-                    {   value: fee.nativeFee,
+                    {   
+                        gasLimit: 3 * Number(estimateGas),
+                        value: fee.nativeFee,
                         nonce: nonce++
                     })
                     sendTx.wait()

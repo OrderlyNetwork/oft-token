@@ -247,6 +247,12 @@ Approving OrderAdapter to spend 1000000 on OrderToken with tx hash 0x684943a0c9b
 Sending tokens from sepolia to opsepolia with tx hash 0xbcf41528934ad5b03d6d7016ebede1904c29f0226dac9a50f709d9d91791b163
 Approving OrderAdapter to spend 1000000 on OrderToken with tx hash 0x61ea4d21053f4ea6587bb4a932566df192bfcf8f3a3e3b71513ecbaa7a327e30
 Sending tokens from sepolia to orderlysepolia with tx hash 0xc25c6bfaef2feff535e0efe50c8d469d9a483df86d731dc8177e208d536551e1
+
+npx hardhat order:oft:distribute --env dev --network arbitrumsepolia --receiver 0xdd3287043493e0a08d2b348397554096728b459c --amount 1000
+npx hardhat order:oft:distribute --env dev --network opsepolia --receiver 0xdd3287043493e0a08d2b348397554096728b459c --amount 2000
+npx hardhat order:oft:distribute --env dev --network amoy --receiver 0xdd3287043493e0a08d2b348397554096728b459c --amount 3000
+npx hardhat order:oft:distribute --env dev --network basesepolia --receiver 0xdd3287043493e0a08d2b348397554096728b459c --amount 4000
+npx hardhat order:oft:distribute --env dev --network orderlysepolia --receiver 0xdd3287043493e0a08d2b348397554096728b459c --amount 5000
 ```
 
 To test the token transfer across chains, we can use `order:oft:send` task to send the token from one network to another network. The task is defined as follows:
