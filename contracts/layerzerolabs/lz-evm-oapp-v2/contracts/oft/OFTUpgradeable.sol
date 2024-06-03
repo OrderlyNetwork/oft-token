@@ -2,27 +2,30 @@
 
 pragma solidity ^0.8.20;
 
-import { ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import { IOFT, OFTCore } from "./OFTCore.sol";
+import { ERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
+import { IOFT, OFTCoreUpgradeable } from "./OFTCoreUpgradeable.sol";
 
 /**
  * @title OFT Contract
  * @dev OFT is an ERC-20 token that extends the functionality of the OFTCore contract.
  */
-abstract contract OFT is OFTCore, ERC20 {
+abstract contract OFTUpgradeable is OFTCoreUpgradeable, ERC20Upgradeable {
     /**
-     * @dev Constructor for the OFT contract.
+     * @dev Initializer for the OFT contract.
      * @param _name The name of the OFT.
      * @param _symbol The symbol of the OFT.
-     * @param _lzEndpoint The LayerZero endpoint address.
-     * @param _delegate The delegate capable of making OApp configurations inside of the endpoint.
+     * @param _lzEndpoint The LayerZero endpoint address on LOCAL network.
+     * @param _delegate The owner of the contract.
      */
-    constructor(
+    function __initializeOFT(
         string memory _name,
         string memory _symbol,
         address _lzEndpoint,
         address _delegate
-    ) ERC20(_name, _symbol) OFTCore(decimals(), _lzEndpoint, _delegate) {}
+    ) internal virtual onlyInitializing {
+        __ERC20_init(_name, _symbol);
+        __initializeOFTCore(decimals(), _lzEndpoint, _delegate);
+    }
 
     /**
      * @dev Retrieves the address of the underlying ERC20 implementation.

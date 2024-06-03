@@ -3,13 +3,13 @@
 pragma solidity ^0.8.20;
 
 import { IOAppReceiver, Origin } from "./interfaces/IOAppReceiver.sol";
-import { OAppCore } from "./OAppCore.sol";
+import { OAppCoreUpgradeable } from "./OAppCoreUpgradeable.sol";
 
 /**
  * @title OAppReceiver
  * @dev Abstract contract implementing the ILayerZeroReceiver interface and extending OAppCore for OApp receivers.
  */
-abstract contract OAppReceiver is IOAppReceiver, OAppCore {
+abstract contract OAppReceiverUpgradeable is IOAppReceiver, OAppCoreUpgradeable {
     // Custom error message for when the caller is not the registered endpoint/
     error OnlyEndpoint(address addr);
 

@@ -2,11 +2,11 @@
 
 pragma solidity ^0.8.20;
 
-import { OApp, Origin } from "../oapp/OApp.sol";
-import { OAppOptionsType3 } from "../oapp/libs/OAppOptionsType3.sol";
+import { OAppUpgradeable, Origin } from "../oapp/OAppUpgradeable.sol";
+import { OAppOptionsType3Upgradeable } from "../oapp/libs/OAppOptionsType3Upgradeable.sol";
 import { IOAppMsgInspector } from "../oapp/interfaces/IOAppMsgInspector.sol";
 
-import { OAppPreCrimeSimulator } from "../precrime/OAppPreCrimeSimulator.sol";
+import { OAppPreCrimeSimulatorUpgradeable } from "../precrime/OAppPreCrimeSimulatorUpgradeable.sol";
 
 import { IOFT, SendParam, OFTLimit, OFTReceipt, OFTFeeDetail, MessagingReceipt, MessagingFee } from "./interfaces/IOFT.sol";
 import { OFTMsgCodec } from "./libs/OFTMsgCodec.sol";
@@ -16,7 +16,12 @@ import { OFTComposeMsgCodec } from "./libs/OFTComposeMsgCodec.sol";
  * @title OFTCore
  * @dev Abstract contract for the OftChain (OFT) token.
  */
-abstract contract OFTCore is IOFT, OApp, OAppPreCrimeSimulator, OAppOptionsType3 {
+abstract contract OFTCoreUpgradeable is
+    IOFT,
+    OAppUpgradeable,
+    OAppPreCrimeSimulatorUpgradeable,
+    OAppOptionsType3Upgradeable
+{
     using OFTMsgCodec for bytes;
     using OFTMsgCodec for bytes32;
 
@@ -33,7 +38,7 @@ abstract contract OFTCore is IOFT, OApp, OAppPreCrimeSimulator, OAppOptionsType3
     //  you can only display 1.23 -> uint(123).
     //  @dev To preserve the dust that would otherwise be lost on that conversion,
     //  we need to unify a denomination that can be represented on ALL chains inside of the OFT mesh
-    uint256 public immutable decimalConversionRate;
+    uint256 public decimalConversionRate;
 
     // @notice Msg types that are used to identify the various OFT operations.
     // @dev This can be extended in child contracts for non-default oft operations
@@ -44,14 +49,18 @@ abstract contract OFTCore is IOFT, OApp, OAppPreCrimeSimulator, OAppOptionsType3
     // Address of an optional contract to inspect both 'message' and 'options'
     address public msgInspector;
     event MsgInspectorSet(address inspector);
-
     /**
-     * @dev Constructor.
+     * @dev Initializer.
      * @param _localDecimals The decimals of the token on the local chain (this chain).
      * @param _endpoint The address of the LayerZero endpoint.
-     * @param _delegate The delegate capable of making OApp configurations inside of the endpoint.
+     * @param _delegate The address of delegate for the OFT owner on the endpoint.
      */
-    constructor(uint8 _localDecimals, address _endpoint, address _delegate) OApp(_endpoint, _delegate) {
+    function __initializeOFTCore(
+        uint8 _localDecimals,
+        address _endpoint,
+        address _delegate
+    ) internal virtual onlyInitializing {
+        __initializeOApp(_endpoint, _delegate);
         if (_localDecimals < sharedDecimals()) revert InvalidLocalDecimals();
         decimalConversionRate = 10 ** (_localDecimals - sharedDecimals());
     }
