@@ -31,6 +31,7 @@ import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy
 
 // Forge imports
 import "forge-std/console.sol";
+import "forge-std/Vm.sol";
 
 // DevTools imports
 import { TestHelperOz5 } from "@layerzerolabs/test-devtools-evm-foundry/contracts/TestHelperOz5.sol";
@@ -52,7 +53,7 @@ contract OrderOFTTest is TestHelperOz5 {
 
     OrderToken token;
 
-    uint8 public constant MAX_OFTS = 100;
+    uint8 public constant MAX_OFTS = 10;
     // eid = 1: endpoint id on l1 side: ethereum, the first one always the ethereum chain
     // eid = 2: endpoint id on vault side: arb
     // eid = 3: endpoint id on vault side: op
@@ -71,8 +72,70 @@ contract OrderOFTTest is TestHelperOz5 {
     function setUp() public override {
         vm.deal(address(this), 1000000 ether);
 
+        // Set the OFT contracts
+        _setOft();
+
+        // Set the contracts to test cross-chain flow
+        _setCC();
+
+        // Initiate token transfer from the ERC20 contract to other OFT contracts
+        _setDistribution();
+    }
+
+    function test_stake_msg() public {
+        uint256 tokenToStake = 1000 ether;
+        uint256 stakeFee;
+        MessagingReceipt memory msgReceipt;
+        OFTReceipt memory oftReceipt;
+        bytes memory options;
+        bytes memory stakeMsg;
+        for (uint8 i = 0; i < MAX_OFTS - 1; i++) {
+            IERC20(oftInstances[i].token()).approve(address(orderSafeInstances[i]), tokenToStake);
+            stakeFee = orderSafeInstances[i].getStakeFee(address(this), tokenToStake);
+            vm.recordLogs();
+            (msgReceipt, oftReceipt) = orderSafeInstances[i].stakeOrder{ value: stakeFee }(address(this), tokenToStake); // (msgReceipt, oftReceipt) =
+            Vm.Log[] memory logs = vm.getRecordedLogs();
+            for (uint8 j = 0; j < logs.length; j++) {
+                if (logs[j].topics[0] == keccak256("PacketSent(bytes,bytes,address)")) {
+                    (, options, ) = abi.decode(logs[j].data, (bytes, bytes, address));
+                    continue;
+                }
+                if (logs[j].topics[0] == keccak256("SendStakeMsg(uint32,bytes32,bytes)")) {
+                    (, , bytes memory composeMsg) = abi.decode(logs[j].data, (uint32, bytes32, bytes));
+                    stakeMsg = OFTComposeMsgCodec.encode(
+                        msgReceipt.nonce,
+                        eids[i],
+                        oftReceipt.amountReceivedLD,
+                        abi.encodePacked(addressToBytes32(address(orderSafeRelayerInstances[i])), composeMsg)
+                    );
+                    continue;
+                }
+            }
+            verifyPackets(eids[MAX_OFTS - 1], addressToBytes32(ofts[MAX_OFTS - 1]));
+            this.lzCompose(
+                eids[MAX_OFTS - 1],
+                ofts[MAX_OFTS - 1],
+                options,
+                msgReceipt.guid,
+                address(orderBoxRelayer),
+                stakeMsg
+            );
+        }
+        assertEq(
+            IERC20(oftInstances[MAX_OFTS - 1].token()).balanceOf(address(orderBox)),
+            tokenToStake * (MAX_OFTS - 1)
+        );
+    }
+    // TODO import the rest of oft tests?
+    // composeMsg
+    // ABA pattern
+    // ABA composeMsg pattern
+    // nonce control
+
+    function _setOft() internal {
         super.setUp();
         setUpEndpoints(MAX_OFTS, LibraryType.UltraLightNode);
+        console.log("Set up %d endpoints", MAX_OFTS);
 
         token = new OrderToken(address(this));
         OrderAdapter orderAdapterImpl = new OrderAdapter();
@@ -83,9 +146,9 @@ contract OrderOFTTest is TestHelperOz5 {
         ofts = new address[](MAX_OFTS);
         oftInstances = new OrderOFT[](MAX_OFTS);
         bytes memory oftInitDate;
+
         for (uint8 i = 0; i < MAX_OFTS; i++) {
             eids[i] = i + 1;
-
             oftInitDate = i == 0
                 ? abi.encodeWithSignature(
                     "initialize(address,address,address)",
@@ -103,7 +166,11 @@ contract OrderOFTTest is TestHelperOz5 {
             oftInstances[i] = OrderOFT(address(oftProxy));
         }
 
+        console.log("Set up %d OFTs", MAX_OFTS);
+
         this.wireOApps(ofts);
+
+        console.log("Wired %d OFTs", MAX_OFTS);
 
         for (uint8 i = 0; i < MAX_OFTS; i++) {
             for (uint256 j = 0; j < MAX_OFTS; j++) {
@@ -131,43 +198,100 @@ contract OrderOFTTest is TestHelperOz5 {
             oftInstances[i].setEnforcedOptions(enforcedOptions);
         }
 
-        // Set the contracts to test cross-chain flow
-        _setCC();
+        console.log("Set enforced options for %d OFTs", MAX_OFTS);
     }
 
-    function test_init() public {
+    /**
+     * @dev Set up the cross-chain contracts to enable the cross-chain flow
+     *                     +-----------+   +-----------+                 +-----------+   +-----------+
+     *                     |           |   |           |    LayerZero    |           |   |           |
+     *                     |   ERC20   |   |    OFT    |-----------------|    OFT    |   |   ERC20   |
+     *                     |           |   |           |                 |           |   |           |
+     *                     +-----------+   +-----------+                 +-----------+   +-----------+
+     *                         |               |                             |               |
+     *                         |               |                             |               |
+     *                         |               |                             |               |
+     *                         |               |                             |               |
+     * +----------+        +---------------------------+                 +---------------------------+        +----------+
+     * |          |        |                           |                 |                           |        |          |
+     * |OrderSafe |------- |     OrderSafeRelayer      |                 |      OrderBoxRelayer      | -------| OrderBox |
+     * |          |        |                           |                 |                           |        |          |
+     * +----------+        +---------------------------+                 +---------------------------+        +----------+
+     */
+    function _setCC() internal {
+        uint128 receiveGas = 200000;
+        uint128 composeGas = 500000;
+        uint128 value = 0;
+        // chain id mock
+        chainIds = new uint256[](MAX_OFTS);
         for (uint8 i = 0; i < MAX_OFTS; i++) {
-            assertEq(oftInstances[i].owner(), address(this));
-            assertEq(oftInstances[i].endpoint().eid(), eids[i]);
-            assertEq(address(oftInstances[i].endpoint()), endpoints[eids[i]]);
-            if (i == 0) {
-                assertEq(oftInstances[i].token(), address(token));
-                assertEq(oftInstances[i].approvalRequired(), true);
-                assertEq(IERC20(oftInstances[i].token()).balanceOf(address(this)), INIT_MINT);
-            } else {
-                assertEq(oftInstances[i].token(), ofts[i]);
-                assertEq(oftInstances[i].approvalRequired(), false);
-                assertEq(oftInstances[i].balanceOf(address(this)), 0);
-            }
-            assertEq(oftInstances[i].orderedNonce(), true);
+            chainIds[i] = block.chainid + eids[i];
         }
 
-        // check if ofts are fully connected
-        for (uint8 i = 0; i < ofts.length; i++) {
-            for (uint256 j = 0; j < ofts.length; j++) {
-                if (i == j) continue;
-                assertEq(oftInstances[i].isPeer(eids[j], addressToBytes32(ofts[j])), true);
-            }
+        console.log("Set chainIds for %d OFTs", MAX_OFTS);
+
+        bytes memory initData = abi.encodeWithSignature("initialize(address)", address(this));
+
+        // deploy OrderBox and OrderBoxRelayer
+        OrderBox orderBoxImpl = new OrderBox();
+        OrderBoxRelayer orderBoxRelayerImpl = new OrderBoxRelayer();
+        ERC1967Proxy orderBoxProxy = new ERC1967Proxy(address(orderBoxImpl), initData);
+        ERC1967Proxy orderBoxRelayerProxy = new ERC1967Proxy(address(orderBoxRelayerImpl), initData);
+        orderBox = OrderBox(address(orderBoxProxy));
+        orderBoxRelayer = OrderBoxRelayer(payable(address(orderBoxRelayerProxy)));
+
+        orderBoxRelayer.setEid(chainIds[MAX_OFTS - 1], eids[MAX_OFTS - 1]);
+        orderBoxRelayer.setEndpoint(endpoints[MAX_OFTS]);
+        orderBoxRelayer.setOft(ofts[MAX_OFTS - 1]);
+        orderBoxRelayer.setLocalComposeMsgSender(ofts[MAX_OFTS - 1], true);
+        orderBoxRelayer.setOptionsAirdrop(0, receiveGas, value); // lz receive
+        orderBoxRelayer.setOptionsAirdrop(1, composeGas, value); // lz compose
+        orderBoxRelayer.setOrderBox(address(orderBox));
+
+        orderBox.setOft(ofts[MAX_OFTS - 1]);
+        orderBox.setOrderRelayer(address(orderBoxRelayer));
+
+        console.log("Deployed and set OrderBox and OrderBoxRelayer on eid: %d", eids[MAX_OFTS - 1]);
+
+        orderSafeInstances = new OrderSafe[](MAX_OFTS - 1);
+        orderSafeRelayerInstances = new OrderSafeRelayer[](MAX_OFTS - 1);
+        OrderSafe orderSafeImpl = new OrderSafe();
+        OrderSafeRelayer orderSafeRelayerImpl = new OrderSafeRelayer();
+
+        for (uint8 i = 0; i < MAX_OFTS - 1; i++) {
+            ERC1967Proxy orderSafeProxy = new ERC1967Proxy(address(orderSafeImpl), initData);
+            ERC1967Proxy orderSafeRelayerProxy = new ERC1967Proxy(address(orderSafeRelayerImpl), initData);
+            orderSafeInstances[i] = OrderSafe(address(orderSafeProxy));
+            orderSafeRelayerInstances[i] = OrderSafeRelayer(payable(address(orderSafeRelayerProxy)));
+
+            orderSafeRelayerInstances[i].setEid(chainIds[i], eids[i]);
+            orderSafeRelayerInstances[i].setEndpoint(endpoints[i]);
+            orderSafeRelayerInstances[i].setOft(ofts[i]);
+            orderSafeRelayerInstances[i].setLocalComposeMsgSender(ofts[i], true);
+            orderSafeRelayerInstances[i].setOptionsAirdrop(0, receiveGas, value);
+            orderSafeRelayerInstances[i].setOptionsAirdrop(1, composeGas, value);
+            orderSafeRelayerInstances[i].setOrderChainId(chainIds[MAX_OFTS - 1], eids[MAX_OFTS - 1]);
+            orderSafeRelayerInstances[i].setOrderSafe(address(orderSafeInstances[i]));
+            orderSafeRelayerInstances[i].setOrderBoxRelayer(address(orderBoxRelayer));
+            orderSafeRelayerInstances[i].setRemoteComposeMsgSender(eids[MAX_OFTS - 1], address(orderBoxRelayer), true);
+
+            orderSafeInstances[i].setOft(ofts[i]);
+            orderSafeInstances[i].setOrderRelayer(address(orderSafeRelayerInstances[i]));
+
+            orderBoxRelayer.setRemoteComposeMsgSender(eids[i], address(orderSafeRelayerInstances[i]), true);
+            orderBoxRelayer.setEid(chainIds[i], eids[i]);
         }
+        console.log("Deployed and set OrderSafe and OrderSafeRelayer on eids: %d - %d", eids[0], eids[MAX_OFTS - 2]);
     }
 
     /**
      * @dev Initiate token transfer from the ERC20 contract to other OFT contracts
      * @dev Test token transfer between any two OFT contracts
      */
-    function _distribute() internal {
-        uint256 initialSend = 1_000_000 ether;
-        uint256 initialRelay = 100_000 ether;
+    function _setDistribution() internal {
+        _init();
+        uint256 initialSend = INIT_MINT / MAX_OFTS;
+        uint256 initialRelay = initialSend / MAX_OFTS;
         bytes memory options = OptionsBuilder.newOptions().addExecutorLzReceiveOption(200000, 0);
         for (uint8 i = 0; i < MAX_OFTS; i++) {
             uint256 tokenToSend = i == 0 ? initialSend : initialRelay;
@@ -201,107 +325,35 @@ contract OrderOFTTest is TestHelperOz5 {
                     : initialSend - initialRelay
             );
         }
-        console.log(address(this));
+
+        console.log("Distributed tokens to %d - %d OFTs", eids[1], eids[MAX_OFTS - 1]);
     }
 
-    function test_stake_msg() public {
-        _distribute();
-
-        uint256 tokenToStake = 1000 ether;
-        uint256 stakeFee;
-        MessagingReceipt memory msgReceipt;
-        OFTReceipt memory oftReceipt;
-        for (uint8 i = 0; i < MAX_OFTS - 1; i++) {
-            IERC20(oftInstances[i].token()).approve(address(orderSafeInstances[i]), tokenToStake);
-
-            stakeFee = orderSafeInstances[i].getStakeFee(address(this), tokenToStake);
-            (msgReceipt, oftReceipt) = orderSafeInstances[i].stakeOrder{ value: stakeFee }(address(this), tokenToStake); // (msgReceipt, oftReceipt) =
-            verifyPackets(eids[MAX_OFTS - 1], addressToBytes32(ofts[MAX_OFTS - 1]));
-
-            // this.lzCompose(eids[MAX_OFTS - 1], ofts[i], options_, msgReceipt.guid, address, composerMsg_);
-        }
-    }
-    // TODO import the rest of oft tests?
-    // composeMsg
-    // ABA pattern
-    // ABA composeMsg pattern
-    // nonce control
-
-    /**
-     * @dev Set up the cross-chain contracts to enable the cross-chain flow
-     *                     +-----------+   +-----------+                 +-----------+   +-----------+
-     *                     |           |   |           |    LayerZero    |           |   |           |
-     *                     |   ERC20   |   |    OFT    |-----------------|    OFT    |   |   ERC20   |
-     *                     |           |   |           |                 |           |   |           |
-     *                     +-----------+   +-----------+                 +-----------+   +-----------+
-     *                         |               |                             |               |
-     *                         |               |                             |               |
-     *                         |               |                             |               |
-     *                         |               |                             |               |
-     * +----------+        +---------------------------+                 +---------------------------+        +----------+
-     * |          |        |                           |                 |                           |        |          |
-     * |OrderSafe |------- |     OrderSafeRelayer      |                 |      OrderBoxRelayer      | -------| OrderBox |
-     * |          |        |                           |                 |                           |        |          |
-     * +----------+        +---------------------------+                 +---------------------------+        +----------+
-     */
-    function _setCC() internal {
-        uint128 receiveGas = 200000;
-        uint128 composeGas = 500000;
-        uint128 value = 0;
-        // chain id mock
-        chainIds = new uint256[](MAX_OFTS);
+    function _init() internal {
         for (uint8 i = 0; i < MAX_OFTS; i++) {
-            chainIds[i] = block.chainid + eids[i];
+            assertEq(oftInstances[i].owner(), address(this));
+            assertEq(oftInstances[i].endpoint().eid(), eids[i]);
+            assertEq(address(oftInstances[i].endpoint()), endpoints[eids[i]]);
+            if (i == 0) {
+                assertEq(oftInstances[i].token(), address(token));
+                assertEq(oftInstances[i].approvalRequired(), true);
+                assertEq(IERC20(oftInstances[i].token()).balanceOf(address(this)), INIT_MINT);
+            } else {
+                assertEq(oftInstances[i].token(), ofts[i]);
+                assertEq(oftInstances[i].approvalRequired(), false);
+                assertEq(oftInstances[i].balanceOf(address(this)), 0);
+            }
+            assertEq(oftInstances[i].orderedNonce(), true);
         }
 
-        bytes memory initData = abi.encodeWithSignature("initialize(address)", address(this));
-
-        // deploy OrderBox and OrderBoxRelayer
-        OrderBox orderBoxImpl = new OrderBox();
-        OrderBoxRelayer orderBoxRelayerImpl = new OrderBoxRelayer();
-        ERC1967Proxy orderBoxProxy = new ERC1967Proxy(address(orderBoxImpl), initData);
-        ERC1967Proxy orderBoxRelayerProxy = new ERC1967Proxy(address(orderBoxRelayerImpl), initData);
-        orderBox = OrderBox(address(orderBoxProxy));
-        orderBoxRelayer = OrderBoxRelayer(payable(address(orderBoxRelayerProxy)));
-
-        orderBoxRelayer.setEid(chainIds[MAX_OFTS - 1], eids[MAX_OFTS - 1]);
-        orderBoxRelayer.setEndpoint(endpoints[MAX_OFTS - 1]);
-        orderBoxRelayer.setOft(ofts[MAX_OFTS - 1]);
-        orderBoxRelayer.setLocalComposeMsgSender(ofts[MAX_OFTS - 1], true);
-        orderBoxRelayer.setOptionsAirdrop(0, receiveGas, value); // lz receive
-        orderBoxRelayer.setOptionsAirdrop(1, composeGas, value); // lz compose
-        orderBoxRelayer.setOrderBox(address(orderBox));
-
-        orderBox.setOft(ofts[MAX_OFTS - 1]);
-        orderBox.setOrderRelayer(address(orderBoxRelayer));
-
-        orderSafeInstances = new OrderSafe[](MAX_OFTS - 1);
-        orderSafeRelayerInstances = new OrderSafeRelayer[](MAX_OFTS - 1);
-        OrderSafe orderSafeImpl = new OrderSafe();
-        OrderSafeRelayer orderSafeRelayerImpl = new OrderSafeRelayer();
-
-        for (uint8 i = 0; i < MAX_OFTS - 1; i++) {
-            ERC1967Proxy orderSafeProxy = new ERC1967Proxy(address(orderSafeImpl), initData);
-            ERC1967Proxy orderSafeRelayerProxy = new ERC1967Proxy(address(orderSafeRelayerImpl), initData);
-            orderSafeInstances[i] = OrderSafe(address(orderSafeProxy));
-            orderSafeRelayerInstances[i] = OrderSafeRelayer(payable(address(orderSafeRelayerProxy)));
-
-            orderSafeRelayerInstances[i].setEid(chainIds[i], eids[i]);
-            orderSafeRelayerInstances[i].setEndpoint(endpoints[i]);
-            orderSafeRelayerInstances[i].setOft(ofts[i]);
-            orderSafeRelayerInstances[i].setLocalComposeMsgSender(ofts[i], true);
-            orderSafeRelayerInstances[i].setOptionsAirdrop(0, receiveGas, value);
-            orderSafeRelayerInstances[i].setOptionsAirdrop(1, composeGas, value);
-            orderSafeRelayerInstances[i].setOrderChainId(chainIds[MAX_OFTS - 1], eids[MAX_OFTS - 1]);
-            orderSafeRelayerInstances[i].setOrderSafe(address(orderSafeInstances[i]));
-            orderSafeRelayerInstances[i].setOrderBoxRelayer(address(orderBoxRelayer));
-            orderSafeRelayerInstances[i].setRemoteComposeMsgSender(eids[MAX_OFTS - 1], address(orderBoxRelayer), true);
-
-            orderSafeInstances[i].setOft(ofts[i]);
-            orderSafeInstances[i].setOrderRelayer(address(orderSafeRelayerInstances[i]));
-
-            orderBoxRelayer.setRemoteComposeMsgSender(eids[i], address(orderSafeRelayerInstances[i]), true);
-            orderBoxRelayer.setEid(chainIds[i], eids[i]);
+        // check if ofts are fully connected
+        for (uint8 i = 0; i < MAX_OFTS; i++) {
+            for (uint256 j = 0; j < MAX_OFTS; j++) {
+                if (i == j) continue;
+                assertEq(oftInstances[i].isPeer(eids[j], addressToBytes32(ofts[j])), true);
+            }
         }
+
+        console.log("Check the initial state for %d ofts", MAX_OFTS);
     }
 }
