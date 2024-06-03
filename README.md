@@ -69,12 +69,13 @@ AVAILABLE TASKS:
   export-artifacts
   flatten                               Flattens and prints contracts and their dependencies. If no file is passed, all the contracts in the project will be flattened.
   help                                  Prints this message
-  order:bridge:send                     Send tokens to a specific address on a specific network
   order:deploy                          Deploys the contract to a specific network: OrderToken, OrderAdapter, OrderOFT, OrderSafeRelayer, OrderBoxRelayer, OrderSafe, OrderBox
   order:init                            Initializes the contract on a specific network: OrderSafe, OrderSafeRelayer, OrderBox, OrderBoxRelayer
+  order:oft:bridge                      Bridge tokens to a specific address on a specific network through OFT contracts
   order:oft:distribute                  Distribute tokens to all OFT contracts on different networks
   order:oft:set                         Connect OFT contracs on different networks: OrderOFT, OrderAdapter
   order:print                           Prints the address of the OFT contract
+  order:oft:transfer                    Transfer tokens to a specific address on a specific network
   order:stake                           Send stakes to a specific address on a specific network
   order:test                            Used to test code snippets
   order:upgrade                         Upgrades the contract to a specific network: OrderSafe, OrderSafeRelayer, OrderBox, OrderBoxRelayer
@@ -255,12 +256,12 @@ npx hardhat order:oft:distribute --env dev --network basesepolia --receiver 0xdd
 npx hardhat order:oft:distribute --env dev --network orderlysepolia --receiver 0xdd3287043493e0a08d2b348397554096728b459c --amount 5000
 ```
 
-To test the token transfer across chains, we can use `order:oft:send` task to send the token from one network to another network. The task is defined as follows:
+To test the token transfer across chains, we can use `order:oft:bridge` task to send the token from one network to another network. The task is defined as follows:
 
 ```
-// npx hardhat order:oft:send --env dev --network fromNetwork --dst-network toNetwork --receiver toAddress --amount amount
+// npx hardhat order:oft:bridge --env dev --network fromNetwork --dst-network toNetwork --receiver toAddress --amount amount
 
-npx hardhat order:oft:send --env dev --network sepolia --dst-network orderlysepolia --receiver 0xdd3287043493e0a08d2b348397554096728b459c --amount 100
+npx hardhat order:oft:bridge --env dev --network sepolia --dst-network orderlysepolia --receiver 0xdd3287043493e0a08d2b348397554096728b459c --amount 100
 
 Running on sepolia
 Approving OrderAdapter to spend 100 on OrderToken with tx hash 0xbf2b81d73a4007256e84ca2f8407fec4bcabda73aaeb6a63343382626264dbc1
@@ -414,6 +415,10 @@ Through the [LayerZero](https://testnet.layerzeroscan.com/tx/0x31f74192d1bd685e4
 - The [received tx](https://explorerl2new-orderly-l2-4460-sepolia-8tc3sd7dvy.t.conduit.xyz/tx/0xd06a8e7dd8373927c52b11a2e8d6a574c7ac90cb9aa508ca389a4539ea5789e1) on Orderly network
 - The [composed tx](https://explorerl2new-orderly-l2-4460-sepolia-8tc3sd7dvy.t.conduit.xyz/tx/0x384d03949bf6cc7b3b01cbd232d40cc8c2c3fdeb8691a9e971cb1ec52771de6a) on Orderly network
 
-```
+### Test
 
+To test the cross-chain message relay, we can use the `forge test` to mock the cross-chain flow
+
+```
+forge test --match-contract OrderOFTTest -vvv
 ```
