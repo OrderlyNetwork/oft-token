@@ -392,8 +392,7 @@ task("order:oft:set", "Connect OFT contracs on different networks: OrderOFT, Ord
                             }
                             enforcedOptions.push(optionsToAdd)
                         }
-                    }
-                    
+                    }   
                 }
             }
             if (enforcedOptions.length > 0) {
@@ -404,6 +403,17 @@ task("order:oft:set", "Connect OFT contracs on different networks: OrderOFT, Ord
                 console.log(`Enforced options already set`)
             
             }
+            const orderedNonce = await localContract.orderedNonce()
+                    if (!orderedNonce) {
+                        const txSetOrderedNonce = await localContract.setOrderedNonce(true, {
+                            nonce: nonce++
+                        })
+                        txSetOrderedNonce.wait()
+                        console.log(`Ordered nonce set to true with tx hash ${txSetOrderedNonce.hash}`)
+                    } else {
+                        console.log(`Ordered nonce already set`)
+                    
+                    }
         }
         catch (e) {
             console.log(`Error: ${e}`)
@@ -492,7 +502,7 @@ task("order:oft:distribute", "Distribute tokens to all OFT contracts on differen
         }
     })
 
-task("order:oft:send", "Send tokens to a specific address on a specific network")
+task("order:oft:bridge", "Bridge tokens to a specific address on a specific network through OFT contracts")
     .addParam("env", "The environment to send the tokens", undefined, types.string)
     .addParam("dstNetwork", "The network to receive the tokens", undefined, types.string)
     .addParam("receiver", "The address to receive the tokens", undefined, types.string)
@@ -558,6 +568,37 @@ task("order:oft:send", "Send tokens to a specific address on a specific network"
             console.log(`Error: ${e}`)
         }
     })
+
+task("order:oft:transfer", "Transfer tokens to a specific address on a specific network")
+.addParam("env", "The environment to send the tokens", undefined, types.string)
+.addParam("receiver", "The address to receive the tokens", undefined, types.string)
+.addParam("amount", "The amount of tokens to send", undefined, types.string)
+.setAction(async (taskArgs, hre) => {
+    checkNetwork(hre.network.name)
+    try {
+        fromNetwork = hre.network.name
+        console.log(`Running on ${fromNetwork}`)
+
+        const receiver = taskArgs.receiver
+
+        const erc20ContractName = tokenContractName(fromNetwork)
+        const erc20ContractAddress = await loadContractAddress(taskArgs.env, fromNetwork, erc20ContractName) as string
+
+        const [ signer ] = await hre.ethers.getSigners()
+        const erc20Contract = await hre.ethers.getContractAt(erc20ContractName, erc20ContractAddress, signer)
+        
+        const deciamls = await erc20Contract.decimals() 
+        const tokenAmount = hre.ethers.utils.parseUnits(taskArgs.amount, deciamls)
+
+        const transferTx = await erc20Contract.transfer(receiver, tokenAmount)
+        transferTx.wait()
+        console.log(`Transferring tokens to ${receiver} with tx hash ${transferTx.hash}`)
+        
+    }
+    catch (e) {
+        console.log(`Error: ${e}`)
+    }
+})
 
 task("order:stake", "Send stakes to a specific address on a specific network")
     .addParam("env", "The environment to send the stakes", undefined, types.string)
