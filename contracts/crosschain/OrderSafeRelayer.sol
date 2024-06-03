@@ -25,22 +25,23 @@ contract OrderSafeRelayer is IOrderSafeRelayer, OrderRelayerBase, OrderSafeRelay
             IERC20 token = IERC20(IOFT(oft).token());
             token.approve(oft, _amount);
         }
-        uint32 srcEid = _getOrderEid();
+        uint32 orderEid = _getOrderEid();
         bytes memory options = _getOption(uint8(Options.STAKE_ORDER));
-        bytes memory composeMsg = abi.encode(_staker, _amount);
+        bytes memory stakeMsg = abi.encode(_staker, _amount);
         SendParam memory sendParam = SendParam({
-            dstEid: srcEid,
+            dstEid: orderEid,
             to: OFTMsgCodec.addressToBytes32(orderBoxRelayer),
             amountLD: _amount,
             minAmountLD: _amount,
             extraOptions: options,
-            composeMsg: composeMsg,
+            composeMsg: stakeMsg,
             oftCmd: ""
         });
 
         MessagingFee memory fee = IOFT(oft).quoteSend(sendParam, false);
         require(msg.value >= fee.nativeFee, "OrderSafeRelayer: insufficient lz fee");
         (msgReceipt, oftReceipt) = IOFT(oft).send{ value: fee.nativeFee }(sendParam, fee, payable(_staker));
+        emit SendStakeMsg(orderEid, OFTMsgCodec.addressToBytes32(orderBoxRelayer), stakeMsg);
     }
 
     function sendUnstakeMsg(address _staker, uint256 _amount) public {}

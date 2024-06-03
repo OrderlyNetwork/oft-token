@@ -7,6 +7,7 @@ struct StakeMsg {
 }
 
 interface IOrderSafeRelayer {
+    event SendStakeMsg(uint32 orderEid, bytes32 to, bytes stakeMsg);
     function sendStakeMsg(
         address staker,
         uint256 amount

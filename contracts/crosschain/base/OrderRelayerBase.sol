@@ -117,10 +117,10 @@ abstract contract OrderRelayerBase is IOrderRelayer, OrderBaseUpgradeable, Order
         uint32 _eid,
         address _remoteSender
     ) internal view returns (bool) {
-        return
-            endpoint == _endpoint &&
-            _isLocalComposeMsgSender(_localSender) &&
-            _isRemoteComposeMsgSender(_eid, _remoteSender);
+        if (endpoint != _endpoint) revert InvalidEnpoint(endpoint, _endpoint);
+        if (!_isLocalComposeMsgSender(_localSender)) revert NotLocalComposeMsgSender(_localSender);
+        if (!_isRemoteComposeMsgSender(_eid, _remoteSender)) revert NotRemoteComposeMsgSender(_eid, _remoteSender);
+        return true;
     }
 
     fallback() external payable {}

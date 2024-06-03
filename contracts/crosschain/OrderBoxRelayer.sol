@@ -25,10 +25,7 @@ contract OrderBoxRelayer is IOrderBoxRelayer, ILayerZeroComposer, OrderRelayerBa
         bytes memory composeMsg = _message.composeMsg();
         uint32 srcEid = _message.srcEid();
         address remoteSender = OFTComposeMsgCodec.bytes32ToAddress(_message.composeFrom());
-        require(
-            _authorizeComposeMsgSender(msg.sender, _from, srcEid, remoteSender),
-            "OrderlyBox: composeMsg sender check failed"
-        );
+        _authorizeComposeMsgSender(msg.sender, _from, srcEid, remoteSender);
         (address staker, uint256 amount) = abi.decode(composeMsg, (address, uint256));
         IERC20 token = IERC20(IOFT(oft).token());
         token.safeTransfer(orderBox, amount);
