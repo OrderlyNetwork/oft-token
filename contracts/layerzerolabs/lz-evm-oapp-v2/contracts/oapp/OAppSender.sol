@@ -4,13 +4,13 @@ pragma solidity ^0.8.20;
 
 import { SafeERC20, IERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import { MessagingParams, MessagingFee, MessagingReceipt } from "@layerzerolabs/lz-evm-protocol-v2/contracts/interfaces/ILayerZeroEndpointV2.sol";
-import { OAppCoreUpgradeable } from "./OAppCoreUpgradeable.sol";
+import { OAppCore } from "./OAppCore.sol";
 
 /**
  * @title OAppSender
  * @dev Abstract contract implementing the OAppSender functionality for sending messages to a LayerZero endpoint.
  */
-abstract contract OAppSenderUpgradeable is OAppCoreUpgradeable {
+abstract contract OAppSender is OAppCore {
     using SafeERC20 for IERC20;
 
     // Custom error messages

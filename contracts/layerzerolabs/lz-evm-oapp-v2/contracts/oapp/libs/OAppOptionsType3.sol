@@ -2,14 +2,14 @@
 
 pragma solidity ^0.8.20;
 
-import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 import { IOAppOptionsType3, EnforcedOptionParam } from "../interfaces/IOAppOptionsType3.sol";
 
 /**
  * @title OAppOptionsType3
  * @dev Abstract contract implementing the IOAppOptionsType3 interface with type 3 options.
  */
-abstract contract OAppOptionsType3Upgradeable is IOAppOptionsType3, OwnableUpgradeable {
+abstract contract OAppOptionsType3 is IOAppOptionsType3, Ownable {
     uint16 internal constant OPTION_TYPE_3 = 3;
 
     // @dev The "msgType" should be defined in the child contract.

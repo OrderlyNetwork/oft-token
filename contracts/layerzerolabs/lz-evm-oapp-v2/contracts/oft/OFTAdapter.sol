@@ -4,7 +4,7 @@ pragma solidity ^0.8.20;
 
 import { IERC20Metadata, IERC20 } from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import { IOFT, OFTCoreUpgradeable } from "./OFTCoreUpgradeable.sol";
+import { IOFT, OFTCore } from "./OFTCore.sol";
 
 /**
  * @title OFTAdapter Contract
@@ -17,24 +17,23 @@ import { IOFT, OFTCoreUpgradeable } from "./OFTCoreUpgradeable.sol";
  * IF the 'innerToken' applies something like a transfer fee, the default will NOT work...
  * a pre/post balance check will need to be done to calculate the amountSentLD/amountReceivedLD.
  */
-abstract contract OFTAdapterUpgradeable is OFTCoreUpgradeable {
+abstract contract OFTAdapter is OFTCore {
     using SafeERC20 for IERC20;
 
-    IERC20 internal innerToken;
+    IERC20 internal immutable innerToken;
 
     /**
-     * @dev Initializer for the OFTAdapter contract.
+     * @dev Constructor for the OFTAdapter contract.
      * @param _token The address of the ERC-20 token to be adapted.
      * @param _lzEndpoint The LayerZero endpoint address.
      * @param _delegate The delegate capable of making OApp configurations inside of the endpoint.
      */
-    function __initializeOFTAdapter(
+    constructor(
         address _token,
         address _lzEndpoint,
         address _delegate
-    ) internal virtual onlyInitializing {
+    ) OFTCore(IERC20Metadata(_token).decimals(), _lzEndpoint, _delegate) {
         innerToken = IERC20(_token);
-        __initializeOFTCore(IERC20Metadata(_token).decimals(), _lzEndpoint, _delegate);
     }
 
     /**
