@@ -19,7 +19,9 @@ struct OptionsAirdrop {
 
 interface IOrderRelayer {
     /* ========== Errors ========== */
-    error NotComposeMsgSender(address sender);
+    error NotLocalComposeMsgSender(address sender);
+    error NotRemoteComposeMsgSender(uint32 eid, address sender);
+    error InvalidEnpoint(address savedEndpoint, address realEndpoint);
 
     /* ========== Events ========== */
     event ComposeMsgSenderSet(address indexed composeMsgSender, bool allowed);

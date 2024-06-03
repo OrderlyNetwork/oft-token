@@ -3,8 +3,8 @@ pragma solidity ^0.8.20;
 
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import { OFTMsgCodec, MessagingFee, MessagingReceipt } from "@layerzerolabs/lz-evm-oapp-v2/contracts/oft/OFTCore.sol";
-import { IOFT, SendParam, OFTReceipt } from "@layerzerolabs/lz-evm-oapp-v2/contracts/oft/interfaces/IOFT.sol";
+import { OFTMsgCodec } from "@layerzerolabs/lz-evm-oapp-v2/contracts/oft/OFTCore.sol";
+import { IOFT, SendParam, MessagingFee, MessagingReceipt, OFTReceipt } from "../layerzerolabs/lz-evm-oapp-v2/contracts/oft/interfaces/IOFT.sol";
 import { OptionsBuilder } from "@layerzerolabs/lz-evm-oapp-v2/contracts/oapp/libs/OptionsBuilder.sol";
 import { OrderRelayerBase } from "./base/OrderRelayerBase.sol";
 import { IOrderSafeRelayer } from "./interfaces/IOrderSafeRelayer.sol";
@@ -16,29 +16,32 @@ contract OrderSafeRelayer is IOrderSafeRelayer, OrderRelayerBase, OrderSafeRelay
     using SafeERC20 for IERC20;
     using OptionsBuilder for bytes;
 
-    function sendStakeMsg(address _staker, uint256 _amount) public payable {
+    function sendStakeMsg(
+        address _staker,
+        uint256 _amount
+    ) public payable returns (MessagingReceipt memory msgReceipt, OFTReceipt memory oftReceipt) {
         require(msg.sender == orderSafe, "OrderSafeRelayer: Only OrderSafe can call");
         if (IOFT(oft).approvalRequired()) {
             IERC20 token = IERC20(IOFT(oft).token());
             token.approve(oft, _amount);
-            token.safeTransfer(msg.sender, _amount);
         }
-        uint32 srcEid = _getOrderEid();
+        uint32 orderEid = _getOrderEid();
         bytes memory options = _getOption(uint8(Options.STAKE_ORDER));
-        bytes memory composeMsg = abi.encode(_staker, _amount);
+        bytes memory stakeMsg = abi.encode(_staker, _amount);
         SendParam memory sendParam = SendParam({
-            dstEid: srcEid,
+            dstEid: orderEid,
             to: OFTMsgCodec.addressToBytes32(orderBoxRelayer),
             amountLD: _amount,
             minAmountLD: _amount,
             extraOptions: options,
-            composeMsg: composeMsg,
+            composeMsg: stakeMsg,
             oftCmd: ""
         });
 
         MessagingFee memory fee = IOFT(oft).quoteSend(sendParam, false);
         require(msg.value >= fee.nativeFee, "OrderSafeRelayer: insufficient lz fee");
-        IOFT(oft).send{ value: fee.nativeFee }(sendParam, fee, payable(_staker));
+        (msgReceipt, oftReceipt) = IOFT(oft).send{ value: fee.nativeFee }(sendParam, fee, payable(_staker));
+        emit SendStakeMsg(orderEid, OFTMsgCodec.addressToBytes32(orderBoxRelayer), stakeMsg);
     }
 
     function sendUnstakeMsg(address _staker, uint256 _amount) public {}
