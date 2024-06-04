@@ -16,6 +16,7 @@ contract OrderOFT is OFTUpgradeable {
      * @param _delegate The delegate address of this OApp on the endpoint
      */
     function initialize(address _lzEndpoint, address _delegate) external initializer {
+        emit MessageAddress("_lzEndpoint", _lzEndpoint);
         __initializeOFT("Orderly Network", "ORDER", _lzEndpoint, _delegate);
     }
 }

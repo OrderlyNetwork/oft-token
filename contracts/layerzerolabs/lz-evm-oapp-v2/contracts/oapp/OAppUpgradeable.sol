@@ -35,6 +35,7 @@ abstract contract OAppUpgradeable is
      * @param _delegate The delegate address for the OApp on the endpoint.
      */
     function __initializeOApp(address _endpoint, address _delegate) internal virtual onlyInitializing {
+        emit MessageAddress("_lzEndpoint", _endpoint);
         __initializeOAppCore(_endpoint, _delegate);
         __UUPSUpgradeable_init();
         __Pausable_init();
