@@ -3,7 +3,8 @@ pragma solidity ^0.8.0;
 
 import { OrderOFT } from "contracts/OrderOFT.sol";
 
-import { ILayerZeroEndpointV2} from "@layerzerolabs/lz-evm-protocol-v2/contracts/interfaces/ILayerZeroEndpointV2.sol";
+import { ILayerZeroEndpointV2 } from "@layerzerolabs/lz-evm-protocol-v2/contracts/interfaces/ILayerZeroEndpointV2.sol";
+
 contract OrderOFTMock is OrderOFT {
     function mint(address _to, uint256 _amount) public {
         _mint(_to, _amount);
@@ -27,9 +28,5 @@ contract OrderOFTMock is OrderOFT {
 
     function toSD(uint256 _amountLD) public view returns (uint64 amountSD) {
         return _toSD(_amountLD);
-    }
-
-    function setEndpoint(address _endpoint) public {
-        endpoint = ILayerZeroEndpointV2(_endpoint);
     }
 }

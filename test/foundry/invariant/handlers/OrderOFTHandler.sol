@@ -73,6 +73,46 @@ contract OrderOFTHandler is SoladyTest {
         users[3] = user3;
         users[4] = user4;
         users[5] = user5;
+
+        for (uint i = 0; i < oftInstances.length; i++) {
+            if (i == 0) {
+                vm.prank(user0);
+                adapterToken.approve(user0, type(uint256).max);
+
+                vm.prank(user1);
+                adapterToken.approve(user1, type(uint256).max);
+
+                vm.prank(user2);
+                adapterToken.approve(user2, type(uint256).max);
+
+                vm.prank(user3);
+                adapterToken.approve(user3, type(uint256).max);
+
+                vm.prank(user4);
+                adapterToken.approve(user4, type(uint256).max);
+
+                vm.prank(user5);
+                adapterToken.approve(user5, type(uint256).max);
+            } else {
+                vm.prank(user0);
+                oftInstances[i].approve(user0, type(uint256).max);
+
+                vm.prank(user1);
+                oftInstances[i].approve(user1, type(uint256).max);
+
+                vm.prank(user2);
+                oftInstances[i].approve(user2, type(uint256).max);
+
+                vm.prank(user3);
+                oftInstances[i].approve(user3, type(uint256).max);
+
+                vm.prank(user4);
+                oftInstances[i].approve(user4, type(uint256).max);
+
+                vm.prank(user5);
+                oftInstances[i].approve(user5, type(uint256).max);
+            }
+        }
     }
 
     /*//////////////////////////////////////////////////////////////////////////
@@ -122,7 +162,6 @@ contract OrderOFTHandler is SoladyTest {
         TransferTemps memory t;
         // PRE-CONDITIONS
         t.srcOft = randomOft(srcOftSeed);
-
         t.from = randomAddress(fromIndexSeed);
         t.to = randomAddress(toIndexSeed);
 
@@ -144,7 +183,7 @@ contract OrderOFTHandler is SoladyTest {
             vm.prank(t.from);
             (t.success, ) = address(adapterToken).call(abi.encodeWithSelector(IERC20.transfer.selector, t.to, amount));
         } else {
-            vm.prank(t.sender);
+            vm.prank(t.from);
             (t.success, ) = address(t.srcOft).call(
                 abi.encodeWithSelector(ERC20Upgradeable.transfer.selector, t.to, amount)
             );
@@ -176,15 +215,19 @@ contract OrderOFTHandler is SoladyTest {
             beforeAfter.fromSrcBalanceBefore = adapterToken.balanceOf(t.from);
             beforeAfter.toSrcBalanceBefore = adapterToken.balanceOf(t.to);
             beforeAfter.srcTotalSupplyBefore = adapterToken.totalSupply();
+
+            if (adapterToken.allowance(t.from, t.sender) < amount) {
+                t.sender = t.from;
+            }
         } else {
             amount = _bound(amount, 0, t.srcOft.balanceOf(t.from));
             beforeAfter.fromSrcBalanceBefore = t.srcOft.balanceOf(t.from);
             beforeAfter.toSrcBalanceBefore = t.srcOft.balanceOf(t.to);
             beforeAfter.srcTotalSupplyBefore = t.srcOft.totalSupply();
-        }
 
-        if (t.srcOft.allowance(t.from, t.sender) < amount) {
-            t.sender = t.from;
+            if (t.srcOft.allowance(t.from, t.sender) < amount) {
+                t.sender = t.from;
+            }
         }
 
         // ACTION
@@ -273,6 +316,9 @@ contract OrderOFTHandler is SoladyTest {
         t.from = randomAddress(fromIndexSeed);
         t.to = randomAddress(toIndexSeed);
 
+        emit MessageAddress("Initial Send Source Endpoint:", address(t.srcOft.endpoint()));
+        emit MessageAddress("Initial Send Destination Endpoint:", address(t.dstOft.endpoint()));
+
         BeforeAfter memory beforeAfter;
         if (t.srcOft == oftInstances[0]) {
             amount = _bound(amount, 0, adapterToken.balanceOf(t.from));
@@ -337,9 +383,9 @@ contract OrderOFTHandler is SoladyTest {
                 beforeAfter.fromSrcBalanceAfter = t.srcOft.balanceOf(t.from);
                 beforeAfter.toSrcBalanceAfter = t.srcOft.balanceOf(t.to);
                 beforeAfter.srcTotalSupplyAfter = t.srcOft.totalSupply();
-                beforeAfter.fromDstBalanceAfter = t.dstOft.balanceOf(t.from);
-                beforeAfter.toDstBalanceAfter = t.dstOft.balanceOf(t.to);
-                beforeAfter.dstTotalSupplyAfter = t.dstOft.totalSupply();
+                beforeAfter.fromDstBalanceAfter = adapterToken.balanceOf(t.from);
+                beforeAfter.toDstBalanceAfter = adapterToken.balanceOf(t.to);
+                beforeAfter.dstTotalSupplyAfter = adapterToken.totalSupply();
             } else {
                 beforeAfter.fromSrcBalanceAfter = t.srcOft.balanceOf(t.from);
                 beforeAfter.toSrcBalanceAfter = t.srcOft.balanceOf(t.to);

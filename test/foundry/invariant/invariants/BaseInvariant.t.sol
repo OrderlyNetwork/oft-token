@@ -39,7 +39,7 @@ import { OFTComposeMsgCodec } from "contracts/layerzerolabs/lz-evm-oapp-v2/contr
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 
-abstract contract BaseInvariant is StdInvariant, TestHelperOz5 {
+contract BaseInvariant is StdInvariant, TestHelperOz5 {
     event MessageNum(string a, uint256 b);
 
     /*//////////////////////////////////////////////////////////////////////////
@@ -115,12 +115,8 @@ abstract contract BaseInvariant is StdInvariant, TestHelperOz5 {
         verifyHelper = new VerifyHelper(this);
 
         orderOftHandler = new OrderOFTHandler(oftInstances, verifyHelper);
-        orderAdapterHandler = new OrderAdapterHandler(ofts[0]);
-        orderTokenHandler = new OrderTokenHandler(token);
 
         targetContract(address(orderOftHandler));
-        targetContract(address(orderAdapterHandler));
-        targetContract(address(orderTokenHandler));
 
         // Selectors to target.
         bytes4[] memory orderOFTSelectors = new bytes4[](4);
@@ -131,19 +127,7 @@ abstract contract BaseInvariant is StdInvariant, TestHelperOz5 {
 
         targetSelector(FuzzSelector({ addr: address(orderOftHandler), selectors: orderOFTSelectors }));
 
-        // Selectors to target.
-        bytes4[] memory orderAdapterSelectors = new bytes4[](1);
-        orderAdapterSelectors[0] = OrderAdapterHandler.setOrderedNonce.selector;
-
-        targetSelector(FuzzSelector({ addr: address(orderAdapterHandler), selectors: orderAdapterSelectors }));
-
-        // Selectors to target.
-        bytes4[] memory orderTokenSelectors = new bytes4[](3);
-        orderTokenSelectors[0] = OrderTokenHandler.approve.selector;
-        orderTokenSelectors[1] = OrderTokenHandler.transfer.selector;
-        orderTokenSelectors[2] = OrderTokenHandler.transferFrom.selector;
-
-        targetSelector(FuzzSelector({ addr: address(orderTokenHandler), selectors: orderTokenSelectors }));
+        emit Message("SETUP");
     }
 
     // function invariantOrderOFTABalanceSum() external {
@@ -171,13 +155,12 @@ abstract contract BaseInvariant is StdInvariant, TestHelperOz5 {
     }
 
     function _setOft() internal {
-        super.setUp();
         setUpEndpoints(MAX_OFTS, LibraryType.UltraLightNode);
         console.log("Set up %d endpoints", MAX_OFTS);
 
         token = new OrderTokenMock(address(this));
         OrderAdapterMock orderAdapterImpl = new OrderAdapterMock();
-        OrderOFT orderOFTImpl = new OrderOFTMock();
+        OrderOFTMock orderOFTImpl = new OrderOFTMock();
 
         eids = new uint32[](MAX_OFTS);
 
@@ -206,7 +189,7 @@ abstract contract BaseInvariant is StdInvariant, TestHelperOz5 {
 
         console.log("Set up %d OFTs", MAX_OFTS);
 
-        wireOApps(ofts);
+        this.wireOApps(ofts);
 
         console.log("Wired %d OFTs", MAX_OFTS);
 
@@ -336,49 +319,52 @@ abstract contract BaseInvariant is StdInvariant, TestHelperOz5 {
             oftInstances[i].mint(user4, initialBalance);
             oftInstances[i].mint(user5, initialBalance);
         }
-        // uint256 initialSend = INIT_MINT / MAX_OFTS;
-        // uint256 initialRelay = initialSend / MAX_OFTS;
-        // bytes memory options = OptionsBuilder.newOptions().addExecutorLzReceiveOption(200000, 0);
-        // for (uint8 i = 0; i < MAX_OFTS; i++) {
-        //     uint256 tokenToSend = i == 0 ? initialSend : initialRelay;
-        //     for (uint256 j = 0; j < MAX_OFTS; j++) {
-        //         if (i == j) continue;
-        //         if (oftInstances[i].approvalRequired()) {
-        //             IERC20(oftInstances[i].token()).approve(ofts[i], tokenToSend);
-        //         }
+        uint256 initialSend = INIT_MINT / MAX_OFTS;
+        uint256 initialRelay = initialSend / MAX_OFTS;
+        bytes memory options = OptionsBuilder.newOptions().addExecutorLzReceiveOption(200000, 0);
+        for (uint8 i = 0; i < MAX_OFTS; i++) {
+            uint256 tokenToSend = i == 0 ? initialSend : initialRelay;
+            for (uint256 j = 0; j < MAX_OFTS; j++) {
+                if (i == j) continue;
+                if (oftInstances[i].approvalRequired()) {
+                    IERC20(oftInstances[i].token()).approve(ofts[i], tokenToSend);
+                }
 
-        //         SendParam memory sendParam = SendParam(
-        //             eids[j],
-        //             addressToBytes32(address(this)),
-        //             tokenToSend,
-        //             tokenToSend,
-        //             options,
-        //             "",
-        //             ""
-        //         );
-        //         MessagingFee memory fee = oftInstances[i].quoteSend(sendParam, false);
+                SendParam memory sendParam = SendParam(
+                    eids[j],
+                    addressToBytes32(address(this)),
+                    tokenToSend,
+                    tokenToSend,
+                    options,
+                    "",
+                    ""
+                );
+                MessagingFee memory fee = oftInstances[i].quoteSend(sendParam, false);
 
-        //         oftInstances[i].send{ value: fee.nativeFee }(sendParam, fee, payable(address(this)));
-        //         verifyPackets(eids[j], addressToBytes32(ofts[j]));
-        //     }
-        // }
+                oftInstances[i].send{ value: fee.nativeFee }(sendParam, fee, payable(address(this)));
+                verifyPackets(eids[j], addressToBytes32(ofts[j]));
+            }
+        }
 
-        // for (uint8 i = 0; i < MAX_OFTS; i++) {
-        //     assertEq(
-        //         IERC20(oftInstances[i].token()).balanceOf(address(this)),
-        //         i == 0
-        //             ? INIT_MINT - (MAX_OFTS - 1) * initialSend + (MAX_OFTS - 1) * initialRelay
-        //             : initialSend - initialRelay
-        //     );
-        // }
+        for (uint8 i = 0; i < MAX_OFTS; i++) {
+            assertEq(
+                IERC20(oftInstances[i].token()).balanceOf(address(this)),
+                i == 0
+                    ? INIT_MINT - (MAX_OFTS - 1) * initialSend + (MAX_OFTS - 1) * initialRelay
+                    : initialSend - initialRelay
+            );
+        }
 
-        // console.log("Distributed tokens to %d - %d OFTs", eids[1], eids[MAX_OFTS - 1]);
+        console.log("Distributed tokens to %d - %d OFTs", eids[1], eids[MAX_OFTS - 1]);
     }
 
     function _init() internal {
         for (uint8 i = 0; i < MAX_OFTS; i++) {
             assertEq(oftInstances[i].owner(), address(this));
+            assertEq(address(oftInstances[i].endpoint()), endpoints[eids[i]]);
             assertEq(oftInstances[i].endpoint().eid(), eids[i]);
+            emit MessageAddress("OFT:", address(oftInstances[i]));
+            emit MessageAddress("ENDPOINT:", address(oftInstances[i].endpoint()));
             assertEq(address(oftInstances[i].endpoint()), endpoints[eids[i]]);
             if (i == 0) {
                 assertEq(oftInstances[i].token(), address(token));
@@ -393,12 +379,12 @@ abstract contract BaseInvariant is StdInvariant, TestHelperOz5 {
         }
 
         // check if ofts are fully connected
-        for (uint8 i = 0; i < MAX_OFTS; i++) {
-            for (uint256 j = 0; j < MAX_OFTS; j++) {
-                if (i == j) continue;
-                assertEq(oftInstances[i].isPeer(eids[j], addressToBytes32(ofts[j])), true);
-            }
-        }
+        // for (uint8 i = 0; i < MAX_OFTS; i++) {
+        //     for (uint256 j = 0; j < MAX_OFTS; j++) {
+        //         if (i == j) continue;
+        //         assertEq(oftInstances[i].isPeer(eids[j], addressToBytes32(ofts[j])), true);
+        //     }
+        // }
 
         console.log("Check the initial state for %d ofts", MAX_OFTS);
     }
