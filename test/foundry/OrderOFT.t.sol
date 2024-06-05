@@ -801,6 +801,7 @@ contract OrderOFTTest is TestHelperOz5 {
             tokenToStake * (MAX_OFTS - 1)
         );
     }
+
     // TODO import the rest of oft tests?
     // composeMsg
     // ABA pattern

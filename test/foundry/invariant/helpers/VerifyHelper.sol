@@ -10,10 +10,7 @@ contract VerifyHelper {
         baseInvariant = _baseInvariant;
     }
 
-    event Message(string a);
-
-    function verifyPackets(uint32 dstEid, address _address) public {
-        emit Message("In VerifyHelper");
-        baseInvariant.verifyPackets(dstEid, _address);
+    function verifyPackets(uint32 dstEid, bytes32 _address, uint256 _packetAmount) public {
+        baseInvariant.verifyPackets(dstEid, _address, _packetAmount, address(0x0));
     }
 }

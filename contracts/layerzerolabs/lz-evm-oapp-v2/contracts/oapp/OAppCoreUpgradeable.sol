@@ -30,7 +30,6 @@ abstract contract OAppCoreUpgradeable is IOAppCore, OwnableUpgradeable {
      */
     function __initializeOAppCore(address _endpoint, address _delegate) internal onlyInitializing {
         endpoint = ILayerZeroEndpointV2(_endpoint);
-        emit MessageAddress("ENDPOINT", address(endpoint));
         if (_delegate == address(0)) revert InvalidDelegate();
         endpoint.setDelegate(_delegate);
     }

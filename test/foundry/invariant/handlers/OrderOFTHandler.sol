@@ -39,6 +39,15 @@ contract OrderOFTHandler is SoladyTest {
 
     address[6] users;
 
+    mapping(uint32 => MessagingReceipt[]) messageReceipts;
+    mapping(uint32 => OFTReceipt[]) oftReceipts;
+    mapping(uint32 => PacketVariables[]) packetVariables;
+
+    struct PacketVariables {
+        address from;
+        address to;
+    }
+
     struct BeforeAfter {
         uint256 fromSrcBalanceBefore;
         uint256 toSrcBalanceBefore;
@@ -52,9 +61,11 @@ contract OrderOFTHandler is SoladyTest {
         uint256 fromDstBalanceAfter;
         uint256 toDstBalanceAfter;
         uint256 dstTotalSupplyAfter;
+        uint256 adapterBalanceBefore;
+        uint256 adapterBalanceAfter;
+        uint64 nonceBefore;
+        uint64 nonceAfter;
     }
-
-    event MessageAddress(string a, address b);
 
     /*//////////////////////////////////////////////////////////////////////////
                                     CONSTRUCTOR
@@ -63,7 +74,7 @@ contract OrderOFTHandler is SoladyTest {
     constructor(OrderOFTMock[] memory _oftInstances, VerifyHelper _verifyHelper) {
         oftInstances = _oftInstances;
 
-        adapterToken = OrderAdapterMock(address(oftInstances[0])).getInnerToken();
+        adapterToken = IERC20(OrderAdapterMock(address(oftInstances[0])).token());
 
         verifyHelper = _verifyHelper;
 
@@ -125,10 +136,10 @@ contract OrderOFTHandler is SoladyTest {
         address spender;
     }
 
-    function approve(uint256 srcOftSeed, uint256 ownerIndexSeed, uint256 spenderIndexSeed, uint256 amount) public {
+    function approve(uint256 srcOftIndexSeed, uint256 ownerIndexSeed, uint256 spenderIndexSeed, uint256 amount) public {
         ApproveTemps memory t;
         // PRE-CONDITIONS
-        t.srcOft = randomOft(srcOftSeed);
+        t.srcOft = randomOft(srcOftIndexSeed);
         t.owner = randomAddress(ownerIndexSeed);
         t.spender = randomAddress(spenderIndexSeed);
 
@@ -158,10 +169,10 @@ contract OrderOFTHandler is SoladyTest {
         bool success;
     }
 
-    function transfer(uint256 srcOftSeed, uint256 fromIndexSeed, uint256 toIndexSeed, uint256 amount) public {
+    function transfer(uint256 srcOftIndexSeed, uint256 fromIndexSeed, uint256 toIndexSeed, uint256 amount) public {
         TransferTemps memory t;
         // PRE-CONDITIONS
-        t.srcOft = randomOft(srcOftSeed);
+        t.srcOft = randomOft(srcOftIndexSeed);
         t.from = randomAddress(fromIndexSeed);
         t.to = randomAddress(toIndexSeed);
 
@@ -196,7 +207,7 @@ contract OrderOFTHandler is SoladyTest {
     }
 
     function transferFrom(
-        uint256 srcOftSeed,
+        uint256 srcOftIndexSeed,
         uint256 senderIndexSeed,
         uint256 fromIndexSeed,
         uint256 toIndexSeed,
@@ -204,7 +215,7 @@ contract OrderOFTHandler is SoladyTest {
     ) public {
         TransferTemps memory t;
         // PRE-CONDITIONS
-        t.srcOft = randomOft(srcOftSeed);
+        t.srcOft = randomOft(srcOftIndexSeed);
         t.sender = randomAddress(senderIndexSeed);
         t.from = randomAddress(fromIndexSeed);
         t.to = randomAddress(toIndexSeed);
@@ -302,22 +313,23 @@ contract OrderOFTHandler is SoladyTest {
     }
 
     function send(
-        uint256 srcOftSeed,
-        uint256 dstOftSeed,
+        uint256 srcOftIndexSeed,
+        uint256 dstOftIndexSeed,
         uint256 fromIndexSeed,
         uint256 toIndexSeed,
         uint256 amount
     ) public {
         SendTemps memory t;
         // PRE-CONDITIONS
-        t.srcOft = randomOft(srcOftSeed);
-        t.dstOft = randomOft(dstOftSeed);
+        t.srcOft = randomOft(srcOftIndexSeed);
+        t.dstOft = randomOft(dstOftIndexSeed);
         if (address(t.srcOft) == address(t.dstOft)) return;
         t.from = randomAddress(fromIndexSeed);
         t.to = randomAddress(toIndexSeed);
 
-        emit MessageAddress("Initial Send Source Endpoint:", address(t.srcOft.endpoint()));
-        emit MessageAddress("Initial Send Destination Endpoint:", address(t.dstOft.endpoint()));
+        PacketVariables memory packetVars;
+        packetVars.from = t.from;
+        packetVars.to = t.to;
 
         BeforeAfter memory beforeAfter;
         if (t.srcOft == oftInstances[0]) {
@@ -325,25 +337,17 @@ contract OrderOFTHandler is SoladyTest {
             beforeAfter.fromSrcBalanceBefore = adapterToken.balanceOf(t.from);
             beforeAfter.toSrcBalanceBefore = adapterToken.balanceOf(t.to);
             beforeAfter.srcTotalSupplyBefore = adapterToken.totalSupply();
-            beforeAfter.fromDstBalanceBefore = t.dstOft.balanceOf(t.from);
-            beforeAfter.toDstBalanceBefore = t.dstOft.balanceOf(t.to);
-            beforeAfter.dstTotalSupplyBefore = t.dstOft.totalSupply();
+            beforeAfter.adapterBalanceBefore = adapterToken.balanceOf(address(t.srcOft));
         } else if (t.dstOft == oftInstances[0]) {
             amount = _bound(amount, 0, t.srcOft.balanceOf(t.from));
             beforeAfter.fromSrcBalanceBefore = t.srcOft.balanceOf(t.from);
             beforeAfter.toSrcBalanceBefore = t.srcOft.balanceOf(t.to);
             beforeAfter.srcTotalSupplyBefore = t.srcOft.totalSupply();
-            beforeAfter.fromDstBalanceBefore = adapterToken.balanceOf(t.from);
-            beforeAfter.toDstBalanceBefore = adapterToken.balanceOf(t.to);
-            beforeAfter.dstTotalSupplyBefore = adapterToken.totalSupply();
         } else {
             amount = _bound(amount, 0, t.srcOft.balanceOf(t.from));
             beforeAfter.fromSrcBalanceBefore = t.srcOft.balanceOf(t.from);
             beforeAfter.toSrcBalanceBefore = t.srcOft.balanceOf(t.to);
             beforeAfter.srcTotalSupplyBefore = t.srcOft.totalSupply();
-            beforeAfter.fromDstBalanceBefore = t.dstOft.balanceOf(t.from);
-            beforeAfter.toDstBalanceBefore = t.dstOft.balanceOf(t.to);
-            beforeAfter.dstTotalSupplyBefore = t.dstOft.totalSupply();
         }
 
         bytes memory options = OptionsBuilder.newOptions().addExecutorLzReceiveOption(200000, 0);
@@ -366,46 +370,151 @@ contract OrderOFTHandler is SoladyTest {
         );
 
         if (t.success) {
-            emit MessageAddress("Pre verification endpoint", address(t.srcOft.endpoint()));
-            emit MessageAddress("Destination OFT", address(t.dstOft));
-            verifyHelper.verifyPackets(t.dstOft.endpoint().eid(), address(t.dstOft));
-
-            (, OFTReceipt memory decodedOFTReceipt) = abi.decode(returnData, (MessagingReceipt, OFTReceipt));
+            (MessagingReceipt memory decodedMessagingReceipt, OFTReceipt memory decodedOFTReceipt) = abi.decode(
+                returnData,
+                (MessagingReceipt, OFTReceipt)
+            );
+            messageReceipts[t.dstOft.endpoint().eid()].push(decodedMessagingReceipt);
+            oftReceipts[t.dstOft.endpoint().eid()].push(decodedOFTReceipt);
+            packetVariables[t.dstOft.endpoint().eid()].push(packetVars);
 
             if (t.srcOft == oftInstances[0]) {
                 beforeAfter.fromSrcBalanceAfter = adapterToken.balanceOf(t.from);
                 beforeAfter.toSrcBalanceAfter = adapterToken.balanceOf(t.to);
                 beforeAfter.srcTotalSupplyAfter = adapterToken.totalSupply();
-                beforeAfter.fromDstBalanceAfter = t.dstOft.balanceOf(t.from);
-                beforeAfter.toDstBalanceAfter = t.dstOft.balanceOf(t.to);
-                beforeAfter.dstTotalSupplyAfter = t.dstOft.totalSupply();
+                beforeAfter.adapterBalanceAfter = adapterToken.balanceOf(address(t.srcOft));
             } else if (t.dstOft == oftInstances[0]) {
                 beforeAfter.fromSrcBalanceAfter = t.srcOft.balanceOf(t.from);
                 beforeAfter.toSrcBalanceAfter = t.srcOft.balanceOf(t.to);
                 beforeAfter.srcTotalSupplyAfter = t.srcOft.totalSupply();
                 beforeAfter.fromDstBalanceAfter = adapterToken.balanceOf(t.from);
-                beforeAfter.toDstBalanceAfter = adapterToken.balanceOf(t.to);
-                beforeAfter.dstTotalSupplyAfter = adapterToken.totalSupply();
             } else {
                 beforeAfter.fromSrcBalanceAfter = t.srcOft.balanceOf(t.from);
                 beforeAfter.toSrcBalanceAfter = t.srcOft.balanceOf(t.to);
                 beforeAfter.srcTotalSupplyAfter = t.srcOft.totalSupply();
-                beforeAfter.fromDstBalanceAfter = t.dstOft.balanceOf(t.from);
-                beforeAfter.toDstBalanceAfter = t.dstOft.balanceOf(t.to);
-                beforeAfter.dstTotalSupplyAfter = t.dstOft.totalSupply();
             }
 
             assertEq(
                 beforeAfter.fromSrcBalanceAfter,
                 beforeAfter.fromSrcBalanceBefore - decodedOFTReceipt.amountSentLD,
-                "OrderTokenA balance should decrease"
+                "Source Token Balance Should Decrease"
+            );
+            if (t.srcOft == oftInstances[0]) {
+                assertEq(
+                    beforeAfter.adapterBalanceAfter,
+                    beforeAfter.adapterBalanceBefore + decodedOFTReceipt.amountSentLD,
+                    "Adapter Balance Should Increase"
+                );
+                assertEq(
+                    beforeAfter.srcTotalSupplyAfter,
+                    beforeAfter.srcTotalSupplyBefore,
+                    "Native Token Total Supply Should Not Change"
+                );
+            } else {
+                assertEq(
+                    beforeAfter.srcTotalSupplyAfter,
+                    beforeAfter.srcTotalSupplyBefore - decodedOFTReceipt.amountSentLD,
+                    "Source Total Supply Should Decrease"
+                );
+            }
+        }
+    }
+
+    struct VerifyPacketTemps {
+        OrderOFTMock dstOft;
+    }
+
+    function verifyPackets(uint256 dstOftIndexSeed) public {
+        VerifyPacketTemps memory t;
+        PacketVariables memory p;
+        // PRE-CONDITIONS
+        t.dstOft = randomOft(dstOftIndexSeed);
+        if (packetVariables[t.dstOft.endpoint().eid()].length == 0) return;
+        p = packetVariables[t.dstOft.endpoint().eid()][packetVariables[t.dstOft.endpoint().eid()].length - 1];
+
+        BeforeAfter memory beforeAfter;
+        if (t.dstOft == oftInstances[0]) {
+            beforeAfter.fromDstBalanceBefore = adapterToken.balanceOf(p.from);
+            beforeAfter.toDstBalanceBefore = adapterToken.balanceOf(p.to);
+            beforeAfter.dstTotalSupplyBefore = adapterToken.totalSupply();
+            beforeAfter.adapterBalanceBefore = adapterToken.balanceOf(address(t.dstOft));
+        } else {
+            beforeAfter.fromDstBalanceBefore = t.dstOft.balanceOf(p.from);
+            beforeAfter.toDstBalanceBefore = t.dstOft.balanceOf(p.to);
+            beforeAfter.dstTotalSupplyBefore = t.dstOft.totalSupply();
+        }
+
+        // ACTION
+
+        verifyHelper.verifyPackets(t.dstOft.endpoint().eid(), addressToBytes32(address(t.dstOft)), 1);
+
+        uint256 amountSentLD = oftReceipts[t.dstOft.endpoint().eid()][oftReceipts[t.dstOft.endpoint().eid()].length - 1]
+            .amountSentLD;
+        uint256 amountReceivedLD = oftReceipts[t.dstOft.endpoint().eid()][
+            oftReceipts[t.dstOft.endpoint().eid()].length - 1
+        ].amountReceivedLD;
+
+        messageReceipts[t.dstOft.endpoint().eid()].pop();
+        oftReceipts[t.dstOft.endpoint().eid()].pop();
+        packetVariables[t.dstOft.endpoint().eid()].pop();
+
+        if (t.dstOft == oftInstances[0]) {
+            beforeAfter.fromDstBalanceAfter = adapterToken.balanceOf(p.from);
+            beforeAfter.toDstBalanceAfter = adapterToken.balanceOf(p.to);
+            beforeAfter.dstTotalSupplyAfter = adapterToken.totalSupply();
+            beforeAfter.adapterBalanceAfter = adapterToken.balanceOf(address(t.dstOft));
+        } else {
+            beforeAfter.fromDstBalanceAfter = t.dstOft.balanceOf(p.from);
+            beforeAfter.toDstBalanceAfter = t.dstOft.balanceOf(p.to);
+            beforeAfter.dstTotalSupplyAfter = t.dstOft.totalSupply();
+        }
+
+        assertEq(
+            beforeAfter.toDstBalanceAfter,
+            beforeAfter.toDstBalanceBefore + amountReceivedLD,
+            "Destination Token Balance Should Increase"
+        );
+
+        if (t.dstOft == oftInstances[0]) {
+            assertEq(
+                beforeAfter.adapterBalanceAfter,
+                beforeAfter.adapterBalanceBefore - amountSentLD,
+                "Adapter Balance Should Decrease"
             );
             assertEq(
-                beforeAfter.toDstBalanceAfter,
-                beforeAfter.toDstBalanceBefore + decodedOFTReceipt.amountReceivedLD,
-                "OrderTokenB balance should increase"
+                beforeAfter.dstTotalSupplyAfter,
+                beforeAfter.dstTotalSupplyBefore,
+                "Native Token Total Supply Should Not Change"
+            );
+        } else {
+            assertEq(
+                beforeAfter.dstTotalSupplyAfter,
+                beforeAfter.dstTotalSupplyBefore + amountReceivedLD,
+                "Destination Total Supply Should Increase"
             );
         }
+    }
+
+    /*//////////////////////////////////////////////////////////////////////////
+                            ONLY OWNER TARGET FUNCTIONS
+    //////////////////////////////////////////////////////////////////////////*/
+
+    function setOrderedNonce(uint256 oftIndexSeed, bool _orderedNonce) public {
+        OrderOFTMock oft = randomOft(oftIndexSeed);
+        vm.prank(oft.owner());
+        oft.setOrderedNonce(_orderedNonce);
+    }
+
+    function skipInboundNonce(uint256 srcOftIndexSeed, uint256 senderIndexSeed, uint256 nonce) public {
+        OrderOFTMock srcOft = randomOft(srcOftIndexSeed);
+        bytes32 sender = addressToBytes32(randomAddress(senderIndexSeed));
+        uint32 eid = srcOft.endpoint().eid();
+
+        nonce = _bound(nonce, 0, srcOft.getMaxReceivedNonce(eid, sender));
+        if (nonce == 0) return;
+
+        vm.prank(srcOft.owner());
+        srcOft.skipInboundNonce(eid, sender, uint64(nonce));
     }
 
     /*//////////////////////////////////////////////////////////////////////////
@@ -419,8 +528,6 @@ contract OrderOFTHandler is SoladyTest {
     function randomOft(uint256 seed) internal view returns (OrderOFTMock) {
         return oftInstances[_bound(seed, 0, oftInstances.length - 1)];
     }
-
-    event MessageBytes(string a, bytes32 b);
 
     function addressToBytes32(address _addr) internal pure returns (bytes32) {
         return bytes32(uint256(uint160(_addr)));

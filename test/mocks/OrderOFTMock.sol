@@ -29,4 +29,8 @@ contract OrderOFTMock is OrderOFT {
     function toSD(uint256 _amountLD) public view returns (uint64 amountSD) {
         return _toSD(_amountLD);
     }
+
+    function getMaxReceivedNonce(uint32 _srcEid, bytes32 _sender) public returns (uint64) {
+        return maxReceivedNonce[_srcEid][_sender];
+    }
 }

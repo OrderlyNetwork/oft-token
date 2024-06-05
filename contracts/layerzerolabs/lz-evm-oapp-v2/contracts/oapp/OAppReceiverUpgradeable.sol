@@ -105,7 +105,6 @@ abstract contract OAppReceiverUpgradeable is IOAppReceiver, OAppCoreUpgradeable 
         address _executor,
         bytes calldata _extraData
     ) public payable virtual {
-        emit MessageAddress("OFTB ENDPOINT", address(endpoint));
         // Ensures that only the endpoint can attempt to lzReceive() messages to this OApp.
         if (address(endpoint) != msg.sender) revert OnlyEndpoint(msg.sender);
 

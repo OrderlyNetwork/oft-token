@@ -29,7 +29,6 @@ abstract contract OFTUpgradeable is OFTCoreUpgradeable, ERC20Upgradeable {
         address _lzEndpoint,
         address _delegate
     ) internal virtual onlyInitializing {
-        emit MessageAddress("_lzEndpoint", _lzEndpoint);
         __ERC20_init(_name, _symbol);
         __initializeOFTCore(decimals(), _lzEndpoint, _delegate);
     }

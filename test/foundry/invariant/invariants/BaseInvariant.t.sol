@@ -119,15 +119,16 @@ contract BaseInvariant is StdInvariant, TestHelperOz5 {
         targetContract(address(orderOftHandler));
 
         // Selectors to target.
-        bytes4[] memory orderOFTSelectors = new bytes4[](4);
+        bytes4[] memory orderOFTSelectors = new bytes4[](7);
         orderOFTSelectors[0] = orderOftHandler.approve.selector;
         orderOFTSelectors[1] = orderOftHandler.transfer.selector;
         orderOFTSelectors[2] = orderOftHandler.transferFrom.selector;
         orderOFTSelectors[3] = orderOftHandler.send.selector;
+        orderOFTSelectors[4] = orderOftHandler.verifyPackets.selector;
+        orderOFTSelectors[5] = orderOftHandler.setOrderedNonce.selector;
+        orderOFTSelectors[6] = orderOftHandler.skipInboundNonce.selector;
 
         targetSelector(FuzzSelector({ addr: address(orderOftHandler), selectors: orderOFTSelectors }));
-
-        emit Message("SETUP");
     }
 
     // function invariantOrderOFTABalanceSum() external {
@@ -361,10 +362,7 @@ contract BaseInvariant is StdInvariant, TestHelperOz5 {
     function _init() internal {
         for (uint8 i = 0; i < MAX_OFTS; i++) {
             assertEq(oftInstances[i].owner(), address(this));
-            assertEq(address(oftInstances[i].endpoint()), endpoints[eids[i]]);
             assertEq(oftInstances[i].endpoint().eid(), eids[i]);
-            emit MessageAddress("OFT:", address(oftInstances[i]));
-            emit MessageAddress("ENDPOINT:", address(oftInstances[i].endpoint()));
             assertEq(address(oftInstances[i].endpoint()), endpoints[eids[i]]);
             if (i == 0) {
                 assertEq(oftInstances[i].token(), address(token));

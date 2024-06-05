@@ -86,7 +86,6 @@ abstract contract OFTCoreUpgradeable is
         address _endpoint,
         address _delegate
     ) internal virtual onlyInitializing {
-        emit MessageAddress("_lzEndpoint", _endpoint);
         __initializeOApp(_endpoint, _delegate);
         if (_localDecimals < sharedDecimals()) revert InvalidLocalDecimals();
         decimalConversionRate = 10 ** (_localDecimals - sharedDecimals());

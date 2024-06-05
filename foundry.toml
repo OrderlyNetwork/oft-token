@@ -28,6 +28,6 @@ remappings = [
 
 [invariant]
 runs = 100
-depth = 20
+depth = 30
 fail_on_revert = true
 dictionary_weight = 80
