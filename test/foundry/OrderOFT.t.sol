@@ -132,6 +132,9 @@ contract OrderOFTTest is TestHelperOz5 {
     // ABA composeMsg pattern
     // nonce control
 
+    /**
+     * @dev Set up the OFT contracts and its endpoints
+     */
     function _setOft() internal {
         super.setUp();
         setUpEndpoints(MAX_OFTS, LibraryType.UltraLightNode);
@@ -320,9 +323,7 @@ contract OrderOFTTest is TestHelperOz5 {
         for (uint8 i = 0; i < MAX_OFTS; i++) {
             assertEq(
                 IERC20(oftInstances[i].token()).balanceOf(address(this)),
-                i == 0
-                    ? INIT_MINT - (MAX_OFTS - 1) * initialSend + (MAX_OFTS - 1) * initialRelay
-                    : initialSend - initialRelay
+                i == 0 ? INIT_MINT - (MAX_OFTS - 1) * (initialSend - initialRelay) : initialSend - initialRelay
             );
         }
 

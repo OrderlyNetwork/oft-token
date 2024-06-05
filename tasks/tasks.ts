@@ -369,7 +369,7 @@ task("order:oft:set", "Connect OFT contracs on different networks: OrderOFT, Ord
                         const tx = await localContract.setPeer(lzConfig["endpointId"], paddedPeerAddress, {
                             nonce: nonce++
                         })
-                        tx.wait()
+                        await tx.wait()
                         console.log(`Setting peer from ${fromNetwork} to ${toNetwork} with tx hash ${tx.hash}`)
                         await setPeer(taskArgs.env, fromNetwork, toNetwork, true)
                     } else {
@@ -397,7 +397,7 @@ task("order:oft:set", "Connect OFT contracs on different networks: OrderOFT, Ord
             }
             if (enforcedOptions.length > 0) {
                 const txSetEnforcedOptions = await localContract.setEnforcedOptions(enforcedOptions)
-                txSetEnforcedOptions.wait()
+                await txSetEnforcedOptions.wait()
                 console.log(`Enforced options set with tx hash ${txSetEnforcedOptions.hash}`)
             } else {
                 console.log(`Enforced options already set`)
@@ -408,7 +408,7 @@ task("order:oft:set", "Connect OFT contracs on different networks: OrderOFT, Ord
                         const txSetOrderedNonce = await localContract.setOrderedNonce(true, {
                             nonce: nonce++
                         })
-                        txSetOrderedNonce.wait()
+                        await txSetOrderedNonce.wait()
                         console.log(`Ordered nonce set to true with tx hash ${txSetOrderedNonce.hash}`)
                     } else {
                         console.log(`Ordered nonce already set`)
@@ -458,7 +458,7 @@ task("order:oft:distribute", "Distribute tokens to all OFT contracts on differen
                                 gasLimit: 3 * Number(estimateGas),
                                 nonce: nonce++
                             })
-                        approveTx.wait()
+                        await approveTx.wait()
                         console.log(`Approving ${localContractName} to spend ${taskArgs.amount} on ${erc20ContractName} with tx hash ${approveTx.hash}`)
                     }
                     
@@ -491,7 +491,7 @@ task("order:oft:distribute", "Distribute tokens to all OFT contracts on differen
                         value: fee.nativeFee,
                         nonce: nonce++
                     })
-                    sendTx.wait()
+                    await sendTx.wait()
                     console.log(`Sending tokens from ${fromNetwork} to ${toNetwork} with tx hash ${sendTx.hash}`)
                         }}
             
@@ -540,7 +540,7 @@ task("order:oft:bridge", "Bridge tokens to a specific address on a specific netw
 
             if (await localContract.approvalRequired() && (tokenAmount > await erc20Contract.allowance(signer.address, localContractAddress))) {
                 const approveTx = await erc20Contract.approve(localContractAddress, tokenAmount, {nonce: nonce++})
-                approveTx.wait()
+                await approveTx.wait()
                 console.log(`Approving ${localContractName} to spend ${taskArgs.amount} on ${erc20ContractName} with tx hash ${approveTx.hash}`)
             }
             
@@ -561,7 +561,7 @@ task("order:oft:bridge", "Bridge tokens to a specific address on a specific netw
             {   value: fee.nativeFee,
                 nonce: nonce++
             })
-            sendTx.wait()
+            await sendTx.wait()
             console.log(`Sending tokens from ${fromNetwork} to ${toNetwork} with tx hash ${sendTx.hash}`)
         }
         catch (e) {
@@ -587,11 +587,11 @@ task("order:oft:transfer", "Transfer tokens to a specific address on a specific 
         const [ signer ] = await hre.ethers.getSigners()
         const erc20Contract = await hre.ethers.getContractAt(erc20ContractName, erc20ContractAddress, signer)
         
+        
         const deciamls = await erc20Contract.decimals() 
         const tokenAmount = hre.ethers.utils.parseUnits(taskArgs.amount, deciamls)
-
         const transferTx = await erc20Contract.transfer(receiver, tokenAmount)
-        transferTx.wait()
+        await transferTx.wait()
         console.log(`Transferring tokens to ${receiver} with tx hash ${transferTx.hash}`)
         
     }
@@ -636,7 +636,7 @@ task("order:stake", "Send stakes to a specific address on a specific network")
                 nonce: nonce++
             
             })
-            approveTx.wait()
+            await approveTx.wait()
             console.log(`Approving ${localContractName} to spend ${taskArgs.amount} on ${erc20ContractName} with tx hash ${approveTx.hash}`)
             
             const lzFee = await safeContract.getStakeFee(signer.address, tokenAmount)
