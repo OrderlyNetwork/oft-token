@@ -3,6 +3,7 @@ pragma solidity ^0.8.0;
 
 import { OrderOFT } from "contracts/OrderOFT.sol";
 
+import { SendParam } from "contracts/layerzerolabs/lz-evm-oapp-v2/contracts/oft/interfaces/IOFT.sol";
 import { ILayerZeroEndpointV2 } from "@layerzerolabs/lz-evm-protocol-v2/contracts/interfaces/ILayerZeroEndpointV2.sol";
 
 contract OrderOFTMock is OrderOFT {
@@ -28,6 +29,13 @@ contract OrderOFTMock is OrderOFT {
 
     function toSD(uint256 _amountLD) public view returns (uint64 amountSD) {
         return _toSD(_amountLD);
+    }
+
+    function buildMsgAndOptions(
+        SendParam calldata _sendParam,
+        uint256 _amountToCreditLD
+    ) public view returns (bytes memory message, bytes memory options) {
+        return _buildMsgAndOptions(_sendParam, _amountToCreditLD);
     }
 
     function getMaxReceivedNonce(uint32 _srcEid, bytes32 _sender) public returns (uint64) {

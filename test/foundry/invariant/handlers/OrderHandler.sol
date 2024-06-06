@@ -12,11 +12,15 @@ import { OptionsBuilder } from "@layerzerolabs/lz-evm-oapp-v2/contracts/oapp/lib
 import { IOFT, SendParam, OFTReceipt, MessagingReceipt } from "contracts/layerzerolabs/lz-evm-oapp-v2/contracts/oft/interfaces/IOFT.sol";
 import { MessagingFee } from "contracts/layerzerolabs/lz-evm-oapp-v2/contracts/oapp/OAppSenderUpgradeable.sol";
 import { OFTCoreUpgradeable } from "contracts/layerzerolabs/lz-evm-oapp-v2/contracts/oft/OFTCoreUpgradeable.sol";
+import { Origin } from "node_modules/@layerzerolabs/lz-evm-protocol-v2/contracts/interfaces/ILayerZeroEndpointV2.sol";
 
 import { VerifyHelper } from "test/foundry/invariant/helpers/VerifyHelper.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
-contract OrderOFTHandler is SoladyTest {
+/// @dev OrderHandler contains functions from the target contracts OrderOFT.sol,
+///      OrderToken.sol, and OrderAdapter.sol.
+///      These functions contain conditional invariants.
+contract OrderHandler is SoladyTest {
     using OptionsBuilder for bytes;
     /*//////////////////////////////////////////////////////////////////////////
                                    TEST CONTRACTS
@@ -44,8 +48,10 @@ contract OrderOFTHandler is SoladyTest {
     mapping(uint32 => PacketVariables[]) packetVariables;
 
     struct PacketVariables {
+        OrderOFTMock srcOft;
         address from;
         address to;
+        bytes message;
     }
 
     struct BeforeAfter {
@@ -63,8 +69,10 @@ contract OrderOFTHandler is SoladyTest {
         uint256 dstTotalSupplyAfter;
         uint256 adapterBalanceBefore;
         uint256 adapterBalanceAfter;
-        uint64 nonceBefore;
-        uint64 nonceAfter;
+        uint64 maxReceivedNonceBefore;
+        uint64 maxReceivedNonceAfter;
+        uint64 outboundNonceBefore;
+        uint64 outboundNonceAfter;
     }
 
     /*//////////////////////////////////////////////////////////////////////////
@@ -130,6 +138,18 @@ contract OrderOFTHandler is SoladyTest {
                                TARGET FUNCTIONS
     //////////////////////////////////////////////////////////////////////////*/
 
+    // forgefmt: disable-start
+    /**************************************************************************************************************************************/
+    /*** Invariant Tests for function approve                                                                                           ***/
+    /***************************************************************************************************************************************
+
+        * OT-02: Allowance Matches Approved Amount
+
+    /**************************************************************************************************************************************/
+    /*** Assertions that must be true when a user calls approve                                                                         ***/
+    /**************************************************************************************************************************************/
+    // forgefmt: disable-end
+
     struct ApproveTemps {
         OrderOFTMock srcOft;
         address owner;
@@ -151,15 +171,29 @@ contract OrderOFTHandler is SoladyTest {
             adapterToken.approve(t.spender, amount);
 
             // POST-CONDTION
-            assertEq(adapterToken.allowance(t.owner, t.spender), amount, "PD-04: Allowance != Amount");
+            assertEq(adapterToken.allowance(t.owner, t.spender), amount, "OT-02: Allowance Matches Approved Amount");
         } else {
             vm.prank(t.owner);
             t.srcOft.approve(t.spender, amount);
 
             // POST-CONDITION
-            assertEq(t.srcOft.allowance(t.owner, t.spender), amount, "PD-04: Allowance != Amount");
+            assertEq(t.srcOft.allowance(t.owner, t.spender), amount, "OT-02: Allowance Matches Approved Amount");
         }
     }
+
+    // forgefmt: disable-start
+    /**************************************************************************************************************************************/
+    /*** Invariant Tests for functions transfer and transferFrom                                                                        ***/
+    /***************************************************************************************************************************************
+
+        * OT-03: ERC20 Balance Changes By Amount For Sender And Receiver Upon Transfer
+        * OT-04: ERC20 Balance Remains The Same Upon Self-Transfer
+        * OT-05: ERC20 Total Supply Remains The Same Upon Transfer
+
+    /**************************************************************************************************************************************/
+    /*** Assertions that must be true when a user calls transfer or transferFrom                                                        ***/
+    /**************************************************************************************************************************************/
+    // forgefmt: disable-end
 
     struct TransferTemps {
         OrderOFTMock srcOft;
@@ -280,18 +314,18 @@ contract OrderOFTHandler is SoladyTest {
             assertEq(
                 beforeAfter.fromSrcBalanceAfter + amount,
                 beforeAfter.fromSrcBalanceBefore,
-                "PD-07 & PD-11: balance after + amount != balance before"
+                "OT-03: balance after + amount != balance before"
             );
             assertEq(
                 beforeAfter.toSrcBalanceAfter,
                 beforeAfter.toSrcBalanceBefore + amount,
-                "PD-07 & PD-11: balance after != balance before + amount"
+                "OT-03: balance after != balance before + amount"
             );
         } else {
             assertEq(
                 beforeAfter.fromSrcBalanceAfter,
                 beforeAfter.fromSrcBalanceBefore,
-                "PD-08 & PD-12: balance after != balance before"
+                "OT-04: balance after != balance before"
             );
         }
 
@@ -299,13 +333,30 @@ contract OrderOFTHandler is SoladyTest {
         assertEq(
             beforeAfter.srcTotalSupplyBefore,
             beforeAfter.srcTotalSupplyAfter,
-            "PD-09 & PD-13: total supply before != total supply after"
+            "OT-05: total supply before != total supply after"
         );
     }
+
+    // forgefmt: disable-start
+    /**************************************************************************************************************************************/
+    /*** Invariant Tests for function send                                                                                              ***/
+    /***************************************************************************************************************************************
+
+        * OT-06: Source Token Balance Should Decrease On Send
+        * OT-07: Adapter Balance Should Increase On Send
+        * OT-08: Native Token Total Supply Should Not Change On Send
+        * OT-09: Source OFT Total Supply Should Decrease On Send
+        * OT-10: Outbound Nonce Should Increase By 1
+
+    /**************************************************************************************************************************************/
+    /*** Assertions that must be true when a user calls send                                                                            ***/
+    /**************************************************************************************************************************************/
+    // forgefmt: disable-end
 
     struct SendTemps {
         OrderOFTMock srcOft;
         OrderOFTMock dstOft;
+        uint32 dstEid;
         address sender;
         address from;
         address to;
@@ -323,11 +374,13 @@ contract OrderOFTHandler is SoladyTest {
         // PRE-CONDITIONS
         t.srcOft = randomOft(srcOftIndexSeed);
         t.dstOft = randomOft(dstOftIndexSeed);
+        t.dstEid = t.dstOft.endpoint().eid();
         if (address(t.srcOft) == address(t.dstOft)) return;
         t.from = randomAddress(fromIndexSeed);
         t.to = randomAddress(toIndexSeed);
 
         PacketVariables memory packetVars;
+        packetVars.srcOft = t.srcOft;
         packetVars.from = t.from;
         packetVars.to = t.to;
 
@@ -349,10 +402,17 @@ contract OrderOFTHandler is SoladyTest {
             beforeAfter.toSrcBalanceBefore = t.srcOft.balanceOf(t.to);
             beforeAfter.srcTotalSupplyBefore = t.srcOft.totalSupply();
         }
+        beforeAfter.outboundNonceBefore = t.srcOft.endpoint().outboundNonce(
+            address(t.srcOft),
+            t.dstEid,
+            addressToBytes32(address(t.dstOft))
+        );
+
+        if (amount == 0) return;
 
         bytes memory options = OptionsBuilder.newOptions().addExecutorLzReceiveOption(200000, 0);
         SendParam memory sendParam = SendParam(
-            t.dstOft.endpoint().eid(),
+            t.dstEid,
             addressToBytes32(t.to),
             amount,
             t.srcOft.removeDust(amount),
@@ -364,19 +424,39 @@ contract OrderOFTHandler is SoladyTest {
 
         // ACTION
         bytes memory returnData;
-        vm.prank(t.from);
+        vm.startPrank(t.from);
         (t.success, returnData) = payable(address(t.srcOft)).call{ value: fee.nativeFee }(
             abi.encodeWithSelector(OFTCoreUpgradeable.send.selector, sendParam, fee, address(this))
         );
+        vm.stopPrank();
 
         if (t.success) {
             (MessagingReceipt memory decodedMessagingReceipt, OFTReceipt memory decodedOFTReceipt) = abi.decode(
                 returnData,
                 (MessagingReceipt, OFTReceipt)
             );
-            messageReceipts[t.dstOft.endpoint().eid()].push(decodedMessagingReceipt);
-            oftReceipts[t.dstOft.endpoint().eid()].push(decodedOFTReceipt);
-            packetVariables[t.dstOft.endpoint().eid()].push(packetVars);
+
+            (bytes memory message, ) = t.srcOft.buildMsgAndOptions(sendParam, decodedOFTReceipt.amountReceivedLD);
+            packetVars.message = message;
+
+            // Pushing message receipts to the front
+            messageReceipts[t.dstEid].push(); // Increase the array size by 1
+            for (uint i = messageReceipts[t.dstEid].length - 1; i > 0; i--) {
+                messageReceipts[t.dstEid][i] = messageReceipts[t.dstEid][i - 1]; // Shift elements to the right
+            }
+            messageReceipts[t.dstEid][0] = decodedMessagingReceipt; // Insert the new element at the front
+            // Pushing OFT receipts to the front
+            oftReceipts[t.dstEid].push(); // Increase the array size by 1
+            for (uint i = oftReceipts[t.dstEid].length - 1; i > 0; i--) {
+                oftReceipts[t.dstEid][i] = oftReceipts[t.dstEid][i - 1]; // Shift elements to the right
+            }
+            oftReceipts[t.dstEid][0] = decodedOFTReceipt;
+            // Pushing packet variables to the front
+            packetVariables[t.dstEid].push(); // Increase the array size by 1
+            for (uint i = packetVariables[t.dstEid].length - 1; i > 0; i--) {
+                packetVariables[t.dstEid][i] = packetVariables[t.dstEid][i - 1]; // Shift elements to the right
+            }
+            packetVariables[t.dstEid][0] = packetVars;
 
             if (t.srcOft == oftInstances[0]) {
                 beforeAfter.fromSrcBalanceAfter = adapterToken.balanceOf(t.from);
@@ -393,35 +473,62 @@ contract OrderOFTHandler is SoladyTest {
                 beforeAfter.toSrcBalanceAfter = t.srcOft.balanceOf(t.to);
                 beforeAfter.srcTotalSupplyAfter = t.srcOft.totalSupply();
             }
+            beforeAfter.outboundNonceAfter = t.srcOft.endpoint().outboundNonce(
+                address(t.srcOft),
+                t.dstEid,
+                addressToBytes32(address(t.dstOft))
+            );
 
             assertEq(
                 beforeAfter.fromSrcBalanceAfter,
                 beforeAfter.fromSrcBalanceBefore - decodedOFTReceipt.amountSentLD,
-                "Source Token Balance Should Decrease"
+                "OT-06: Source Token Balance Should Decrease On Send"
             );
             if (t.srcOft == oftInstances[0]) {
                 assertEq(
                     beforeAfter.adapterBalanceAfter,
                     beforeAfter.adapterBalanceBefore + decodedOFTReceipt.amountSentLD,
-                    "Adapter Balance Should Increase"
+                    "OT-07: Adapter Balance Should Increase On Send"
                 );
                 assertEq(
                     beforeAfter.srcTotalSupplyAfter,
                     beforeAfter.srcTotalSupplyBefore,
-                    "Native Token Total Supply Should Not Change"
+                    "OT-08: Native Token Total Supply Should Not Change On Send"
                 );
             } else {
                 assertEq(
                     beforeAfter.srcTotalSupplyAfter,
                     beforeAfter.srcTotalSupplyBefore - decodedOFTReceipt.amountSentLD,
-                    "Source Total Supply Should Decrease"
+                    "OT-09: Source OFT Total Supply Should Decrease On Send"
                 );
             }
+            assertEq(
+                beforeAfter.outboundNonceAfter,
+                beforeAfter.outboundNonceBefore + 1,
+                "OT-10: Outbound Nonce Should Increase By 1"
+            );
         }
     }
 
+    // forgefmt: disable-start
+    /**************************************************************************************************************************************/
+    /*** Invariant Tests for function send                                                                                              ***/
+    /***************************************************************************************************************************************
+
+        * OT-11: Max Received Nonce Should Increase By 1 on lzReceive
+        * OT-12: Destination Token Balance Should Increase on lzReceive
+        * OT-13: Adapter Balance Should Decrease on lzReceive
+        * OT-14: Native Token Total Supply Should Not Change on lzReceive
+        * OT-15: Destination Total Supply Should Increase on lzReceive
+
+    /**************************************************************************************************************************************/
+    /*** Assertions that must be true when a user calls send                                                                            ***/
+    /**************************************************************************************************************************************/
+    // forgefmt: disable-end
+
     struct VerifyPacketTemps {
         OrderOFTMock dstOft;
+        uint32 dstEid;
     }
 
     function verifyPackets(uint256 dstOftIndexSeed) public {
@@ -429,8 +536,9 @@ contract OrderOFTHandler is SoladyTest {
         PacketVariables memory p;
         // PRE-CONDITIONS
         t.dstOft = randomOft(dstOftIndexSeed);
-        if (packetVariables[t.dstOft.endpoint().eid()].length == 0) return;
-        p = packetVariables[t.dstOft.endpoint().eid()][packetVariables[t.dstOft.endpoint().eid()].length - 1];
+        t.dstEid = t.dstOft.endpoint().eid();
+        if (packetVariables[t.dstEid].length == 0) return;
+        p = packetVariables[t.dstEid][packetVariables[t.dstEid].length - 1];
 
         BeforeAfter memory beforeAfter;
         if (t.dstOft == oftInstances[0]) {
@@ -443,20 +551,21 @@ contract OrderOFTHandler is SoladyTest {
             beforeAfter.toDstBalanceBefore = t.dstOft.balanceOf(p.to);
             beforeAfter.dstTotalSupplyBefore = t.dstOft.totalSupply();
         }
+        beforeAfter.maxReceivedNonceBefore = t.dstOft.getMaxReceivedNonce(
+            p.srcOft.endpoint().eid(),
+            addressToBytes32(address(p.srcOft))
+        );
 
         // ACTION
 
-        verifyHelper.verifyPackets(t.dstOft.endpoint().eid(), addressToBytes32(address(t.dstOft)), 1);
+        verifyHelper.verifyPackets(t.dstEid, addressToBytes32(address(t.dstOft)), 1);
 
-        uint256 amountSentLD = oftReceipts[t.dstOft.endpoint().eid()][oftReceipts[t.dstOft.endpoint().eid()].length - 1]
-            .amountSentLD;
-        uint256 amountReceivedLD = oftReceipts[t.dstOft.endpoint().eid()][
-            oftReceipts[t.dstOft.endpoint().eid()].length - 1
-        ].amountReceivedLD;
+        uint256 amountSentLD = oftReceipts[t.dstEid][oftReceipts[t.dstEid].length - 1].amountSentLD;
+        uint256 amountReceivedLD = oftReceipts[t.dstEid][oftReceipts[t.dstEid].length - 1].amountReceivedLD;
 
-        messageReceipts[t.dstOft.endpoint().eid()].pop();
-        oftReceipts[t.dstOft.endpoint().eid()].pop();
-        packetVariables[t.dstOft.endpoint().eid()].pop();
+        messageReceipts[t.dstEid].pop();
+        oftReceipts[t.dstEid].pop();
+        packetVariables[t.dstEid].pop();
 
         if (t.dstOft == oftInstances[0]) {
             beforeAfter.fromDstBalanceAfter = adapterToken.balanceOf(p.from);
@@ -468,32 +577,46 @@ contract OrderOFTHandler is SoladyTest {
             beforeAfter.toDstBalanceAfter = t.dstOft.balanceOf(p.to);
             beforeAfter.dstTotalSupplyAfter = t.dstOft.totalSupply();
         }
+        beforeAfter.maxReceivedNonceAfter = t.dstOft.getMaxReceivedNonce(
+            p.srcOft.endpoint().eid(),
+            addressToBytes32(address(p.srcOft))
+        );
+
+        if (t.dstOft.orderedNonce()) {
+            assertEq(
+                beforeAfter.maxReceivedNonceAfter,
+                beforeAfter.maxReceivedNonceBefore + 1,
+                "OT-11: Max Received Nonce Should Increase By 1 on lzReceive"
+            );
+        }
 
         assertEq(
             beforeAfter.toDstBalanceAfter,
             beforeAfter.toDstBalanceBefore + amountReceivedLD,
-            "Destination Token Balance Should Increase"
+            "OT-12: Destination Token Balance Should Increase on lzReceive"
         );
 
         if (t.dstOft == oftInstances[0]) {
             assertEq(
                 beforeAfter.adapterBalanceAfter,
                 beforeAfter.adapterBalanceBefore - amountSentLD,
-                "Adapter Balance Should Decrease"
+                "OT-13: Adapter Balance Should Decrease on lzReceive"
             );
             assertEq(
                 beforeAfter.dstTotalSupplyAfter,
                 beforeAfter.dstTotalSupplyBefore,
-                "Native Token Total Supply Should Not Change"
+                "OT-14: Native Token Total Supply Should Not Change on lzReceive"
             );
         } else {
             assertEq(
                 beforeAfter.dstTotalSupplyAfter,
                 beforeAfter.dstTotalSupplyBefore + amountReceivedLD,
-                "Destination Total Supply Should Increase"
+                "OT-15: Destination Total Supply Should Increase on lzReceive"
             );
         }
     }
+
+    event MessageNum(string a, uint256 b);
 
     /*//////////////////////////////////////////////////////////////////////////
                             ONLY OWNER TARGET FUNCTIONS
@@ -505,16 +628,170 @@ contract OrderOFTHandler is SoladyTest {
         oft.setOrderedNonce(_orderedNonce);
     }
 
-    function skipInboundNonce(uint256 srcOftIndexSeed, uint256 senderIndexSeed, uint256 nonce) public {
-        OrderOFTMock srcOft = randomOft(srcOftIndexSeed);
-        bytes32 sender = addressToBytes32(randomAddress(senderIndexSeed));
-        uint32 eid = srcOft.endpoint().eid();
+    function skipInboundNonce(uint256 dstOftIndexSeed, uint256 messageReceiptIndexSeed) public {
+        // PRE-CONDITIONS
+        OrderOFTMock dstOft = randomOft(dstOftIndexSeed);
+        uint32 dstEid = dstOft.endpoint().eid();
+        if (packetVariables[dstEid].length == 0) return;
 
-        nonce = _bound(nonce, 0, srcOft.getMaxReceivedNonce(eid, sender));
+        (MessagingReceipt memory receipt, PacketVariables memory packetVars, uint256 index) = randomMessagingReceipt(
+            messageReceiptIndexSeed,
+            dstEid
+        );
+
+        uint64 nonce = receipt.nonce;
+
+        bytes32 sender = addressToBytes32(address(packetVars.srcOft));
+        uint32 srcEid = packetVars.srcOft.endpoint().eid();
+
         if (nonce == 0) return;
 
-        vm.prank(srcOft.owner());
-        srcOft.skipInboundNonce(eid, sender, uint64(nonce));
+        vm.prank(dstOft.owner());
+        dstOft.skipInboundNonce(srcEid, sender, uint64(nonce));
+
+        // Removing skipped message from our queue
+        for (uint i = index; i < messageReceipts[dstEid].length - 1; i++) {
+            messageReceipts[dstEid][i] = messageReceipts[dstEid][i + 1];
+        }
+        messageReceipts[dstEid].pop();
+        // Removing skipped message from our queue
+        for (uint i = index; i < oftReceipts[dstEid].length - 1; i++) {
+            oftReceipts[dstEid][i] = oftReceipts[dstEid][i + 1];
+        }
+        oftReceipts[dstEid].pop();
+        // Removing skipped message from our queue
+        for (uint i = index; i < packetVariables[dstEid].length - 1; i++) {
+            packetVariables[dstEid][i] = packetVariables[dstEid][i + 1];
+        }
+        packetVariables[dstEid].pop();
+    }
+
+    function clearInboundNonce(uint256 dstOftIndexSeed, uint256 messageReceiptIndexSeed) public {
+        // PRE-CONDITIONS
+        OrderOFTMock dstOft = randomOft(dstOftIndexSeed);
+        uint32 dstEid = dstOft.endpoint().eid();
+        if (packetVariables[dstEid].length == 0) return;
+
+        (MessagingReceipt memory receipt, PacketVariables memory packetVars, uint256 index) = randomMessagingReceipt(
+            messageReceiptIndexSeed,
+            dstEid
+        );
+
+        uint64 nonce = receipt.nonce;
+        bytes32 sender = addressToBytes32(address(packetVars.srcOft));
+        uint32 srcEid = packetVars.srcOft.endpoint().eid();
+
+        Origin memory origin;
+        origin.srcEid = srcEid;
+        origin.sender = sender;
+        origin.nonce = nonce;
+
+        if (nonce == 0) return;
+        bytes32 payloadHash = verifyHelper.validatePacket(receipt.guid);
+
+        vm.prank(dstOft.owner());
+        dstOft.clearInboundNonce(origin, receipt.guid, packetVars.message);
+
+        // Removing skipped message from our queue
+        for (uint i = index; i < messageReceipts[dstEid].length - 1; i++) {
+            messageReceipts[dstEid][i] = messageReceipts[dstEid][i + 1];
+        }
+        messageReceipts[dstEid].pop();
+        // Removing skipped message from our queue
+        for (uint i = index; i < oftReceipts[dstEid].length - 1; i++) {
+            oftReceipts[dstEid][i] = oftReceipts[dstEid][i + 1];
+        }
+        oftReceipts[dstEid].pop();
+        // Removing skipped message from our queue
+        for (uint i = index; i < packetVariables[dstEid].length - 1; i++) {
+            packetVariables[dstEid][i] = packetVariables[dstEid][i + 1];
+        }
+        packetVariables[dstEid].pop();
+    }
+
+    function nilifyInboundNonce(uint256 dstOftIndexSeed, uint256 messageReceiptIndexSeed) public {
+        // PRE-CONDITIONS
+        OrderOFTMock dstOft = randomOft(dstOftIndexSeed);
+        uint32 dstEid = dstOft.endpoint().eid();
+        if (packetVariables[dstEid].length == 0) return;
+
+        (MessagingReceipt memory receipt, PacketVariables memory packetVars, uint256 index) = randomMessagingReceipt(
+            messageReceiptIndexSeed,
+            dstEid
+        );
+
+        uint64 nonce = receipt.nonce;
+        bytes32 sender = addressToBytes32(address(packetVars.srcOft));
+        uint32 srcEid = packetVars.srcOft.endpoint().eid();
+
+        Origin memory origin;
+        origin.srcEid = srcEid;
+        origin.sender = sender;
+        origin.nonce = nonce;
+
+        if (nonce == 0) return;
+
+        vm.prank(dstOft.owner());
+        dstOft.nilifyInboundNonce(srcEid, sender, nonce, bytes32(0));
+
+        // Removing skipped message from our queue
+        for (uint i = index; i < messageReceipts[dstEid].length - 1; i++) {
+            messageReceipts[dstEid][i] = messageReceipts[dstEid][i + 1];
+        }
+        messageReceipts[dstEid].pop();
+        // Removing skipped message from our queue
+        for (uint i = index; i < oftReceipts[dstEid].length - 1; i++) {
+            oftReceipts[dstEid][i] = oftReceipts[dstEid][i + 1];
+        }
+        oftReceipts[dstEid].pop();
+        // Removing skipped message from our queue
+        for (uint i = index; i < packetVariables[dstEid].length - 1; i++) {
+            packetVariables[dstEid][i] = packetVariables[dstEid][i + 1];
+        }
+        packetVariables[dstEid].pop();
+    }
+
+    function burnInboundNonce(uint256 dstOftIndexSeed, uint256 messageReceiptIndexSeed) public {
+        // PRE-CONDITIONS
+        OrderOFTMock dstOft = randomOft(dstOftIndexSeed);
+        uint32 dstEid = dstOft.endpoint().eid();
+        if (packetVariables[dstEid].length == 0) return;
+
+        (MessagingReceipt memory receipt, PacketVariables memory packetVars, uint256 index) = randomMessagingReceipt(
+            messageReceiptIndexSeed,
+            dstEid
+        );
+
+        uint64 nonce = receipt.nonce;
+        bytes32 sender = addressToBytes32(address(packetVars.srcOft));
+        uint32 srcEid = packetVars.srcOft.endpoint().eid();
+
+        Origin memory origin;
+        origin.srcEid = srcEid;
+        origin.sender = sender;
+        origin.nonce = nonce;
+
+        if (nonce <= 2) return;
+        bytes32 payloadHash = verifyHelper.validatePacket(receipt.guid);
+
+        vm.prank(dstOft.owner());
+        dstOft.burnInboundNonce(srcEid, sender, nonce, payloadHash);
+
+        // Removing skipped message from our queue
+        for (uint i = index; i < messageReceipts[dstEid].length - 1; i++) {
+            messageReceipts[dstEid][i] = messageReceipts[dstEid][i + 1];
+        }
+        messageReceipts[dstEid].pop();
+        // Removing skipped message from our queue
+        for (uint i = index; i < oftReceipts[dstEid].length - 1; i++) {
+            oftReceipts[dstEid][i] = oftReceipts[dstEid][i + 1];
+        }
+        oftReceipts[dstEid].pop();
+        // Removing skipped message from our queue
+        for (uint i = index; i < packetVariables[dstEid].length - 1; i++) {
+            packetVariables[dstEid][i] = packetVariables[dstEid][i + 1];
+        }
+        packetVariables[dstEid].pop();
     }
 
     /*//////////////////////////////////////////////////////////////////////////
@@ -527,6 +804,16 @@ contract OrderOFTHandler is SoladyTest {
 
     function randomOft(uint256 seed) internal view returns (OrderOFTMock) {
         return oftInstances[_bound(seed, 0, oftInstances.length - 1)];
+    }
+
+    function randomMessagingReceipt(
+        uint256 seed,
+        uint32 eid
+    ) internal view returns (MessagingReceipt memory, PacketVariables memory, uint256) {
+        uint256 index = _bound(seed, 0, messageReceipts[eid].length - 1);
+        MessagingReceipt memory receipt = messageReceipts[eid][index];
+        PacketVariables memory packetVars = packetVariables[eid][index];
+        return (receipt, packetVars, index);
     }
 
     function addressToBytes32(address _addr) internal pure returns (bytes32) {

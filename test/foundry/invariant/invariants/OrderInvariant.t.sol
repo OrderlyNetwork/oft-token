@@ -10,7 +10,7 @@ import { OrderOFTMock } from "test/mocks/OrderOFTMock.sol";
 import { OrderAdapterMock } from "test/mocks/OrderAdapterMock.sol";
 import { OFTInspectorMock } from "test/mocks/OFTInspectorMock.sol";
 
-import { OrderOFTHandler } from "test/foundry/invariant/handlers/OrderOFTHandler.sol";
+import { OrderHandler } from "test/foundry/invariant/handlers/OrderHandler.sol";
 import { OrderAdapterHandler } from "test/foundry/invariant/handlers/OrderAdapterHandler.sol";
 import { OrderTokenHandler } from "test/foundry/invariant/handlers/OrderTokenHandler.sol";
 
@@ -39,9 +39,22 @@ import { OFTComposeMsgCodec } from "contracts/layerzerolabs/lz-evm-oapp-v2/contr
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 
-contract BaseInvariant is StdInvariant, TestHelperOz5 {
-    event MessageNum(string a, uint256 b);
+// forgefmt: disable-start
+/**************************************************************************************************************************************/
+/*** Invariant Tests                                                                                                                ***/
+/***************************************************************************************************************************************
 
+    * OT-01: Total Supply of ORDER should always be 1,000,000,000
+
+/**************************************************************************************************************************************/
+/*** OrderInvariant configures an OFT system that contains 10 endpoints.                                                             ***/
+/*** The system contains the OrderToken, as well as, its OFT adapter.                                                               ***/
+/*** The rest of the endpoints are connected to OrderOFT Instances.                                                                 ***/
+/*** It also contains global invariants.                                                                                            ***/
+/**************************************************************************************************************************************/
+// forgefmt: disable-end
+
+contract OrderInvariant is StdInvariant, TestHelperOz5 {
     /*//////////////////////////////////////////////////////////////////////////
                             BASE INVARIANT VARIABLES
     //////////////////////////////////////////////////////////////////////////*/
@@ -86,7 +99,7 @@ contract BaseInvariant is StdInvariant, TestHelperOz5 {
 
     uint256[] public chainIds;
 
-    OrderOFTHandler orderOftHandler;
+    OrderHandler orderHandler;
     OrderAdapterHandler orderAdapterHandler;
     OrderTokenHandler orderTokenHandler;
 
@@ -114,45 +127,34 @@ contract BaseInvariant is StdInvariant, TestHelperOz5 {
 
         verifyHelper = new VerifyHelper(this);
 
-        orderOftHandler = new OrderOFTHandler(oftInstances, verifyHelper);
+        orderHandler = new OrderHandler(oftInstances, verifyHelper);
 
-        targetContract(address(orderOftHandler));
+        targetContract(address(orderHandler));
 
+        // @dev To test with onlyOwner functions uncomment lines 137 & 143-147
         // Selectors to target.
-        bytes4[] memory orderOFTSelectors = new bytes4[](7);
-        orderOFTSelectors[0] = orderOftHandler.approve.selector;
-        orderOFTSelectors[1] = orderOftHandler.transfer.selector;
-        orderOFTSelectors[2] = orderOftHandler.transferFrom.selector;
-        orderOFTSelectors[3] = orderOftHandler.send.selector;
-        orderOFTSelectors[4] = orderOftHandler.verifyPackets.selector;
-        orderOFTSelectors[5] = orderOftHandler.setOrderedNonce.selector;
-        orderOFTSelectors[6] = orderOftHandler.skipInboundNonce.selector;
+        bytes4[] memory orderSelectors = new bytes4[](5);
+        // bytes4[] memory orderSelectors = new bytes4[](10);
+        orderSelectors[0] = orderHandler.approve.selector;
+        orderSelectors[1] = orderHandler.transfer.selector;
+        orderSelectors[2] = orderHandler.transferFrom.selector;
+        orderSelectors[3] = orderHandler.send.selector;
+        orderSelectors[4] = orderHandler.verifyPackets.selector;
+        // orderSelectors[5] = orderHandler.setOrderedNonce.selector;
+        // orderSelectors[6] = orderHandler.clearInboundNonce.selector;
+        // orderSelectors[7] = orderHandler.nilifyInboundNonce.selector;
+        // orderSelectors[8] = orderHandler.burnInboundNonce.selector;
+        // orderSelectors[9] = orderHandler.skipInboundNonce.selector;
 
-        targetSelector(FuzzSelector({ addr: address(orderOftHandler), selectors: orderOFTSelectors }));
+        targetSelector(FuzzSelector({ addr: address(orderHandler), selectors: orderSelectors }));
     }
 
-    // function invariantOrderOFTABalanceSum() external {
-    //     uint256 total = aOFT.balanceOf(user0) +
-    //         aOFT.balanceOf(user1) +
-    //         aOFT.balanceOf(user2) +
-    //         aOFT.balanceOf(user3) +
-    //         aOFT.balanceOf(user4) +
-    //         aOFT.balanceOf(user5);
-    //     assertEq(aOFT.totalSupply(), total, "PD-02: all users erc20 balance exceed erc20 total supply");
-    // }
-
-    // function invariantOrderOFTBBalanceSum() external {
-    //     uint256 total = bOFT.balanceOf(user0) +
-    //         bOFT.balanceOf(user1) +
-    //         bOFT.balanceOf(user2) +
-    //         bOFT.balanceOf(user3) +
-    //         bOFT.balanceOf(user4) +
-    //         bOFT.balanceOf(user5);
-    //     assertEq(bOFT.totalSupply(), total, "PD-02: all users erc20 balance exceed erc20 total supply");
-    // }
-
     function invariantOrderTokenBalanceSum() external {
-        assertEq(token.totalSupply(), 1_000_000_000 ether, "PD-02: all users erc20 balance exceed erc20 total supply");
+        assertEq(
+            token.totalSupply(),
+            1_000_000_000 ether,
+            "OT-01: Total Supply of ORDER should always be 1,000,000,000"
+        );
     }
 
     function _setOft() internal {
@@ -377,12 +379,12 @@ contract BaseInvariant is StdInvariant, TestHelperOz5 {
         }
 
         // check if ofts are fully connected
-        // for (uint8 i = 0; i < MAX_OFTS; i++) {
-        //     for (uint256 j = 0; j < MAX_OFTS; j++) {
-        //         if (i == j) continue;
-        //         assertEq(oftInstances[i].isPeer(eids[j], addressToBytes32(ofts[j])), true);
-        //     }
-        // }
+        for (uint8 i = 0; i < MAX_OFTS; i++) {
+            for (uint256 j = 0; j < MAX_OFTS; j++) {
+                if (i == j) continue;
+                assertEq(oftInstances[i].isPeer(eids[j], addressToBytes32(ofts[j])), true);
+            }
+        }
 
         console.log("Check the initial state for %d ofts", MAX_OFTS);
     }

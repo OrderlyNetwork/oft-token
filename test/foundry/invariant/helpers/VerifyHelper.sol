@@ -1,16 +1,20 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.0;
 
-import { BaseInvariant } from "../invariants/BaseInvariant.t.sol";
+import { OrderInvariant } from "../invariants/OrderInvariant.t.sol";
 
 contract VerifyHelper {
-    BaseInvariant public baseInvariant;
+    OrderInvariant public orderInvariant;
 
-    constructor(BaseInvariant _baseInvariant) {
-        baseInvariant = _baseInvariant;
+    constructor(OrderInvariant _orderInvariant) {
+        orderInvariant = _orderInvariant;
     }
 
     function verifyPackets(uint32 dstEid, bytes32 _address, uint256 _packetAmount) public {
-        baseInvariant.verifyPackets(dstEid, _address, _packetAmount, address(0x0));
+        orderInvariant.verifyPackets(dstEid, _address, _packetAmount, address(0x0));
+    }
+
+    function validatePacket(bytes32 guid) public returns (bytes32) {
+        return orderInvariant.validatePacket(orderInvariant.packets(guid));
     }
 }
