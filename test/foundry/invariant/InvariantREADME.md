@@ -34,7 +34,7 @@ forge test
 | **OT-07** | Adapter Balance Should Increase On Send | PASS | 1,000,000+
 | **OT-08** | Native Token Total Supply Should Not Change On Send | PASS | 1,000,000+
 | **OT-09** | Source OFT Total Supply Should Decrease On Send | PASS | 1,000,000+
-| **OT-10** | Outbound Nonce Should Increase By 1 | PASS | 1,000,000+
+| **OT-10** | Outbound Nonce Should Increase By 1 On Send | PASS | 1,000,000+
 | **OT-11** | Max Received Nonce Should Increase By 1 on lzReceive | PASS | 1,000,000+
 | **OT-12** | Destination Token Balance Should Increase on lzReceive | PASS | 1,000,000+
 | **OT-13** | Adapter Balance Should Decrease on lzReceive | PASS | 1,000,000+

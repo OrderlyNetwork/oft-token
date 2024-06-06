@@ -11,8 +11,6 @@ import { OrderAdapterMock } from "test/mocks/OrderAdapterMock.sol";
 import { OFTInspectorMock } from "test/mocks/OFTInspectorMock.sol";
 
 import { OrderHandler } from "test/foundry/invariant/handlers/OrderHandler.sol";
-import { OrderAdapterHandler } from "test/foundry/invariant/handlers/OrderAdapterHandler.sol";
-import { OrderTokenHandler } from "test/foundry/invariant/handlers/OrderTokenHandler.sol";
 
 import { TestHelperOz5 } from "@layerzerolabs/test-devtools-evm-foundry/contracts/TestHelperOz5.sol";
 import { OptionsBuilder } from "@layerzerolabs/lz-evm-oapp-v2/contracts/oapp/libs/OptionsBuilder.sol";
@@ -100,8 +98,6 @@ contract OrderInvariant is StdInvariant, TestHelperOz5 {
     uint256[] public chainIds;
 
     OrderHandler orderHandler;
-    OrderAdapterHandler orderAdapterHandler;
-    OrderTokenHandler orderTokenHandler;
 
     VerifyHelper verifyHelper;
 

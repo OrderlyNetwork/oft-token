@@ -346,7 +346,7 @@ contract OrderHandler is SoladyTest {
         * OT-07: Adapter Balance Should Increase On Send
         * OT-08: Native Token Total Supply Should Not Change On Send
         * OT-09: Source OFT Total Supply Should Decrease On Send
-        * OT-10: Outbound Nonce Should Increase By 1
+        * OT-10: Outbound Nonce Should Increase By 1 On Send
 
     /**************************************************************************************************************************************/
     /*** Assertions that must be true when a user calls send                                                                            ***/
@@ -505,7 +505,7 @@ contract OrderHandler is SoladyTest {
             assertEq(
                 beforeAfter.outboundNonceAfter,
                 beforeAfter.outboundNonceBefore + 1,
-                "OT-10: Outbound Nonce Should Increase By 1"
+                "OT-10: Outbound Nonce Should Increase By 1 On Send"
             );
         }
     }
