@@ -169,24 +169,24 @@ npx hardhat order:upgrade --env mainnet --network orderly --contract OrderOFT
 ```
 npx @layerzerolabs/verify-contract --help
 
-# cheatsheet
+// cheatsheet
 source .env
 
-npx @layerzerolabs/verify-contract -d "./deployments" --contracts "OrderToken" -n "sepolia" -u $API_URL_SEPOLIA -k $API_KEY_SEPOLIA
+npx @layerzerolabs/verify-contract -d "./deployments" --contracts "OrderToken" -n "sepolia" -u $SEPOLIA_API_URL -k $SEPOLIA_API_KEY
 
-npx @layerzerolabs/verify-contract -d "./deployments" --contracts "OrderAdapter" -n "sepolia" -u $API_URL_SEPOLIA -k $API_KEY_SEPOLIA
+npx @layerzerolabs/verify-contract -d "./deployments" --contracts "OrderAdapter" -n "sepolia" -u $SEPOLIA_API_URL -k $SEPOLIA_API_KEY
 
-npx @layerzerolabs/verify-contract -d "./deployments" --contracts "OrderOFT" -n "arbitrumsepolia" -u $API_URL_ARBITRUMSEPOLIA -k $API_KEY_ARBITRUMSEPOLIA
+npx @layerzerolabs/verify-contract -d "./deployments" --contracts "OrderOFT" -n "arbitrumsepolia" -u $ARBITRUMSEPOLIA_API_URL -k $ARBITRUMSEPOLIA_API_KEY
 
-npx @layerzerolabs/verify-contract -d "./deployments" --contracts "OrderOFT" -n "opsepolia" -u $API_URL_OPSEPOLIA -k $API_KEY_OPSEPOLIA
+npx @layerzerolabs/verify-contract -d "./deployments" --contracts "OrderOFT" -n "opsepolia" -u $OPSEPOLIA_API_URL -k $OPSEPOLIA_API_KEY
 
-npx @layerzerolabs/verify-contract -d "./deployments" --contracts "OrderOFT" -n "amoy" -u $API_URL_AMOYSEPOLIA -k $API_KEY_AMOYSEPOLIA
+npx @layerzerolabs/verify-contract -d "./deployments" --contracts "OrderOFT" -n "amoy" -u $AMOYSEPOLIA_API_URL -k $AMOYSEPOLIA_API_KEY
 
-npx @layerzerolabs/verify-contract -d "./deployments" --contracts "OrderOFT" -n "basesepolia" -u $API_URL_BASESEPOLIA -k $API_KEY_BASESEPOLIA
+npx @layerzerolabs/verify-contract -d "./deployments" --contracts "OrderOFT" -n "basesepolia" -u $BASESEPOLIA_API_URL -k $BASESEPOLIA_API_KEY
 
-npx @layerzerolabs/verify-contract -d "./deployments" --contracts "OrderOFT" -n "mantlesepolia" -u $API_URL_MANTLESEPOLIA -k $API_KEY_MANTLESEPOLIA
+npx @layerzerolabs/verify-contract -d "./deployments" --contracts "OrderOFT" -n "mantlesepolia" -u $MANTLESEPOLIA_API_URL -k $MANTLESEPOLIA_API_KEY
 
-npx @layerzerolabs/verify-contract -d "./deployments/" --contracts "OrderOFT" -n "orderlysepolia" -u $API_URL_ORDERLYSEPOLIA
+npx @layerzerolabs/verify-contract -d "./deployments/" --contracts "OrderOFT" -n "orderlysepolia" -u $ORDERLYSEPOLIA_API_URL
 ```
 
 ### Peer Connection
@@ -199,12 +199,12 @@ To give the maximum token tranfer flexibility, we can connect the OFT contracts 
 
 ```
 {
-"env: {
-"fromNetwork1": {
-"toNetwork1": true,
-"toNetwork2": false,
-}
-}
+  "env: {
+    "fromNetwork1": {
+      "toNetwork1": true,
+      "toNetwork2": false,
+    }
+  }
 }
 ```
 
@@ -273,12 +273,105 @@ Sending tokens from sepolia to orderlysepolia with tx hash 0x701678c3976f0c53c21
 To generate the ABI for the deployed contracts, we use `forge` to generate the ABI for the contracts.
 
 ```
-forge in contracts/OrderToken.sol:OrderToken abi > abi/abi/latest/OrderToken.json
-forge in contracts/OrderAdapter.sol:OrderAdapter abi > abi/abi/latest/OrderAdapter.json
-forge in contracts/OrderOFT.sol:OrderOFT abi > abi/abi/latest/OrderOFT.json
+forge in contracts/OrderToken.sol:OrderToken abi > lib/abi/abi/latest/OrderToken.json
+forge in contracts/OrderAdapter.sol:OrderAdapter abi > lib/abi/abi/latest/OrderAdapter.json
+forge in contracts/OrderOFT.sol:OrderOFT abi > lib/abi/abi/latest/OrderOFT.json
 ```
 
 Using [LayerZero](https://testnet.layerzeroscan.com/tx/0x774db31149ba43cd85342bf654ff2fc884c8fe21863911f055a3e281dd9766aa) scan to monitor the token transfer status
+
+## Support additional Networks
+
+To support additional networks, we should add few configurations in different files.
+
+Given the network name is `fuji` for Avalanche Fuji testnet for example.
+
+### Env File
+
+Add the network configuration in the `.env` file.
+
+```
+FUJI_RPC_URL="https://avalanche-fuji-c-chain-rpc.publicnode.com"
+FUJI_API_URL="https://api.avax-test.network/ext/bc/C/rpc"
+FUJI_API_KEY="your api key"
+```
+
+### `tasks/const.ts` File
+
+In the `tasks/const.ts` file, multiple constants should be modified for the supported networks.
+
+```
+// for fuji testnet
+export type TestNetworkType = 'sepolia' | 'arbitrumsepolia' | 'opsepolia' | 'amoy' | 'basesepolia' | 'mantlesepolia' | 'fuji' |  'orderlysepolia'
+
+export const TEST_NETWORKS = ['sepolia', 'arbitrumsepolia', 'opsepolia', 'amoy', 'basesepolia', 'fuji', 'orderlysepolia']
+
+// for Avax mainnet
+export type MainNetworkType = 'ethereum' | 'arbitrum' | 'optimism' | 'polygon' | 'base' | 'mantle' | 'avax' | 'orderly'
+
+export const MAIN_NETWORKS = ['ethereum', 'arbitrum', 'optimism', 'polygon', 'base', 'mantle', 'avax', 'orderly']
+
+
+// PRC
+export const RPC: { [key: network]: string } = {
+    // testnets
+    ...
+    "fuji": "https://avalanche-fuji-c-chain-rpc.publicnode.com",
+    // mainnets
+    ...
+    "avax": "https://avalanche-c-chain-rpc.publicnode.com",
+}
+
+// LayerZero Config
+export const LZ_CONFIG: { [key: network]: LzConfig} = {
+    // lz config for testnets
+    ...
+    "fuji": {
+        endpointAddress: TEST_LZ_ENDPOINT,
+        endpointId: TestnetV2EndpointId.AVALANCHE_V2_TESTNET,
+        chainId: 43113,
+    }
+    // lz config for mainnets
+    ...
+    "avax": {
+        endpointAddress: MAIN_LZ_ENDPOINT,
+        endpointId: MainnetV2EndpointId.AVALANCHE_V2_MAINNET,
+        chainId: 43114,
+    }
+}
+```
+
+### Hardhat Config
+
+Add the network configuration in the `hardhat.config.ts` file.
+
+```
+networks: {
+  fuji: {
+    eid: EndpointId.AVALANCHE_V2_TESTNET,
+    url: process.env.FUJI_RPC_URL || RPC["fuji"],
+    accounts,
+  },
+}
+```
+
+### Deploy and Set
+
+After the above configurations are done, we can deploy the contracts on the new network and set the peer connection between the OFT contracts on the new network and other networks.
+
+```
+// Deploy OFT on Fuji testnet and set the peer connection
+npx hardhat order:deploy --env dev --network fuji --contract OrderOFT
+npx hardhat order:oft:set --env dev --network fuji
+
+// Set the peer connection ot the OFT contract on Fuji on other supported networks
+npx hardhat order:oft:set --env --network sepolia
+npx hardhat order:oft:set --env --network arbitrumsepolia
+npx hardhat order:oft:set --env --network opsepolia
+npx hardhat order:oft:set --env --network amoy
+npx hardhat order:oft:set --env --network basesepolia
+npx hardhat order:oft:set --env --network orderlysepolia
+```
 
 ## Cross-Chain Msg with Token Transfer
 
@@ -286,18 +379,18 @@ OFT protocal also supports the cross-chain message relay with token transfer. Th
 
 ```
 struct SendParam {
-uint32 dstEid; // Destination endpoint ID.
-bytes32 to; // Recipient address.
-uint256 amountLD; // Amount to send in local decimals.
-uint256 minAmountLD; // Minimum amount to send in local decimals.
-bytes extraOptions; // Additional options supplied by the caller to be used in the LayerZero message.
-bytes composeMsg; // The composed message for the send() operation.
-bytes oftCmd; // The OFT command to be executed, unused in default OFT implementations.
+  uint32 dstEid; // Destination endpoint ID.
+  bytes32 to; // Recipient address.
+  uint256 amountLD; // Amount to send in local decimals.
+  uint256 minAmountLD; // Minimum amount to send in local decimals.
+  bytes extraOptions; // Additional options supplied by the caller to be used in the LayerZero message.
+  bytes composeMsg; // The composed message for the send() operation.
+  bytes oftCmd; // The OFT command to be executed, unused in default OFT implementations.
 }
 function send(
-SendParam calldata \_sendParam,
-MessagingFee calldata \_fee,
-address \_refundAddress
+  SendParam calldata \_sendParam,
+  MessagingFee calldata \_fee,
+  address \_refundAddress
 )
 ```
 
@@ -305,23 +398,23 @@ The relayed message should be encoded as bytes before calling `send()` function,
 
 ```
 function lzCompose(
-address \_from,
-bytes32 \_guid,
-bytes calldata \_message,
-address \_executor,
-bytes calldata \_extraData
+  address \_from,
+  bytes32 \_guid,
+  bytes calldata \_message,
+  address \_executor,
+  bytes calldata \_extraData
 ) public payable override {
-bytes memory composeMsg = \_message.composeMsg();
-uint32 srcEid = \_message.srcEid();
-address remoteSender = OFTComposeMsgCodec.bytes32ToAddress(\_message.composeFrom());
-require(
-\_composeMsgSenderCheck(msg.sender, \_from, srcEid, remoteSender),
-"OrderlyBox: composeMsg sender check failed"
-);
-(address staker, uint256 amount) = abi.decode(composeMsg, (address, uint256));
-IERC20 token = IERC20(IOFT(oft).token());
-token.safeTransfer(orderBox, amount);
-IOrderBox(orderBox).stakeOrder(\_getChainId(srcEid), staker, amount);
+  bytes memory composeMsg = \_message.composeMsg();
+  uint32 srcEid = \_message.srcEid();
+  address remoteSender = OFTComposeMsgCodec.bytes32ToAddress(\_message.composeFrom());
+  require(
+  \_composeMsgSenderCheck(msg.sender, \_from, srcEid, remoteSender),
+  "OrderlyBox: composeMsg sender check failed"
+  );
+  (address staker, uint256 amount) = abi.decode(composeMsg, (address, uint256));
+  IERC20 token = IERC20(IOFT(oft).token());
+  token.safeTransfer(orderBox, amount);
+  IOrderBox(orderBox).stakeOrder(\_getChainId(srcEid), staker, amount);
 }
 ```
 
@@ -370,16 +463,16 @@ npx hardhat order:upgrade --env dev --network orderlysepolia --contract OrderBox
 
 ```
 // Verify SafeRelayer contract
-npx @layerzerolabs/verify-contract -d "./deployments" --contracts "OrderSafeRelayer" -n "arbitrumsepolia" -u $API_URL_ARBITRUMSEPOLIA -k $API_KEY_ARBITRUMSEPOLIA
+npx @layerzerolabs/verify-contract -d "./deployments" --contracts "OrderSafeRelayer" -n "arbitrumsepolia" -u $ARBITRUMSEPOLIA_API_URL -k $ARBITRUMSEPOLIA_API_KEY
 
 // Verify Safe contract
-npx @layerzerolabs/verify-contract -d "./deployments" --contracts "OrderSafe" -n "arbitrumsepolia" -u $API_URL_ARBITRUMSEPOLIA -k $API_KEY_ARBITRUMSEPOLIA
+npx @layerzerolabs/verify-contract -d "./deployments" --contracts "OrderSafe" -n "arbitrumsepolia" -u $ARBITRUMSEPOLIA_API_URL -k $ARBITRUMSEPOLIA_API_KEY
 
 // Verify BoxRelayer contract
-npx @layerzerolabs/verify-contract -d "./deployments" --contracts "OrderBoxRelayer" -n "orderlysepolia" -u $API_URL_ORDERLYSEPOLIA
+npx @layerzerolabs/verify-contract -d "./deployments" --contracts "OrderBoxRelayer" -n "orderlysepolia" -u $ORDERLYSEPOLIA_API_URL
 
 // Verify Box contract
-npx @layerzerolabs/verify-contract -d "./deployments" --contracts "OrderBox" -n "orderlysepolia" -u $API_URL_ORDERLYSEPOLIA
+npx @layerzerolabs/verify-contract -d "./deployments" --contracts "OrderBox" -n "orderlysepolia" -u $ORDERLYSEPOLIA_API_URL
 ```
 
 ### Initializatino
@@ -392,7 +485,6 @@ npx hardhat order:init --env dev --network arbitrumsepolia --contract OrderSafe
 
 npx hardhat order:init --env dev --network orderlysepolia --contract OrderBoxRelayer
 npx hardhat order:init --env dev --network orderlysepolia --contract OrderBox
-
 ```
 
 This `init` task will set correponding addresses on the contracts to enable the **TRUSTED** cross-chain message relay.
@@ -402,12 +494,10 @@ This `init` task will set correponding addresses on the contracts to enable the 
 To stake token on the ledger side, we can use the `stakeOrder` function on the `OrderSafe` contract. The `OrderSafe` contract will relay the token to `OrderSafeRelayer`, the later will call `send()` function on the OFT contract to send the token to the `OrderBoxRelayer` contract on the Ledger side and composed with a message to trigger stake action on Ledger side.
 
 ```
-
 npx hardhat order:stake --env dev --amount 100 --network arbitrumsepolia
 Running on arbitrumsepolia
 Approving OrderSafe to spend 100 on OrderOFT with tx hash 0xa969eceae9be923231713d167cc1ef8dc0ab686866802237896b9e402315fb38
 Sending tokens from arbitrumsepolia to orderlysepolia with tx hash 0x31f74192d1bd685e4b1bac36a433bd5d208fc43a660e57bf8f826579a43560d1
-
 ```
 
 Through the [LayerZero](https://testnet.layerzeroscan.com/tx/0x31f74192d1bd685e4b1bac36a433bd5d208fc43a660e57bf8f826579a43560d1) scan to monitor the token transfer status.

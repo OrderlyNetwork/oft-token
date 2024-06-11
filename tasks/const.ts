@@ -34,13 +34,13 @@ export interface LZConfig {
 
 export type EnvType = 'dev' | 'qa' | 'staging' | 'mainnet'
 export type VaultNetworkType = 'arbitrum' | 'optimism' | 'polygon' | 'base' | 'mantle'
-export type TestNetworkType = 'sepolia' | 'arbitrumsepolia' | 'opsepolia' | 'amoy' | 'basesepolia' | 'mantlesepolia' |  'orderlysepolia'
-export type MainNetworkType = 'ethereum' | 'arbitrum' | 'optimism' | 'polygon' | 'base' | 'mantle' | 'orderly'
+export type TestNetworkType = 'sepolia' | 'arbitrumsepolia' | 'opsepolia' | 'amoy' | 'basesepolia' | 'mantlesepolia' | 'fuji' |  'orderlysepolia'
+export type MainNetworkType = 'ethereum' | 'arbitrum' | 'optimism' | 'polygon' | 'base' | 'mantle' | 'avax' | 'orderly'
 export type AllNetworkType = TestNetworkType | MainNetworkType
 export type OFTContractType = 'OrderToken' | 'OrderAdapter' | 'OrderOFT' | 'OrderSafe' | 'OrderBox' | 'OrderSafeRelayer' | 'OrderBoxRelayer'
 
-export const TEST_NETWORKS = ['sepolia', 'arbitrumsepolia', 'opsepolia', 'amoy', 'basesepolia', 'orderlysepolia']  //   ,  
-export const MAIN_NETWORKS = ['ethereum', 'arbitrum', 'optimism', 'polygon', 'base', 'mantle', 'orderly']
+export const TEST_NETWORKS = ['sepolia', 'arbitrumsepolia', 'opsepolia', 'amoy', 'basesepolia', 'orderlysepolia']  //   'fuji',  
+export const MAIN_NETWORKS = ['ethereum', 'arbitrum', 'optimism', 'polygon', 'base', 'mantle',  'orderly'] // 'avax',
 export const OPTIONS = {
     "1": {
         "gas": 55000,
@@ -60,6 +60,7 @@ export const RPC: { [key: network]: string } = {
     "amoy": "https://polygon-amoy-bor-rpc.publicnode.com",
     "basesepolia": "https://base-sepolia-rpc.publicnode.com",
     "mantlesepolia": "https://rpc.testnet.mantle.xyz",
+    "fuji": "https://avalanche-fuji-c-chain-rpc.publicnode.com",
     "orderlysepolia": "https://testnet-rpc.orderly.org/8jbWg77mA6PCwHe13tEiv6rFqT1UJLPEB",
     // mainnets
     "ethereum": "https://ethereum-rpc.publicnode.com",
@@ -68,6 +69,7 @@ export const RPC: { [key: network]: string } = {
     "polygon": "https://polygon-bor.publicnode.com",
     "base": "https://base-rpc.publicnode.com",
     "mantle": "https://mantle-rpc.publicnode.com",
+    "avax": "https://avalanche-c-chain-rpc.publicnode.com",
     "orderly": "https://rpc.orderly.network",
 }
 
@@ -120,6 +122,11 @@ export const LZ_CONFIG: { [key: network]: LzConfig} = {
         endpointId: TestnetV2EndpointId.MANTLESEP_V2_TESTNET,
         chainId: 5003,
     },
+    "fuji": {
+        endpointAddress: TEST_LZ_ENDPOINT,
+        endpointId: TestnetV2EndpointId.AVALANCHE_V2_TESTNET,
+        chainId: 43113,
+    },
     "orderlysepolia": {
         endpointAddress: TEST_LZ_ENDPOINT,
         endpointId: TestnetV2EndpointId.ORDERLY_V2_TESTNET,
@@ -155,6 +162,11 @@ export const LZ_CONFIG: { [key: network]: LzConfig} = {
         endpointAddress: MAIN_LZ_ENDPOINT,
         endpointId: MainnetV2EndpointId.MANTLE_V2_MAINNET,
         chainId: 5000,
+    },
+    "avax": {
+        endpointAddress: MAIN_LZ_ENDPOINT,
+        endpointId: MainnetV2EndpointId.AVALANCHE_V2_MAINNET,
+        chainId: 43114,
     },
     "orderly": {
         endpointAddress: MAIN_LZ_ENDPOINT,

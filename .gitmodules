@@ -1,3 +1,6 @@
-[submodule "abi"]
-	path = abi
+[submodule "lib/omnichain-ledger"]
+	path = lib/omnichain-ledger
+	url = git@gitlab.com:orderlynetwork/orderly-v2/omnichain-ledger.git
+[submodule "lib/abi"]
+	path = lib/abi
 	url = git@gitlab.com:orderlynetwork/orderly-v2/oft-contract-abi.git
