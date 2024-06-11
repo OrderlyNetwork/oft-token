@@ -10,6 +10,12 @@ import { IOFT, OFTCoreUpgradeable } from "./OFTCoreUpgradeable.sol";
  * @dev OFT is an ERC-20 token that extends the functionality of the OFTCore contract.
  */
 abstract contract OFTUpgradeable is OFTCoreUpgradeable, ERC20Upgradeable {
+    /* ============================ Storage Slots + __gap == 50 ============================ */
+    // @dev The gap to prevent storage collisions
+    // @dev https://docs.openzeppelin.com/upgrades-plugins/1.x/writing-upgradeable#storage-gaps
+    // @dev New storage should be added below this line, and no exceeding 50 slots
+    uint256[50] private __gap;
+
     /**
      * @dev Initializer for the OFT contract.
      * @param _name The name of the OFT.

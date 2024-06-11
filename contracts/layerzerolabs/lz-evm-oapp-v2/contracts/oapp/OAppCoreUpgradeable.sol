@@ -16,6 +16,12 @@ abstract contract OAppCoreUpgradeable is IOAppCore, OwnableUpgradeable {
     // Mapping to store peers associated with corresponding endpoints
     mapping(uint32 eid => bytes32 peer) public peers;
 
+    /* ============================ Storage Slots + __gap == 50 ============================ */
+    // @dev The gap to prevent storage collisions
+    // @dev https://docs.openzeppelin.com/upgrades-plugins/1.x/writing-upgradeable#storage-gaps
+    // @dev New storage should be added below this line, and no exceeding 50 slots
+    uint256[50] private __gap;
+
     /**
      * @param _endpoint The address of the LOCAL Layer Zero endpoint.
      * @param _delegate The delegate capable of making OApp configurations inside of the endpoint.

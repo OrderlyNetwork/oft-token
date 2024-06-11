@@ -22,6 +22,12 @@ abstract contract OFTAdapterUpgradeable is OFTCoreUpgradeable {
 
     IERC20 internal innerToken;
 
+    /* ============================ Storage Slots + __gap == 50 ============================ */
+    // @dev The gap to prevent storage collisions
+    // @dev https://docs.openzeppelin.com/upgrades-plugins/1.x/writing-upgradeable#storage-gaps
+    // @dev New storage should be added below this line, and no exceeding 50 slots
+    uint256[50] private __gap;
+
     /**
      * @dev Initializer for the OFTAdapter contract.
      * @param _token The address of the ERC-20 token to be adapted.

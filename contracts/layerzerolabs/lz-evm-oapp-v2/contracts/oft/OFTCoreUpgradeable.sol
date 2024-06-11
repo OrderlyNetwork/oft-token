@@ -48,6 +48,13 @@ abstract contract OFTCoreUpgradeable is
 
     // Address of an optional contract to inspect both 'message' and 'options'
     address public msgInspector;
+
+    /* ============================ Storage Slots + __gap == 50 ============================ */
+    // @dev The gap to prevent storage collisions
+    // @dev https://docs.openzeppelin.com/upgrades-plugins/1.x/writing-upgradeable#storage-gaps
+    // @dev New storage should be added below this line, and no exceeding 50 slots
+    uint256[50] private __gap;
+
     event MsgInspectorSet(address inspector);
     /**
      * @dev Initializer.

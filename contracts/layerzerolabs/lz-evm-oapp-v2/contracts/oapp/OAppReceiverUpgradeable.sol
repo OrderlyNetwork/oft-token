@@ -17,6 +17,12 @@ abstract contract OAppReceiverUpgradeable is IOAppReceiver, OAppCoreUpgradeable 
     // @dev Version is bumped when changes are made to this contract.
     uint64 internal constant RECEIVER_VERSION = 2;
 
+    /* ============================ Storage Slots + __gap == 50 ============================ */
+    // @dev The gap to prevent storage collisions
+    // @dev https://docs.openzeppelin.com/upgrades-plugins/1.x/writing-upgradeable#storage-gaps
+    // @dev New storage should be added below this line, and no exceeding 50 slots
+    uint256[50] private __gap;
+
     /**
      * @notice Retrieves the OApp version information.
      * @return senderVersion The version of the OAppSender.sol contract.

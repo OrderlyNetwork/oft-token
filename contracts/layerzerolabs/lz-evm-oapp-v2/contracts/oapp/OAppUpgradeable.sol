@@ -23,6 +23,12 @@ abstract contract OAppUpgradeable is
     OAppSenderUpgradeable,
     OAppReceiverUpgradeable
 {
+    /* ============================ Storage Slots + __gap == 50 ============================ */
+    // @dev The gap to prevent storage collisions
+    // @dev https://docs.openzeppelin.com/upgrades-plugins/1.x/writing-upgradeable#storage-gaps
+    // @dev New storage should be added below this line, and no exceeding 50 slots
+    uint256[50] private __gap;
+
     /**
      * @dev Initializer for the upgradeable OApp with the provided endpoint and delegate(owner).
      * @param _endpoint The address of the LayerZero endpoint on LOCAL network.
