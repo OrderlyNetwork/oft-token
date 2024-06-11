@@ -152,7 +152,31 @@ contract OrderOFTTest is TestHelperOz5 {
             IERC20(ofts[i]).transferFrom(address(this), spender, tokenToSend);
         }
     }
-
+    function test_zero_receiver() public {
+        address zero_receiver = address(0);
+        uint256 tokenToSend = 1 ether;
+        bytes memory options = OptionsBuilder.newOptions().addExecutorLzReceiveOption(RECEIVE_GAS, VALUE);
+        for (uint8 i = 0; i < MAX_OFTS; i++) {
+            for (uint8 j = 0; j < MAX_OFTS; j++) {
+                if (i == j) continue;
+                if (oftInstances[i].approvalRequired()) {
+                    IERC20(oftInstances[i].token()).approve(ofts[i], tokenToSend);
+                }
+                SendParam memory sendParam = SendParam(
+                    eids[j],
+                    addressToBytes32(address(zero_receiver)),
+                    tokenToSend,
+                    tokenToSend,
+                    options,
+                    "",
+                    ""
+                );
+                MessagingFee memory fee = oftInstances[i].quoteSend(sendParam, false);
+                vm.expectRevert("OFT: Transfer to ZeroAddress");
+                oftInstances[i].send{ value: fee.nativeFee }(sendParam, fee, payable(address(this)));
+            }
+        }
+    }
     function test_stake_msg() public {
         uint256 tokenToStake = 1000 ether;
         uint256 stakeFee;

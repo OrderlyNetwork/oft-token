@@ -56,6 +56,7 @@ abstract contract OFTCoreUpgradeable is
     uint256[50] private __gap;
 
     event MsgInspectorSet(address inspector);
+
     /**
      * @dev Initializer.
      * @param _localDecimals The decimals of the token on the local chain (this chain).
@@ -198,6 +199,7 @@ abstract contract OFTCoreUpgradeable is
         whenNotPaused
         returns (MessagingReceipt memory msgReceipt, OFTReceipt memory oftReceipt)
     {
+        require(_sendParam.to != bytes32(0), "OFT: Transfer to ZeroAddress");
         // @dev Applies the token transfers regarding this send() operation.
         // - amountSentLD is the amount in local decimals that was ACTUALLY sent/debited from the sender.
         // - amountReceivedLD is the amount in local decimals that will be received/credited to the recipient on the remote OFT instance.
