@@ -556,7 +556,7 @@ task("order:oft:bridge", "Bridge tokens to a specific address on a specific netw
             }
             const payLzToken = false
             let fee = await localContract.quoteSend(param, payLzToken);
-            console.log(`Fee in native: ${fee.nativeFee}`)
+            // console.log(`Fee in native: ${fee.nativeFee}`)
             const sendTx = await localContract.send(param, fee, signer.address, 
             {   value: fee.nativeFee,
                 nonce: nonce++
@@ -651,3 +651,67 @@ task("order:stake", "Send stakes to a specific address on a specific network")
             console.log(`Error: ${e}`)
         }
     })
+
+task("lz:compose", "Compose a message to a specific address on a specific network")
+    .addParam("hash", "The hash of the compose alert txn", undefined, types.string)
+    .setAction(async (taskArgs, hre) => {
+        checkNetwork(hre.network.name)
+        const composeAlertTopic = hre.ethers.utils.id("LzComposeAlert(address,address,address,bytes32,uint16,uint256,uint256,bytes,bytes,bytes)")
+        const endpointV2Deployment = await hre.deployments.get('EndpointV2')
+        const [ signer ] = await hre.ethers.getSigners()
+        const endpointV2 = await hre.ethers.getContractAt(endpointV2Deployment.abi, endpointV2Deployment.address, signer)
+        console.log(await endpointV2.eid())
+        const composeAlertTxn = await hre.ethers.provider.getTransactionReceipt(taskArgs.hash)
+        if (!composeAlertTxn) {
+            throw new Error(`Transaction with hash ${taskArgs.hash} not found`)
+        }
+        const logs = composeAlertTxn.logs
+        const composeAlertLog = logs.find(log => log.topics[0] === composeAlertTopic)
+
+        if (!composeAlertLog) {
+            throw new Error(`Compose alert log not found`)
+        }
+        const log = endpointV2.interface.parseLog(composeAlertLog)
+        
+        const retryLzComposeTx = await endpointV2.lzCompose(log.args["from"], log.args["to"], log.args["guid"], log.args["index"], log.args["message"], log.args["extraData"], {
+            gasLimit: log.args["gas"],
+            value: log.args["value"]
+        })
+
+        console.log(`Composing message with tx hash ${retryLzComposeTx.hash}`)
+        
+    })
+
+
+
+task("lz:receive", "Receive a message on a specific network")
+    .addParam("hash", "The hash of the receive alert txn", undefined, types.string)
+    .setAction(async (taskArgs, hre) => {
+        checkNetwork(hre.network.name)
+        const receiveAlertTopic = hre.ethers.utils.id("LzReceiveAlert(address,address,(uint32,bytes32,uint64),bytes32,uint256,uint256,bytes,bytes,bytes)")
+        const endpointV2Deployment = await hre.deployments.get('EndpointV2')
+        const [ signer ] = await hre.ethers.getSigners()
+        const endpointV2 = await hre.ethers.getContractAt(endpointV2Deployment.abi, endpointV2Deployment.address, signer)
+
+        
+        const receiveAlertTxn = await hre.ethers.provider.getTransactionReceipt(taskArgs.hash)
+        if (!receiveAlertTxn) {
+            throw new Error(`Transaction with hash ${taskArgs.hash} not found`)
+        }
+        const logs = receiveAlertTxn.logs
+        const receiveAlertLog = logs.find(log => log.topics[0] === receiveAlertTopic)
+
+        if (!receiveAlertLog) {
+            throw new Error(`Compose alert log not found`)
+        }
+        const log = endpointV2.interface.parseLog(receiveAlertLog)
+        
+        const retryLzReceiveTx = await endpointV2.lzReceive(log.args["origin"], log.args["receiver"], log.args["guid"], log.args["message"], log.args["extraData"], {
+            gasLimit: log.args["gas"],
+            value: log.args["value"]
+        })
+
+        console.log(`lz receive sent with tx hash ${retryLzReceiveTx.hash}`)
+        
+    })
+    

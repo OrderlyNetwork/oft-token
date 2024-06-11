@@ -22,6 +22,9 @@
       "OrderOFT": "0x6850bdEe5a830AE53b161B3246d68F202a6C14B7",
       "OrderBox": "0xEbd68f0Aac42cFb13f9a69f83e1e0c0b48BeB32a",
       "OrderBoxRelayer": "0x4dc9DD48d9043daf8D3844725a6c8acAB9ba4F42"
+    },
+    "fuji": {
+      "OrderOFT": "0x6850bdEe5a830AE53b161B3246d68F202a6C14B7"
     }
   },
   "qa": {
@@ -42,6 +45,9 @@
       "OrderOFT": "0xb6B4CCe7da1d67d720a5C79143e6383D5ff8b16D"
     },
     "orderlysepolia": {
+      "OrderOFT": "0xb6B4CCe7da1d67d720a5C79143e6383D5ff8b16D"
+    },
+    "fuji": {
       "OrderOFT": "0xb6B4CCe7da1d67d720a5C79143e6383D5ff8b16D"
     }
   }

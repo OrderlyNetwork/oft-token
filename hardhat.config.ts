@@ -8,6 +8,7 @@ import 'dotenv/config'
 import 'hardhat-deploy'
 import 'hardhat-contract-sizer'
 import '@nomiclabs/hardhat-ethers'
+import "@nomicfoundation/hardhat-verify";
 import '@layerzerolabs/toolbox-hardhat'
 import { HardhatUserConfig, HttpNetworkAccountsUserConfig } from 'hardhat/types'
 import { RPC } from './tasks/const'
@@ -48,70 +49,97 @@ const config: HardhatUserConfig = {
             },
         ],
     },
+    etherscan: {
+        apiKey: {
+            fuji: "snowtrace",
+        },
+        customChains: [
+            {
+                network: "fuji",
+                chainId: 43113,
+                urls: {
+                    apiURL: "https://api.routescan.io/v2/network/testnet/evm/43113/etherscan",
+                    browserURL: "https://testnet.snowtrace.io/"
+                }
+            }
+        ],
+    },
+    sourcify: {
+        enabled: true,
+    },
     networks: {
         
         sepolia: {
             eid: EndpointId.SEPOLIA_V2_TESTNET,
-            url: process.env.RPC_URL_SEPOLIA || RPC["sepolia"],
+            url: process.env.SEPOLIA_RPC_URL || RPC["sepolia"],
             accounts,
         },
         arbitrumsepolia: {
             eid: EndpointId.ARBSEP_V2_TESTNET,
-            url: process.env.RPC_URL_ARBITRUMSEPOLIA || RPC["arbitrumsepolia"],
+            url: process.env.ARBITRUMSEPOLIA_RPC_URL || RPC["arbitrumsepolia"],
             accounts,
         },
         opsepolia: {
             eid: EndpointId.OPTSEP_V2_TESTNET,
-            url: process.env.RPC_URL_OPSEPOLIA || RPC["opsepolia"],
+            url: process.env.OPSEPOLIA_RPC_URL || RPC["opsepolia"],
             accounts,
         },
         amoy: {
             eid: EndpointId.AMOY_V2_TESTNET,
-            url: process.env.RPC_URL_AMOYSEPOLIA || RPC["amoy"],
+            url: process.env.AMOYSEPOLIA_RPC_URL || RPC["amoy"],
             accounts,
           },
         mantlesepolia: {
             eid: EndpointId.MANTLESEP_V2_TESTNET,
-            url: process.env.RPC_URL_MANTLESEPOLIA || RPC["mantlesepolia"],
+            url: process.env.MANTLESEPOLIA_RPC_URL || RPC["mantlesepolia"],
             accounts,
         },
         basesepolia: {
             eid: EndpointId.BASESEP_V2_TESTNET,
-            url: process.env.RPC_URL_BASESEPOLIA || RPC["basesepolia"],
+            url: process.env.BASESEPOLIA_RPC_URL || RPC["basesepolia"],
+            accounts,
+        },
+        fuji: {
+            eid: EndpointId.AVALANCHE_V2_TESTNET,
+            url: process.env.FUJI_RPC_URL || RPC["fuji"],
             accounts,
         },
         orderlysepolia: {
             eid: EndpointId.ORDERLY_V2_TESTNET,
-            url: process.env.RPC_URL_ORDERLYSEPOLIA || RPC["orderlysepolia"],
+            url: process.env.ORDERLYSEPOLIA_RPC_URL || RPC["orderlysepolia"],
             accounts,
         },
         // mainnets
         ethereum: {
-            url: process.env.RPC_URL_ETHEREUM || RPC["ethereum"],
+            url: process.env.ETHEREUM_RPC_URL || RPC["ethereum"],
             accounts,
         },
         arbitrum: {
-            url: process.env.RPC_URL_ARBITRUM || RPC["arbitrum"],
+            url: process.env.ARBITRUM_RPC_URL || RPC["arbitrum"],
             accounts,
         },
         optimism: {
-            url: process.env.RPC_URL_OPTIMISM || RPC["optimism"],
+            url: process.env.OPTIMISM_RPC_URL || RPC["optimism"],
             accounts,
         },
         polygon: {
-            url: process.env.RPC_URL_POLYGON || RPC["polygon"],
+            url: process.env.POLYGON_RPC_URL || RPC["polygon"],
             accounts,
         },
         base: {
-            url: process.env.RPC_URL_BASE || RPC["base"],
+            url: process.env.BASE_RPC_URL || RPC["base"],
             accounts,
         },
         mantle: {
-            url: process.env.RPC_URL_MANTLE || RPC["mantle"],
+            url: process.env.MANTLE_RPC_URL || RPC["mantle"],
+            accounts,
+        },
+        avax: {
+            url: process.env.AVAX_RPC_URL || RPC["avax"],
             accounts,
         },
         orderly: {
-            url: process.env.RPC_URL_ORDERLY || RPC["orderly"],
+            url: process.env.ORDERLY_RPC_URL || RPC["orderly"],
             accounts,
         }
     },
