@@ -18,6 +18,7 @@ import { OFTComposerMock } from "../mocks/OFTComposerMock.sol";
 // OApp imports
 import { IOAppOptionsType3, EnforcedOptionParam } from "../../contracts/layerzerolabs/lz-evm-oapp-v2/contracts/oapp/libs/OAppOptionsType3Upgradeable.sol";
 import { OptionsBuilder } from "../../contracts/layerzerolabs/lz-evm-oapp-v2/contracts/oapp/libs/OptionsBuilder.sol";
+import { Origin } from "@layerzerolabs/lz-evm-protocol-v2/contracts/interfaces/ILayerZeroEndpointV2.sol";
 
 // OFT imports
 import { IOFT, SendParam, OFTReceipt, MessagingReceipt } from "../../contracts/layerzerolabs/lz-evm-oapp-v2/contracts/oft/interfaces/IOFT.sol";
@@ -28,6 +29,7 @@ import { OFTComposeMsgCodec } from "../../contracts/layerzerolabs/lz-evm-oapp-v2
 // OZ imports
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
+import { PausableUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
 
 // Forge imports
 import "forge-std/console.sol";
@@ -80,6 +82,75 @@ contract OrderOFTTest is TestHelperOz5 {
 
         // Initiate token transfer from the ERC20 contract to other OFT contracts
         _setDistribution();
+    }
+
+    function test_pause_send() public {
+        for (uint8 i = 0; i < MAX_OFTS; i++) {
+            uint256 tokenToSend = IERC20(oftInstances[i].token()).balanceOf(address(this)) / MAX_OFTS;
+            if (!oftInstances[i].paused()) oftInstances[i].pause();
+            for (uint8 j = 0; j < MAX_OFTS; j++) {
+                if (i == j) continue;
+                _checkApproval(i);
+                SendParam memory sendParam = SendParam(
+                    eids[j],
+                    addressToBytes32(address(this)),
+                    tokenToSend,
+                    tokenToSend,
+                    "",
+                    "",
+                    ""
+                );
+                MessagingFee memory fee = oftInstances[i].quoteSend(sendParam, false);
+                vm.expectRevert(PausableUpgradeable.EnforcedPause.selector);
+                oftInstances[i].send{ value: fee.nativeFee }(sendParam, fee, payable(address(this)));
+            }
+        }
+    }
+
+    function test_pause_receive() public {
+        for (uint8 i = 0; i < MAX_OFTS; i++) {
+            uint256 tokenToSend = IERC20(oftInstances[i].token()).balanceOf(address(this)) / MAX_OFTS;
+            if (oftInstances[i].paused()) oftInstances[i].unpause();
+
+            for (uint8 j = 0; j < MAX_OFTS; j++) {
+                if (i == j) continue;
+                if (!oftInstances[j].paused()) oftInstances[j].pause();
+                _checkApproval(i);
+                _send(i, j, tokenToSend);
+                oftInstances[j].setOrderedNonce(false);
+                vm.prank(endpoints[eids[j]]);
+                vm.expectRevert(PausableUpgradeable.EnforcedPause.selector);
+                oftInstances[j].lzReceive(
+                    Origin(eids[i], addressToBytes32(ofts[i]), 1),
+                    bytes32(uint256(1)),
+                    "",
+                    msg.sender,
+                    ""
+                );
+            }
+        }
+    }
+
+    function test_pause_transfer() public {
+        address receiver = address(1);
+        address spender = address(2);
+        for (uint8 i = 0; i < MAX_OFTS; i++) {
+            if (i == 0) continue;
+            uint256 tokenToSend = IERC20(ofts[i]).balanceOf(address(this)) / MAX_OFTS;
+            if (!oftInstances[i].paused()) {
+                IERC20(ofts[i]).approve(spender, tokenToSend);
+                oftInstances[i].pause();
+            }
+
+            vm.expectRevert(PausableUpgradeable.EnforcedPause.selector);
+            IERC20(ofts[i]).transfer(receiver, tokenToSend);
+            vm.expectRevert(PausableUpgradeable.EnforcedPause.selector);
+            IERC20(ofts[i]).approve(spender, tokenToSend);
+
+            vm.prank(spender);
+            vm.expectRevert(PausableUpgradeable.EnforcedPause.selector);
+            IERC20(ofts[i]).transferFrom(address(this), spender, tokenToSend);
+        }
     }
 
     function test_stake_msg() public {
@@ -295,27 +366,15 @@ contract OrderOFTTest is TestHelperOz5 {
         _init();
         uint256 initialSend = INIT_MINT / MAX_OFTS;
         uint256 initialRelay = initialSend / MAX_OFTS;
-        bytes memory options = OptionsBuilder.newOptions().addExecutorLzReceiveOption(200000, 0);
         for (uint8 i = 0; i < MAX_OFTS; i++) {
             uint256 tokenToSend = i == 0 ? initialSend : initialRelay;
-            for (uint256 j = 0; j < MAX_OFTS; j++) {
+            for (uint8 j = 0; j < MAX_OFTS; j++) {
                 if (i == j) continue;
                 if (oftInstances[i].approvalRequired()) {
                     IERC20(oftInstances[i].token()).approve(ofts[i], tokenToSend);
                 }
 
-                SendParam memory sendParam = SendParam(
-                    eids[j],
-                    addressToBytes32(address(this)),
-                    tokenToSend,
-                    tokenToSend,
-                    options,
-                    "",
-                    ""
-                );
-                MessagingFee memory fee = oftInstances[i].quoteSend(sendParam, false);
-
-                oftInstances[i].send{ value: fee.nativeFee }(sendParam, fee, payable(address(this)));
+                _send(i, j, tokenToSend);
                 verifyPackets(eids[j], addressToBytes32(ofts[j]));
             }
         }
@@ -356,5 +415,26 @@ contract OrderOFTTest is TestHelperOz5 {
         }
 
         console.log("Check the initial state for %d ofts", MAX_OFTS);
+    }
+
+    function _checkApproval(uint8 from) internal {
+        if (oftInstances[from].approvalRequired()) {
+            IERC20(oftInstances[from].token()).approve(ofts[from], INIT_MINT);
+        }
+    }
+
+    function _send(uint8 from, uint8 to, uint256 amount) internal {
+        bytes memory options = OptionsBuilder.newOptions().addExecutorLzReceiveOption(RECEIVE_GAS, VALUE);
+        SendParam memory sendParam = SendParam(
+            eids[to],
+            addressToBytes32(address(this)),
+            amount,
+            amount,
+            options,
+            "",
+            ""
+        );
+        MessagingFee memory fee = oftInstances[from].quoteSend(sendParam, false);
+        oftInstances[from].send{ value: fee.nativeFee }(sendParam, fee, payable(address(this)));
     }
 }

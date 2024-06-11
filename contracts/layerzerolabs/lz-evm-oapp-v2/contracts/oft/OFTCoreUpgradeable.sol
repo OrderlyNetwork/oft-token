@@ -190,7 +190,14 @@ abstract contract OFTCoreUpgradeable is
         SendParam calldata _sendParam,
         MessagingFee calldata _fee,
         address _refundAddress
-    ) external payable virtual returns (MessagingReceipt memory msgReceipt, OFTReceipt memory oftReceipt) {
+    )
+        external
+        payable
+        virtual
+        override
+        whenNotPaused
+        returns (MessagingReceipt memory msgReceipt, OFTReceipt memory oftReceipt)
+    {
         // @dev Applies the token transfers regarding this send() operation.
         // - amountSentLD is the amount in local decimals that was ACTUALLY sent/debited from the sender.
         // - amountReceivedLD is the amount in local decimals that will be received/credited to the recipient on the remote OFT instance.
@@ -259,7 +266,7 @@ abstract contract OFTCoreUpgradeable is
         bytes calldata _message,
         address /*_executor*/, // @dev unused in the default implementation.
         bytes calldata /*_extraData*/ // @dev unused in the default implementation.
-    ) internal virtual override {
+    ) internal virtual override whenNotPaused {
         // @dev The src sending chain doesnt know the address length on this chain (potentially non-evm)
         // Thus everything is bytes32() encoded in flight.
         address toAddress = _message.sendTo().bytes32ToAddress();

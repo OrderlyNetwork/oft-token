@@ -94,4 +94,12 @@ abstract contract OFTUpgradeable is OFTCoreUpgradeable, ERC20Upgradeable {
         // @dev In the case of NON-default OFT, the _amountLD MIGHT not be == amountReceivedLD.
         return _amountLD;
     }
+
+    function approve(address spender, uint256 value) public virtual override whenNotPaused returns (bool) {
+        return super.approve(spender, value);
+    }
+
+    function _update(address from, address to, uint256 value) internal virtual override whenNotPaused {
+        super._update(from, to, value);
+    }
 }
