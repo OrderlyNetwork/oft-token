@@ -19,6 +19,7 @@ import { OFTComposerMock } from "../mocks/OFTComposerMock.sol";
 import { IOAppOptionsType3, EnforcedOptionParam } from "../../contracts/layerzerolabs/lz-evm-oapp-v2/contracts/oapp/libs/OAppOptionsType3Upgradeable.sol";
 import { OptionsBuilder } from "../../contracts/layerzerolabs/lz-evm-oapp-v2/contracts/oapp/libs/OptionsBuilder.sol";
 import { Origin } from "@layerzerolabs/lz-evm-protocol-v2/contracts/interfaces/ILayerZeroEndpointV2.sol";
+import { ExecutorOptions } from "@layerzerolabs/lz-evm-protocol-v2/contracts/messagelib/libs/ExecutorOptions.sol";
 
 // OFT imports
 import { IOFT, SendParam, OFTReceipt, MessagingReceipt } from "../../contracts/layerzerolabs/lz-evm-oapp-v2/contracts/oft/interfaces/IOFT.sol";
@@ -30,6 +31,8 @@ import { OFTComposeMsgCodec } from "../../contracts/layerzerolabs/lz-evm-oapp-v2
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import { PausableUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
+import { DoubleEndedQueue } from "@openzeppelin/contracts/utils/structs/DoubleEndedQueue.sol";
+import { EndpointV2Mock as EndpointV2 } from "@layerzerolabs/test-devtools-evm-foundry/contracts/mocks/EndpointV2Mock.sol";
 
 // Forge imports
 import "forge-std/console.sol";
@@ -40,6 +43,9 @@ import { TestHelperOz5 } from "@layerzerolabs/test-devtools-evm-foundry/contract
 
 contract OrderOFTTest is TestHelperOz5 {
     using OptionsBuilder for bytes;
+    using DoubleEndedQueue for DoubleEndedQueue.Bytes32Deque;
+    using OFTMsgCodec for bytes;
+    using OFTMsgCodec for bytes32;
 
     enum OptionTypes {
         SEND,
@@ -52,9 +58,11 @@ contract OrderOFTTest is TestHelperOz5 {
     uint128 public constant VALUE = 0;
 
     EnforcedOptionParam[] public enforcedOptions;
+    EnforcedOptionParam[] public receiveOptions;
 
     OrderToken token;
 
+    uint8 public constant MSG_COUNT = 20;
     uint8 public constant MAX_OFTS = 10;
     // eid = 1: endpoint id on l1 side: ethereum, the first one always the ethereum chain
     // eid = 2: endpoint id on vault side: arb
@@ -76,9 +84,6 @@ contract OrderOFTTest is TestHelperOz5 {
 
         // Set the OFT contracts
         _setOft();
-
-        // Set the contracts to test cross-chain flow
-        _setCC();
 
         // Initiate token transfer from the ERC20 contract to other OFT contracts
         _setDistribution();
@@ -152,6 +157,7 @@ contract OrderOFTTest is TestHelperOz5 {
             IERC20(ofts[i]).transferFrom(address(this), spender, tokenToSend);
         }
     }
+
     function test_zero_receiver() public {
         address zero_receiver = address(0);
         uint256 tokenToSend = 1 ether;
@@ -159,9 +165,7 @@ contract OrderOFTTest is TestHelperOz5 {
         for (uint8 i = 0; i < MAX_OFTS; i++) {
             for (uint8 j = 0; j < MAX_OFTS; j++) {
                 if (i == j) continue;
-                if (oftInstances[i].approvalRequired()) {
-                    IERC20(oftInstances[i].token()).approve(ofts[i], tokenToSend);
-                }
+                _checkApproval(i);
                 SendParam memory sendParam = SendParam(
                     eids[j],
                     addressToBytes32(address(zero_receiver)),
@@ -177,7 +181,513 @@ contract OrderOFTTest is TestHelperOz5 {
             }
         }
     }
+
+    function test_unorder_nonce() public {
+        uint256 tokenToSend = 1 ether;
+        EndpointV2 localEndpoint;
+        uint64 localOutboundNonce;
+        EndpointV2 remoteEndpoint;
+        uint64 remoteInboundNonce;
+        MessagingReceipt memory msgReceipt;
+        bytes32[] memory guids = new bytes32[](MSG_COUNT);
+        uint64[] memory nonces = new uint64[](MSG_COUNT);
+        uint256 oldBalance;
+
+        for (uint8 i = 0; i < MAX_OFTS; i++) {
+            localEndpoint = EndpointV2(endpoints[eids[i]]);
+            for (uint8 j = 0; j < MAX_OFTS; j++) {
+                if (i == j) continue;
+                remoteEndpoint = EndpointV2(endpoints[eids[j]]);
+
+                // send packets: 0 - (MSG_COUNT - 1)
+                for (uint8 seq = 0; seq < MSG_COUNT; seq++) {
+                    localOutboundNonce = localEndpoint.outboundNonce(ofts[i], eids[j], addressToBytes32(ofts[j]));
+                    _checkApproval(i);
+                    (msgReceipt, ) = _send(i, j, tokenToSend * (localOutboundNonce + 1));
+                    assertEq(msgReceipt.nonce, localOutboundNonce + 1);
+                    guids[seq] = msgReceipt.guid;
+                    nonces[seq] = msgReceipt.nonce;
+                }
+
+                // commit packets: 0 - (MSG_COUNT / 2 - 1)
+                commitPackets(eids[j], addressToBytes32(ofts[j]), MSG_COUNT / 2);
+
+                // execute packets: 0 - (MSG_COUNT / 2 - 1)
+                for (uint8 seq = 0; seq < MSG_COUNT / 2; seq++) {
+                    oldBalance = IERC20(oftInstances[j].token()).balanceOf(address(this));
+                    executePacket(address(0), guids[seq]);
+                    remoteInboundNonce = remoteEndpoint.lazyInboundNonce(ofts[j], eids[i], addressToBytes32(ofts[i]));
+                    assertEq(remoteInboundNonce, nonces[seq]);
+                    assertEq(
+                        IERC20(oftInstances[j].token()).balanceOf(address(this)),
+                        oldBalance + tokenToSend * nonces[seq]
+                    );
+                }
+
+                // commit packets: (MSG_COUNT / 2) - (MSG_COUNT - 1)
+                commitPackets(eids[j], addressToBytes32(ofts[j]), MSG_COUNT - MSG_COUNT / 2);
+                remoteInboundNonce = remoteEndpoint.inboundNonce(ofts[j], eids[i], addressToBytes32(ofts[i]));
+
+                // try to execute packets with unordered nonce: (MSG_COUNT - 1) - (MSG_COUNT / 2 + 1)
+                for (uint8 seq = MSG_COUNT - 1; seq > MSG_COUNT / 2; seq--) {
+                    executePacketRevert(address(0), guids[seq], bytes("OApp: invalid nonce"));
+                }
+
+                // set unordered nonce to enable unordered delivery
+                oftInstances[j].setOrderedNonce(false);
+                // execute packets: (MSG_COUNT / 2 + 1) - (MSG_COUNT - 1)
+                for (uint8 seq = MSG_COUNT - 1; seq >= MSG_COUNT / 2; seq--) {
+                    oldBalance = IERC20(oftInstances[j].token()).balanceOf(address(this));
+                    executePacket(address(0), guids[seq]);
+                    assertEq(remoteInboundNonce, nonces[MSG_COUNT - 1]);
+                    assertEq(
+                        IERC20(oftInstances[j].token()).balanceOf(address(this)),
+                        oldBalance + tokenToSend * nonces[seq]
+                    );
+                }
+                // reset ordered nonce
+                oftInstances[j].setOrderedNonce(true);
+            }
+        }
+    }
+
+    // function test_clear_nonce() public {
+    //     uint256 tokenToSend = 1 ether;
+    //     EndpointV2 localEndpoint;
+    //     uint64 localOutboundNonce;
+    //     EndpointV2 remoteEndpoint;
+    //     MessagingReceipt memory msgReceipt;
+    //     bytes32[] memory guids = new bytes32[](MSG_COUNT);
+    //     uint64[] memory nonces = new uint64[](MSG_COUNT);
+    //     bytes memory message;
+
+    //     for (uint8 i = 0; i < MAX_OFTS; i++) {
+    //         localEndpoint = EndpointV2(endpoints[eids[i]]);
+    //         for (uint8 j = 0; j < MAX_OFTS; j++) {
+    //             if (i == j) continue;
+    //             remoteEndpoint = EndpointV2(endpoints[eids[j]]);
+    //             // send packets: 0 - (MSG_COUNT - 1)
+    //             for (uint8 seq = 0; seq < MSG_COUNT; seq++) {
+    //                 localOutboundNonce = localEndpoint.outboundNonce(ofts[i], eids[j], addressToBytes32(ofts[j]));
+    //                 _checkApproval(i);
+    //                 (msgReceipt, ) = _send(i, j, tokenToSend * (localOutboundNonce + 1));
+    //                 assertEq(msgReceipt.nonce, localOutboundNonce + 1);
+    //                 guids[seq] = msgReceipt.guid;
+    //                 nonces[seq] = msgReceipt.nonce;
+    //             }
+
+    //             // commit packets: 0 - (MSG_COUNT - 1)
+    //             commitPackets(eids[j], addressToBytes32(ofts[j]), MSG_COUNT);
+    //             assertEq(
+    //                 remoteEndpoint.inboundNonce(ofts[j], eids[i], addressToBytes32(ofts[i])),
+    //                 nonces[MSG_COUNT - 1]
+    //             );
+
+    //             oftInstances[j].setOrderedNonce(false);
+
+    //             (message, ) = OFTMsgCodec.encode(addressToBytes32(ofts[j]), uint64(tokenToSend), "0x");
+
+    //             oftInstances[j].clearInboundNonce(
+    //                 Origin(eids[i], addressToBytes32(ofts[i]), nonces[MSG_COUNT / 2]),
+    //                 guids[MSG_COUNT / 2],
+    //                 message
+    //             );
+
+    //             // // skip packet: MSG_COUNT / 2
+    //             // oftInstances[j].skipInboundNonce(eids[i], addressToBytes32(ofts[i]), nonces[MSG_COUNT / 2]);
+    //             // assertEq(
+    //             //     remoteEndpoint.inboundPayloadHash(
+    //             //         ofts[j],
+    //             //         eids[i],
+    //             //         addressToBytes32(ofts[i]),
+    //             //         nonces[MSG_COUNT / 2]
+    //             //     ),
+    //             //     remoteEndpoint.EMPTY_PAYLOAD_HASH()
+    //             // );
+    //             // // try to commit packet: MSG_COUNT / 2
+    //             // commitPackets(eids[j], addressToBytes32(ofts[j]), 1);
+    //             // assertEq(
+    //             //     remoteEndpoint.lazyInboundNonce(ofts[j], eids[i], addressToBytes32(ofts[i])),
+    //             //     nonces[MSG_COUNT / 2]
+    //             // );
+    //             // // execute packets: 0 - (MSG_COUNT / 2 - 1)
+    //             // for (uint8 seq = 0; seq < MSG_COUNT / 2; seq++) {
+    //             //     executePacket(address(0), guids[seq]);
+    //             //     assertGt(remoteEndpoint.lazyInboundNonce(ofts[j], eids[i], addressToBytes32(ofts[i])), nonces[seq]);
+    //             // }
+    //             // // commit packets: (MSG_COUNT / 2 + 1) - (MSG_COUNT - 1)
+    //             // commitPackets(eids[j], addressToBytes32(ofts[j]), MSG_COUNT - MSG_COUNT / 2 - 1);
+    //             // // try to execute packet: (MSG_COUNT / 2 + 1) - (MSG_COUNT - 1)
+    //             // for (uint8 seq = MSG_COUNT / 2 + 1; seq < MSG_COUNT; seq++) {
+    //             //     executePacketRevert(address(0), guids[seq], bytes("OApp: invalid nonce"));
+    //             // }
+
+    //             // // update the max received nonce to the skipped nonce
+    //             // oftInstances[j].pullMaxReceivedNonce(eids[i], addressToBytes32(ofts[i]));
+    //             // assertEq(oftInstances[j].maxReceivedNonce(eids[i], addressToBytes32(ofts[i])), nonces[MSG_COUNT / 2]);
+    //             // // execute packets: (MSG_COUNT / 2 + 1) - (MSG_COUNT - 1)
+    //             // for (uint8 seq = MSG_COUNT / 2 + 1; seq < MSG_COUNT; seq++) {
+    //             //     executePacket(address(0), guids[seq]);
+    //             //     assertEq(remoteEndpoint.lazyInboundNonce(ofts[j], eids[i], addressToBytes32(ofts[i])), nonces[seq]);
+    //             //     assertEq(oftInstances[j].maxReceivedNonce(eids[i], addressToBytes32(ofts[i])), nonces[seq]);
+    //             // }
+
+    //             oftInstances[j].setOrderedNonce(true);
+    //         }
+    //     }
+    // }
+
+    function test_skip_nonce() public {
+        uint256 tokenToSend = 1 ether;
+        EndpointV2 localEndpoint;
+        uint64 localOutboundNonce;
+        EndpointV2 remoteEndpoint;
+        MessagingReceipt memory msgReceipt;
+        bytes32[] memory guids = new bytes32[](MSG_COUNT);
+        uint64[] memory nonces = new uint64[](MSG_COUNT);
+
+        for (uint8 i = 0; i < MAX_OFTS; i++) {
+            localEndpoint = EndpointV2(endpoints[eids[i]]);
+            for (uint8 j = 0; j < MAX_OFTS; j++) {
+                if (i == j) continue;
+                remoteEndpoint = EndpointV2(endpoints[eids[j]]);
+                // send packets: 0 - (MSG_COUNT - 1)
+                for (uint8 seq = 0; seq < MSG_COUNT; seq++) {
+                    localOutboundNonce = localEndpoint.outboundNonce(ofts[i], eids[j], addressToBytes32(ofts[j]));
+                    _checkApproval(i);
+                    (msgReceipt, ) = _send(i, j, tokenToSend * (localOutboundNonce + 1));
+                    assertEq(msgReceipt.nonce, localOutboundNonce + 1);
+                    guids[seq] = msgReceipt.guid;
+                    nonces[seq] = msgReceipt.nonce;
+                }
+
+                // commit packets: 0 - (MSG_COUNT / 2 - 1)
+                commitPackets(eids[j], addressToBytes32(ofts[j]), MSG_COUNT / 2);
+                assertEq(
+                    remoteEndpoint.inboundNonce(ofts[j], eids[i], addressToBytes32(ofts[i])),
+                    nonces[MSG_COUNT / 2 - 1]
+                );
+                // skip packet: MSG_COUNT / 2
+                oftInstances[j].skipInboundNonce(eids[i], addressToBytes32(ofts[i]), nonces[MSG_COUNT / 2]);
+                assertEq(
+                    remoteEndpoint.inboundPayloadHash(
+                        ofts[j],
+                        eids[i],
+                        addressToBytes32(ofts[i]),
+                        nonces[MSG_COUNT / 2]
+                    ),
+                    remoteEndpoint.EMPTY_PAYLOAD_HASH()
+                );
+                // try to commit packet: MSG_COUNT / 2
+                commitPackets(eids[j], addressToBytes32(ofts[j]), 1);
+                assertEq(
+                    remoteEndpoint.lazyInboundNonce(ofts[j], eids[i], addressToBytes32(ofts[i])),
+                    nonces[MSG_COUNT / 2]
+                );
+                // execute packets: 0 - (MSG_COUNT / 2 - 1)
+                for (uint8 seq = 0; seq < MSG_COUNT / 2; seq++) {
+                    executePacket(address(0), guids[seq]);
+                    assertGt(remoteEndpoint.lazyInboundNonce(ofts[j], eids[i], addressToBytes32(ofts[i])), nonces[seq]);
+                }
+                // commit packets: (MSG_COUNT / 2 + 1) - (MSG_COUNT - 1)
+                commitPackets(eids[j], addressToBytes32(ofts[j]), MSG_COUNT - MSG_COUNT / 2 - 1);
+                // try to execute packet: (MSG_COUNT / 2 + 1) - (MSG_COUNT - 1)
+                for (uint8 seq = MSG_COUNT / 2 + 1; seq < MSG_COUNT; seq++) {
+                    executePacketRevert(address(0), guids[seq], bytes("OApp: invalid nonce"));
+                }
+
+                // update the max received nonce to the skipped nonce
+                oftInstances[j].pullMaxReceivedNonce(eids[i], addressToBytes32(ofts[i]));
+                assertEq(oftInstances[j].maxReceivedNonce(eids[i], addressToBytes32(ofts[i])), nonces[MSG_COUNT / 2]);
+                // execute packets: (MSG_COUNT / 2 + 1) - (MSG_COUNT - 1)
+                for (uint8 seq = MSG_COUNT / 2 + 1; seq < MSG_COUNT; seq++) {
+                    executePacket(address(0), guids[seq]);
+                    assertEq(remoteEndpoint.lazyInboundNonce(ofts[j], eids[i], addressToBytes32(ofts[i])), nonces[seq]);
+                    assertEq(oftInstances[j].maxReceivedNonce(eids[i], addressToBytes32(ofts[i])), nonces[seq]);
+                }
+            }
+        }
+    }
+
+    function test_nilify_nonce() public {
+        uint256 tokenToSend = 1 ether;
+        EndpointV2 localEndpoint;
+        uint64 localOutboundNonce;
+        EndpointV2 remoteEndpoint;
+        MessagingReceipt memory msgReceipt;
+        bytes32[] memory guids = new bytes32[](MSG_COUNT);
+        uint64[] memory nonces = new uint64[](MSG_COUNT);
+
+        bytes32 payloadHash;
+
+        for (uint8 i = 0; i < MAX_OFTS; i++) {
+            localEndpoint = EndpointV2(endpoints[eids[i]]);
+            for (uint8 j = 0; j < MAX_OFTS; j++) {
+                if (i == j) continue;
+                remoteEndpoint = EndpointV2(endpoints[eids[j]]);
+                // send packets: 0 - (MSG_COUNT - 1)
+                for (uint8 seq = 0; seq < MSG_COUNT; seq++) {
+                    localOutboundNonce = localEndpoint.outboundNonce(ofts[i], eids[j], addressToBytes32(ofts[j]));
+                    _checkApproval(i);
+                    (msgReceipt, ) = _send(i, j, tokenToSend * (localOutboundNonce + 1));
+                    assertEq(msgReceipt.nonce, localOutboundNonce + 1);
+                    guids[seq] = msgReceipt.guid;
+                    nonces[seq] = msgReceipt.nonce;
+                }
+
+                // commit packets: 0 - (MSG_COUNT - 1)
+                commitPackets(eids[j], addressToBytes32(ofts[j]), MSG_COUNT / 2);
+
+                oftInstances[j].setOrderedNonce(false);
+                // execute packet: MSG_COUNT / 2 - 1
+                executePacket(address(0), guids[MSG_COUNT / 2 - 1]);
+                assertEq(
+                    remoteEndpoint.lazyInboundNonce(ofts[j], eids[i], addressToBytes32(ofts[i])),
+                    nonces[MSG_COUNT / 2 - 1]
+                );
+
+                payloadHash = remoteEndpoint.inboundPayloadHash(
+                    ofts[j],
+                    eids[i],
+                    addressToBytes32(ofts[i]),
+                    nonces[MSG_COUNT / 4]
+                );
+                // nilify packet: MSG_COUNT / 4
+                oftInstances[j].nilifyInboundNonce(
+                    eids[i],
+                    addressToBytes32(ofts[i]),
+                    nonces[MSG_COUNT / 4],
+                    payloadHash
+                );
+                assertEq(
+                    remoteEndpoint.inboundPayloadHash(
+                        ofts[j],
+                        eids[i],
+                        addressToBytes32(ofts[i]),
+                        nonces[MSG_COUNT / 4]
+                    ),
+                    remoteEndpoint.NIL_PAYLOAD_HASH()
+                );
+
+                // try to execute packet: 0 - (MSG_COUNT/2 - 2)
+                for (uint8 seq = 0; seq < MSG_COUNT / 2 - 1; seq++) {
+                    if (seq == MSG_COUNT / 4) {
+                        executePacketRevert(
+                            address(0),
+                            guids[seq],
+                            abi.encodeWithSignature(
+                                "LZ_PayloadHashNotFound(bytes32,bytes32)",
+                                remoteEndpoint.NIL_PAYLOAD_HASH(),
+                                payloadHash
+                            )
+                        );
+                    } else {
+                        executePacket(address(0), guids[seq]);
+                    }
+                }
+
+                // recommit packet: MSG_COUNT / 2
+                // have to be fake receiver to avoid the HashAlreadyUsed event on DVNMock
+                // recommitPacket(guids[MSG_COUNT / 2]);
+                (address expectedReceiveLib, ) = remoteEndpoint.getReceiveLibrary(ofts[j], eids[i]);
+                vm.prank(expectedReceiveLib);
+                remoteEndpoint.verify(
+                    Origin(eids[i], addressToBytes32(ofts[i]), nonces[MSG_COUNT / 4]),
+                    ofts[j],
+                    payloadHash
+                );
+                executePacket(address(0), guids[MSG_COUNT / 4]);
+                assertEq(
+                    remoteEndpoint.inboundPayloadHash(
+                        ofts[j],
+                        eids[i],
+                        addressToBytes32(ofts[i]),
+                        nonces[MSG_COUNT / 4]
+                    ),
+                    remoteEndpoint.EMPTY_PAYLOAD_HASH()
+                );
+
+                // execute packets: (MSG_COUNT / 2) - (MSG_COUNT - 1)
+                commitPackets(eids[j], addressToBytes32(ofts[j]), MSG_COUNT / 2);
+                payloadHash = remoteEndpoint.inboundPayloadHash(
+                    ofts[j],
+                    eids[i],
+                    addressToBytes32(ofts[i]),
+                    nonces[MSG_COUNT - MSG_COUNT / 4]
+                );
+
+                oftInstances[j].nilifyInboundNonce(
+                    eids[i],
+                    addressToBytes32(ofts[i]),
+                    nonces[MSG_COUNT - MSG_COUNT / 4],
+                    payloadHash
+                );
+
+                assertEq(
+                    remoteEndpoint.inboundPayloadHash(
+                        ofts[j],
+                        eids[i],
+                        addressToBytes32(ofts[i]),
+                        nonces[MSG_COUNT - MSG_COUNT / 4]
+                    ),
+                    remoteEndpoint.NIL_PAYLOAD_HASH()
+                );
+
+                // try to execute packet: (MSG_COUNT / 2) - (MSG_COUNT - 1)
+                for (uint8 seq = MSG_COUNT / 2; seq < MSG_COUNT; seq++) {
+                    if (seq == MSG_COUNT - MSG_COUNT / 4) {
+                        executePacketRevert(
+                            address(0),
+                            guids[seq],
+                            abi.encodeWithSignature(
+                                "LZ_PayloadHashNotFound(bytes32,bytes32)",
+                                remoteEndpoint.NIL_PAYLOAD_HASH(),
+                                payloadHash
+                            )
+                        );
+                    } else {
+                        executePacket(address(0), guids[seq]);
+                        assertEq(
+                            remoteEndpoint.lazyInboundNonce(ofts[j], eids[i], addressToBytes32(ofts[i])),
+                            nonces[seq]
+                        );
+                    }
+                }
+
+                vm.prank(expectedReceiveLib);
+                remoteEndpoint.verify(
+                    Origin(eids[i], addressToBytes32(ofts[i]), nonces[MSG_COUNT - MSG_COUNT / 4]),
+                    ofts[j],
+                    payloadHash
+                );
+
+                executePacket(address(0), guids[MSG_COUNT - MSG_COUNT / 4]);
+                assertEq(
+                    remoteEndpoint.inboundPayloadHash(
+                        ofts[j],
+                        eids[i],
+                        addressToBytes32(ofts[i]),
+                        nonces[MSG_COUNT - MSG_COUNT / 4]
+                    ),
+                    remoteEndpoint.EMPTY_PAYLOAD_HASH()
+                );
+
+                oftInstances[j].setOrderedNonce(true);
+            }
+        }
+    }
+
+    function test_burn_nonce() public {
+        uint256 tokenToSend = 1 ether;
+        EndpointV2 localEndpoint;
+        uint64 localOutboundNonce;
+        EndpointV2 remoteEndpoint;
+        MessagingReceipt memory msgReceipt;
+        bytes32[] memory guids = new bytes32[](MSG_COUNT);
+        uint64[] memory nonces = new uint64[](MSG_COUNT);
+
+        bytes32 payloadHash;
+
+        for (uint8 i = 0; i < MAX_OFTS; i++) {
+            localEndpoint = EndpointV2(endpoints[eids[i]]);
+            for (uint8 j = 0; j < MAX_OFTS; j++) {
+                if (i == j) continue;
+                remoteEndpoint = EndpointV2(endpoints[eids[j]]);
+
+                for (uint8 seq = 0; seq < MSG_COUNT; seq++) {
+                    localOutboundNonce = localEndpoint.outboundNonce(ofts[i], eids[j], addressToBytes32(ofts[j]));
+                    _checkApproval(i);
+                    (msgReceipt, ) = _send(i, j, tokenToSend * (localOutboundNonce + 1));
+                    assertEq(msgReceipt.nonce, localOutboundNonce + 1);
+                    guids[seq] = msgReceipt.guid;
+                    nonces[seq] = msgReceipt.nonce;
+                }
+
+                // commit packets: 0 - (MSG_COUNT - 1)
+                commitPackets(eids[j], addressToBytes32(ofts[j]), MSG_COUNT);
+                assertEq(
+                    remoteEndpoint.inboundNonce(ofts[j], eids[i], addressToBytes32(ofts[i])),
+                    nonces[MSG_COUNT - 1]
+                );
+
+                // no packet executed
+                assertEq(remoteEndpoint.lazyInboundNonce(ofts[j], eids[i], addressToBytes32(ofts[i])), nonces[0] - 1);
+
+                payloadHash = remoteEndpoint.inboundPayloadHash(
+                    ofts[j],
+                    eids[i],
+                    addressToBytes32(ofts[i]),
+                    nonces[MSG_COUNT / 2]
+                );
+
+                // try to burn a nonce later then the current lazyInboundNonce
+                vm.expectRevert(abi.encodeWithSignature("LZ_InvalidNonce(uint64)", nonces[MSG_COUNT / 2]));
+                oftInstances[j].burnInboundNonce(
+                    eids[i],
+                    addressToBytes32(ofts[i]),
+                    nonces[MSG_COUNT / 2],
+                    payloadHash
+                );
+
+                // execute packet: (MSG_COUNT - 1)
+                oftInstances[j].setOrderedNonce(false);
+                executePacket(address(0), guids[MSG_COUNT - 1]);
+                assertEq(
+                    remoteEndpoint.lazyInboundNonce(ofts[j], eids[i], addressToBytes32(ofts[i])),
+                    nonces[MSG_COUNT - 1]
+                );
+
+                // burn packet: MSG_COUNT / 2
+                oftInstances[j].burnInboundNonce(
+                    eids[i],
+                    addressToBytes32(ofts[i]),
+                    nonces[MSG_COUNT / 2],
+                    payloadHash
+                );
+                assertEq(
+                    remoteEndpoint.inboundPayloadHash(
+                        ofts[j],
+                        eids[i],
+                        addressToBytes32(ofts[i]),
+                        nonces[MSG_COUNT / 2]
+                    ),
+                    remoteEndpoint.EMPTY_PAYLOAD_HASH()
+                );
+
+                // execute packets: 0 - (MSG_COUNT -2)
+                for (uint8 seq = 0; seq < MSG_COUNT - 1; seq++) {
+                    if (seq != MSG_COUNT / 2) {
+                        executePacket(address(0), guids[seq]);
+                        assertGe(
+                            remoteEndpoint.lazyInboundNonce(ofts[j], eids[i], addressToBytes32(ofts[i])),
+                            nonces[seq]
+                        );
+                        assertEq(
+                            remoteEndpoint.lazyInboundNonce(ofts[j], eids[i], addressToBytes32(ofts[i])),
+                            nonces[MSG_COUNT - 1]
+                        );
+                    } else {
+                        executePacketRevert(
+                            address(0),
+                            guids[seq],
+                            abi.encodeWithSignature(
+                                "LZ_PayloadHashNotFound(bytes32,bytes32)",
+                                remoteEndpoint.EMPTY_PAYLOAD_HASH(),
+                                payloadHash
+                            )
+                        );
+                    }
+                }
+
+                oftInstances[j].setOrderedNonce(true);
+            }
+        }
+    }
+
     function test_stake_msg() public {
+        // Set the contracts to test cross-chain flow
+        _setCC();
+
         uint256 tokenToStake = 1000 ether;
         uint256 stakeFee;
         MessagingReceipt memory msgReceipt;
@@ -233,7 +743,7 @@ contract OrderOFTTest is TestHelperOz5 {
     function _setOft() internal {
         super.setUp();
         setUpEndpoints(MAX_OFTS, LibraryType.UltraLightNode);
-        console.log("Set up %d endpoints", MAX_OFTS);
+        // // console.log("Set up %d endpoints", MAX_OFTS);
 
         token = new OrderToken(address(this));
         OrderAdapter orderAdapterImpl = new OrderAdapter();
@@ -264,11 +774,11 @@ contract OrderOFTTest is TestHelperOz5 {
             oftInstances[i] = OrderOFT(address(oftProxy));
         }
 
-        console.log("Set up %d OFTs", MAX_OFTS);
+        // // console.log("Set up %d OFTs", MAX_OFTS);
 
         this.wireOApps(ofts);
 
-        console.log("Wired %d OFTs", MAX_OFTS);
+        // console.log("Wired %d OFTs", MAX_OFTS);
 
         for (uint8 i = 0; i < MAX_OFTS; i++) {
             for (uint256 j = 0; j < MAX_OFTS; j++) {
@@ -296,7 +806,7 @@ contract OrderOFTTest is TestHelperOz5 {
             oftInstances[i].setEnforcedOptions(enforcedOptions);
         }
 
-        console.log("Set enforced options for %d OFTs", MAX_OFTS);
+        // console.log("Set enforced options for %d OFTs", MAX_OFTS);
     }
 
     /**
@@ -326,7 +836,7 @@ contract OrderOFTTest is TestHelperOz5 {
             chainIds[i] = block.chainid + eids[i];
         }
 
-        console.log("Set chainIds for %d OFTs", MAX_OFTS);
+        // console.log("Set chainIds for %d OFTs", MAX_OFTS);
 
         bytes memory initData = abi.encodeWithSignature("initialize(address)", address(this));
 
@@ -349,7 +859,7 @@ contract OrderOFTTest is TestHelperOz5 {
         orderBox.setOft(ofts[MAX_OFTS - 1]);
         orderBox.setOrderRelayer(address(orderBoxRelayer));
 
-        console.log("Deployed and set OrderBox and OrderBoxRelayer on eid: %d", eids[MAX_OFTS - 1]);
+        // console.log("Deployed and set OrderBox and OrderBoxRelayer on eid: %d", eids[MAX_OFTS - 1]);
 
         orderSafeInstances = new OrderSafe[](MAX_OFTS - 1);
         orderSafeRelayerInstances = new OrderSafeRelayer[](MAX_OFTS - 1);
@@ -379,7 +889,7 @@ contract OrderOFTTest is TestHelperOz5 {
             orderBoxRelayer.setRemoteComposeMsgSender(eids[i], address(orderSafeRelayerInstances[i]), true);
             orderBoxRelayer.setEid(chainIds[i], eids[i]);
         }
-        console.log("Deployed and set OrderSafe and OrderSafeRelayer on eids: %d - %d", eids[0], eids[MAX_OFTS - 2]);
+        // console.log("Deployed and set OrderSafe and OrderSafeRelayer on eids: %d - %d", eids[0], eids[MAX_OFTS - 2]);
     }
 
     /**
@@ -394,9 +904,7 @@ contract OrderOFTTest is TestHelperOz5 {
             uint256 tokenToSend = i == 0 ? initialSend : initialRelay;
             for (uint8 j = 0; j < MAX_OFTS; j++) {
                 if (i == j) continue;
-                if (oftInstances[i].approvalRequired()) {
-                    IERC20(oftInstances[i].token()).approve(ofts[i], tokenToSend);
-                }
+                _checkApproval(i);
 
                 _send(i, j, tokenToSend);
                 verifyPackets(eids[j], addressToBytes32(ofts[j]));
@@ -410,7 +918,7 @@ contract OrderOFTTest is TestHelperOz5 {
             );
         }
 
-        console.log("Distributed tokens to %d - %d OFTs", eids[1], eids[MAX_OFTS - 1]);
+        // console.log("Distributed tokens to %d - %d OFTs", eids[1], eids[MAX_OFTS - 1]);
     }
 
     function _init() internal {
@@ -438,7 +946,7 @@ contract OrderOFTTest is TestHelperOz5 {
             }
         }
 
-        console.log("Check the initial state for %d ofts", MAX_OFTS);
+        // console.log("Check the initial state for %d ofts", MAX_OFTS);
     }
 
     function _checkApproval(uint8 from) internal {
@@ -447,7 +955,11 @@ contract OrderOFTTest is TestHelperOz5 {
         }
     }
 
-    function _send(uint8 from, uint8 to, uint256 amount) internal {
+    function _send(
+        uint8 from,
+        uint8 to,
+        uint256 amount
+    ) internal returns (MessagingReceipt memory msgReceipt, OFTReceipt memory oftReceipt) {
         bytes memory options = OptionsBuilder.newOptions().addExecutorLzReceiveOption(RECEIVE_GAS, VALUE);
         SendParam memory sendParam = SendParam(
             eids[to],
@@ -459,6 +971,73 @@ contract OrderOFTTest is TestHelperOz5 {
             ""
         );
         MessagingFee memory fee = oftInstances[from].quoteSend(sendParam, false);
-        oftInstances[from].send{ value: fee.nativeFee }(sendParam, fee, payable(address(this)));
+        (msgReceipt, oftReceipt) = oftInstances[from].send{ value: fee.nativeFee }(
+            sendParam,
+            fee,
+            payable(address(this))
+        );
+    }
+
+    function commitPackets(uint32 _dstEid, bytes32 _dstAddress, uint256 _packetAmount) public {
+        require(endpoints[_dstEid] != address(0), "endpoint not yet registered");
+
+        DoubleEndedQueue.Bytes32Deque storage queue = packetsQueue[_dstEid][_dstAddress];
+        uint256 pendingPacketsSize = queue.length();
+        uint256 numberOfPackets;
+        if (_packetAmount == 0) {
+            numberOfPackets = queue.length();
+        } else {
+            numberOfPackets = pendingPacketsSize > _packetAmount ? _packetAmount : pendingPacketsSize;
+        }
+        while (numberOfPackets > 0) {
+            // front in, back out
+            bytes32 guid = queue.popBack();
+            bytes memory packetBytes = packets[guid];
+            this.assertGuid(packetBytes, guid);
+            this.validatePacket(packetBytes);
+            numberOfPackets--;
+        }
+    }
+
+    function recommitPacket(bytes32 guid) public {
+        bytes memory packetBytes = packets[guid];
+        this.assertGuid(packetBytes, guid);
+        this.validatePacket(packetBytes);
+    }
+
+    function executePacket(address composer, bytes32 guid) public {
+        bytes memory packetBytes = packets[guid];
+        bytes memory options = optionsLookup[guid];
+        if (_executorOptionExists(options, ExecutorOptions.OPTION_TYPE_NATIVE_DROP)) {
+            (uint256 amount, bytes32 receiver) = _parseExecutorNativeDropOption(options);
+            address to = address(uint160(uint256(receiver)));
+            (bool sent, ) = to.call{ value: amount }("");
+            require(sent, "Failed to send Ether");
+        }
+        if (_executorOptionExists(options, ExecutorOptions.OPTION_TYPE_LZRECEIVE)) {
+            this.lzReceive(packetBytes, options);
+        }
+        if (composer != address(0) && _executorOptionExists(options, ExecutorOptions.OPTION_TYPE_LZCOMPOSE)) {
+            this.lzCompose(packetBytes, options, guid, composer);
+        }
+    }
+
+    function executePacketRevert(address composer, bytes32 guid, bytes memory revertInfo) public {
+        bytes memory packetBytes = packets[guid];
+        bytes memory options = optionsLookup[guid];
+        if (_executorOptionExists(options, ExecutorOptions.OPTION_TYPE_NATIVE_DROP)) {
+            (uint256 amount, bytes32 receiver) = _parseExecutorNativeDropOption(options);
+            address to = address(uint160(uint256(receiver)));
+            (bool sent, ) = to.call{ value: amount }("");
+            require(sent, "Failed to send Ether");
+        }
+        if (_executorOptionExists(options, ExecutorOptions.OPTION_TYPE_LZRECEIVE)) {
+            vm.expectRevert(revertInfo);
+            this.lzReceive(packetBytes, options);
+        }
+        if (composer != address(0) && _executorOptionExists(options, ExecutorOptions.OPTION_TYPE_LZCOMPOSE)) {
+            vm.expectRevert(revertInfo);
+            this.lzCompose(packetBytes, options, guid, composer);
+        }
     }
 }
