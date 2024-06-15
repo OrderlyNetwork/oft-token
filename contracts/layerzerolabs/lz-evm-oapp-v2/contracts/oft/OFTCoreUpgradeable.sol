@@ -48,7 +48,20 @@ abstract contract OFTCoreUpgradeable is
 
     // Address of an optional contract to inspect both 'message' and 'options'
     address public msgInspector;
+
+    /* ============================ Storage Slots + __gap == 50 ============================ */
+    // @dev The gap to prevent storage collisions
+    // @dev https://docs.openzeppelin.com/upgrades-plugins/1.x/writing-upgradeable#storage-gaps
+    // @dev New storage should be added below this line, and no exceeding 50 slots
+
+    // @dev Reord nonce for inbound messages: srcEid => sender => nonce
+    mapping(uint32 => mapping(bytes32 => uint64)) public maxReceivedNonce;
+    // @dev Flag to enforce ordered nonce, if true, the nonce must be strictly increasing by 1
+    bool public orderedNonce;
+    uint256[48] private __gap;
+
     event MsgInspectorSet(address inspector);
+
     /**
      * @dev Initializer.
      * @param _localDecimals The decimals of the token on the local chain (this chain).
@@ -183,7 +196,15 @@ abstract contract OFTCoreUpgradeable is
         SendParam calldata _sendParam,
         MessagingFee calldata _fee,
         address _refundAddress
-    ) external payable virtual returns (MessagingReceipt memory msgReceipt, OFTReceipt memory oftReceipt) {
+    )
+        external
+        payable
+        virtual
+        override
+        whenNotPaused
+        returns (MessagingReceipt memory msgReceipt, OFTReceipt memory oftReceipt)
+    {
+        require(_sendParam.to != bytes32(0), "OFT: Transfer to ZeroAddress");
         // @dev Applies the token transfers regarding this send() operation.
         // - amountSentLD is the amount in local decimals that was ACTUALLY sent/debited from the sender.
         // - amountReceivedLD is the amount in local decimals that will be received/credited to the recipient on the remote OFT instance.
@@ -252,7 +273,8 @@ abstract contract OFTCoreUpgradeable is
         bytes calldata _message,
         address /*_executor*/, // @dev unused in the default implementation.
         bytes calldata /*_extraData*/ // @dev unused in the default implementation.
-    ) internal virtual override {
+    ) internal virtual override whenNotPaused {
+        _acceptNonce(_origin.srcEid, _origin.sender, _origin.nonce);
         // @dev The src sending chain doesnt know the address length on this chain (potentially non-evm)
         // Thus everything is bytes32() encoded in flight.
         address toAddress = _message.sendTo().bytes32ToAddress();
@@ -405,4 +427,104 @@ abstract contract OFTCoreUpgradeable is
         uint256 _amountLD,
         uint32 _srcEid
     ) internal virtual returns (uint256 amountReceivedLD);
+
+    /**
+     * @dev Set the flag to enforce ordered nonce or not
+     * @param _orderedNonce the flag to enforce ordered nonce or not
+     */
+    function setOrderedNonce(bool _orderedNonce) public onlyOwner {
+        _setOrderedNonce(_orderedNonce);
+    }
+
+    /**
+     * @dev Get the next nonce for the sender
+     * @param _srcEid The eid of the source chain
+     * @param _sender The address of the remote sender (oft or adapter)
+     */
+    function nextNonce(uint32 _srcEid, bytes32 _sender) public view override returns (uint64) {
+        if (orderedNonce) {
+            return maxReceivedNonce[_srcEid][_sender] + 1;
+        } else {
+            return 0;
+        }
+    }
+
+    /**
+     * @dev Clear the inbound nonce to ignore a message
+     * @dev this is a PULL mode versus the PUSH mode of lzReceive
+     * @param _origin the origin of the message
+     *  - srcEid: The source chain endpoint ID.
+     *  - sender: The sender address from the src chain.
+     *  - nonce: The nonce of the LayerZero message.
+     * @param _guid the guid of the message
+     * @param _message the message data
+     */
+    function clearInboundNonce(Origin calldata _origin, bytes32 _guid, bytes calldata _message) public onlyOwner {
+        endpoint.clear(address(this), _origin, _guid, _message);
+    }
+
+    /**
+     * @dev Skip a nonce which is not verified by lz yet, that is:
+     *      inboundPayloadHash[_receiver][_srcEid][_sender][_nonce] == EMPTY_PAYLOAD_HASH &&
+     *      inboundPayload[_receiver][_srcEid][_sender][_nonce-1] != EMPTY_PAYLOAD
+     *      ==> lazyInboundNonce[_receiver][_srcEid][_sender] == _nonce
+     * @param _srcEid the eid of the source chain
+     * @param _sender the address of the remote sender (oft or adapter)
+     * @param _nonce the nonce of the message to skip
+     */
+    function skipInboundNonce(uint32 _srcEid, bytes32 _sender, uint64 _nonce) public onlyOwner {
+        endpoint.skip(address(this), _srcEid, _sender, _nonce);
+    }
+
+    /**
+     * @dev Nilify the inbound nonce to mark a message as verified, but disallows execution until it is re-verified.
+     * @param _srcEid The eid of the source chain
+     * @param _sender The address of the remote sender (oft or adapter)
+     * @param _nonce The nonce of the message to burn
+     * @param _payloadHash The hash of the message to burn
+     */
+    function nilifyInboundNonce(uint32 _srcEid, bytes32 _sender, uint64 _nonce, bytes32 _payloadHash) public onlyOwner {
+        endpoint.nilify(address(this), _srcEid, _sender, _nonce, _payloadHash);
+    }
+
+    /**
+     * @dev Burn the inbound nonce to mark a message as unexecutable and un-verifiable. The nonce can never be re-verified or executed.
+     * @param _srcEid The eid of the source chain
+     * @param _sender The address of the remote sender (oft or adapter)
+     * @param _nonce The nonce of the message to burn
+     * @param _payloadHash The hash of the message to burn
+     */
+    function burnInboundNonce(uint32 _srcEid, bytes32 _sender, uint64 _nonce, bytes32 _payloadHash) public onlyOwner {
+        endpoint.burn(address(this), _srcEid, _sender, _nonce, _payloadHash);
+    }
+
+    /**
+     * @dev Pull the max received nonce from the endpoint
+     * @param _srcEid The eid of the source chain
+     * @param _sender The address of the remote sender (oft or adapter)
+     */
+    function pullMaxReceivedNonce(uint32 _srcEid, bytes32 _sender) public onlyOwner {
+        maxReceivedNonce[_srcEid][_sender] = endpoint.lazyInboundNonce(address(this), _srcEid, _sender);
+    }
+
+    /**
+     * @dev Check and accept the nonce of the inbound message
+     * @param _srcEid The eid of the source chain
+     * @param _sender The address of the remote sender (oft or adapter)
+     * @param _nonce The nonce of the message
+     */
+    function _acceptNonce(uint32 _srcEid, bytes32 _sender, uint64 _nonce) internal {
+        uint64 curNonce = maxReceivedNonce[_srcEid][_sender];
+        if (orderedNonce) {
+            require(_nonce == curNonce + 1, "OApp: invalid nonce");
+        }
+
+        if (_nonce > curNonce) {
+            maxReceivedNonce[_srcEid][_sender] = _nonce;
+        }
+    }
+
+    function _setOrderedNonce(bool _orderedNonce) internal {
+        orderedNonce = _orderedNonce;
+    }
 }

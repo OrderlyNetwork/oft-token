@@ -15,6 +15,12 @@ abstract contract OAppOptionsType3Upgradeable is IOAppOptionsType3, OwnableUpgra
     // @dev The "msgType" should be defined in the child contract.
     mapping(uint32 eid => mapping(uint16 msgType => bytes enforcedOption)) public enforcedOptions;
 
+    /* ============================ Storage Slots + __gap == 50 ============================ */
+    // @dev The gap to prevent storage collisions
+    // @dev https://docs.openzeppelin.com/upgrades-plugins/1.x/writing-upgradeable#storage-gaps
+    // @dev New storage should be added below this line, and no exceeding 50 slots
+    uint256[50] private __gap;
+
     /**
      * @dev Sets the enforced options for specific endpoint and message type combinations.
      * @param _enforcedOptions An array of EnforcedOptionParam structures specifying enforced options.
