@@ -20,7 +20,7 @@ abstract contract OrderRelayerBase is IOrderRelayer, OrderBaseUpgradeable, Order
      * @param _allowed The status for a given address if it is allowed to send composeMsg to this relayer contract
      */
     function setLocalComposeMsgSender(address _addr, bool _allowed) public onlyOwner {
-        localComposeMsgSender[_addr] = _allowed;
+        localMsgSender[_addr] = _allowed;
     }
 
     /**
@@ -30,7 +30,7 @@ abstract contract OrderRelayerBase is IOrderRelayer, OrderBaseUpgradeable, Order
      * @param _allowed The status for a given address if it is allowed to send composeMsg to this relayer contract from the remote network
      */
     function setRemoteComposeMsgSender(uint32 _eid, address _addr, bool _allowed) public onlyOwner {
-        remoteComposeMsgSender[_eid][_addr] = _allowed;
+        remoteMsgSender[_eid][_addr] = _allowed;
     }
 
     /**
@@ -72,11 +72,11 @@ abstract contract OrderRelayerBase is IOrderRelayer, OrderBaseUpgradeable, Order
 
     /* ========== Internal ========== */
     function _isLocalComposeMsgSender(address _addr) internal view returns (bool) {
-        return localComposeMsgSender[_addr];
+        return localMsgSender[_addr];
     }
 
-    function _isRemoteComposeMsgSender(uint32 _eid, address _addr) internal view returns (bool) {
-        return remoteComposeMsgSender[_eid][_addr];
+    function _isRemoteMsgSender(uint32 _eid, address _addr) internal view returns (bool) {
+        return remoteMsgSender[_eid][_addr];
     }
 
     function _getEid(uint256 _chainId) internal view returns (uint32) {
@@ -107,19 +107,25 @@ abstract contract OrderRelayerBase is IOrderRelayer, OrderBaseUpgradeable, Order
     /**
      *
      * @param _endpoint The the caller of function lzCompose() on the relayer contract, it should be the endpoint
-     * @param _localSender The composeMsg sender on local network, it should be the oft/adapter contract
+     * @param _oft The composeMsg sender on local network, it should be the oft/adapter contract
      * @param _eid The eid to identify the network from where the composeMsg sent
      * @param _remoteSender The address to identiy the sender on the remote network
      */
     function _authorizeComposeMsgSender(
         address _endpoint,
-        address _localSender,
+        address _oft,
         uint32 _eid,
         address _remoteSender
     ) internal view returns (bool) {
         if (endpoint != _endpoint) revert InvalidEnpoint(endpoint, _endpoint);
-        if (!_isLocalComposeMsgSender(_localSender)) revert NotLocalComposeMsgSender(_localSender);
-        if (!_isRemoteComposeMsgSender(_eid, _remoteSender)) revert NotRemoteComposeMsgSender(_eid, _remoteSender);
+        if (oft != _oft) revert InvalidOft(oft, _oft);
+        if (!_isRemoteMsgSender(_eid, _remoteSender)) revert NotRemoteMsgSender(_eid, _remoteSender);
+        return true;
+    }
+
+    function _authorizeOCCMsgSender(address _oft, uint32 _eid, address _remoteSender) internal view returns (bool) {
+        if (oft != _oft) revert InvalidOft(oft, _oft);
+        if (!_isRemoteMsgSender(_eid, _remoteSender)) revert NotRemoteMsgSender(_eid, _remoteSender);
         return true;
     }
 

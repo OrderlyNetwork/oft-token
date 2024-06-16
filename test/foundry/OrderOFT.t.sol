@@ -168,7 +168,7 @@ contract OrderOFTTest is TestHelperOz5 {
                 _checkApproval(i);
                 SendParam memory sendParam = SendParam(
                     eids[j],
-                    addressToBytes32(address(zero_receiver)),
+                    addressToBytes32(zero_receiver),
                     tokenToSend,
                     tokenToSend,
                     options,
@@ -176,7 +176,7 @@ contract OrderOFTTest is TestHelperOz5 {
                     ""
                 );
                 MessagingFee memory fee = oftInstances[i].quoteSend(sendParam, false);
-                vm.expectRevert("OFT: Transfer to ZeroAddress");
+                vm.expectRevert("OFT: ZeroAddress");
                 oftInstances[i].send{ value: fee.nativeFee }(sendParam, fee, payable(address(this)));
             }
         }
@@ -684,7 +684,7 @@ contract OrderOFTTest is TestHelperOz5 {
         }
     }
 
-    function test_stake_msg() public {
+    function test_send_msg() public {
         // Set the contracts to test cross-chain flow
         _setCC();
 
@@ -725,6 +725,57 @@ contract OrderOFTTest is TestHelperOz5 {
                 address(orderBoxRelayer),
                 stakeMsg
             );
+        }
+        assertEq(
+            IERC20(oftInstances[MAX_OFTS - 1].token()).balanceOf(address(orderBox)),
+            tokenToStake * (MAX_OFTS - 1)
+        );
+    }
+
+    function test_relay_msg() public {
+        // Set the contracts to test cross-chain flow
+        _setCC();
+
+        uint256 tokenToStake = 1000 ether;
+        uint256 stakeFee;
+        MessagingReceipt memory msgReceipt;
+        OFTReceipt memory oftReceipt;
+        bytes memory options;
+        bytes memory stakeMsg;
+        for (uint8 i = 0; i < MAX_OFTS - 1; i++) {
+            IERC20(oftInstances[i].token()).approve(address(orderSafeInstances[i]), tokenToStake);
+            stakeFee = orderSafeInstances[i].getRelayStakeFee(address(this), tokenToStake);
+            vm.recordLogs();
+            (msgReceipt, oftReceipt) = orderSafeInstances[i].relayStakeOrder{ value: stakeFee }(
+                address(this),
+                tokenToStake
+            ); // (msgReceipt, oftReceipt) =
+            Vm.Log[] memory logs = vm.getRecordedLogs();
+            for (uint8 j = 0; j < logs.length; j++) {
+                if (logs[j].topics[0] == keccak256("PacketSent(bytes,bytes,address)")) {
+                    (, options, ) = abi.decode(logs[j].data, (bytes, bytes, address));
+                    continue;
+                }
+                if (logs[j].topics[0] == keccak256("SendStakeMsg(uint32,bytes32,bytes)")) {
+                    (, , bytes memory composeMsg) = abi.decode(logs[j].data, (uint32, bytes32, bytes));
+                    stakeMsg = OFTComposeMsgCodec.encode(
+                        msgReceipt.nonce,
+                        eids[i],
+                        oftReceipt.amountReceivedLD,
+                        abi.encodePacked(addressToBytes32(address(orderSafeRelayerInstances[i])), composeMsg)
+                    );
+                    continue;
+                }
+            }
+            verifyPackets(eids[MAX_OFTS - 1], addressToBytes32(ofts[MAX_OFTS - 1]));
+            // this.lzCompose(
+            //     eids[MAX_OFTS - 1],
+            //     ofts[MAX_OFTS - 1],
+            //     options,
+            //     msgReceipt.guid,
+            //     address(orderBoxRelayer),
+            //     stakeMsg
+            // );
         }
         assertEq(
             IERC20(oftInstances[MAX_OFTS - 1].token()).balanceOf(address(orderBox)),
@@ -856,6 +907,8 @@ contract OrderOFTTest is TestHelperOz5 {
         orderBoxRelayer.setOptionsAirdrop(1, composeGas, value); // lz compose
         orderBoxRelayer.setOrderBox(address(orderBox));
 
+        oftInstances[MAX_OFTS - 1].setOCCManager(address(orderBoxRelayer));
+
         orderBox.setOft(ofts[MAX_OFTS - 1]);
         orderBox.setOrderRelayer(address(orderBoxRelayer));
 
@@ -885,6 +938,7 @@ contract OrderOFTTest is TestHelperOz5 {
 
             orderSafeInstances[i].setOft(ofts[i]);
             orderSafeInstances[i].setOrderRelayer(address(orderSafeRelayerInstances[i]));
+            oftInstances[i].setOCCManager(address(orderSafeRelayerInstances[i]));
 
             orderBoxRelayer.setRemoteComposeMsgSender(eids[i], address(orderSafeRelayerInstances[i]), true);
             orderBoxRelayer.setEid(chainIds[i], eids[i]);
