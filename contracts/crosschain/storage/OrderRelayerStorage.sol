@@ -11,9 +11,9 @@ contract OrderRelayerStorage {
     // mapping of chainId to chainId
     mapping(uint32 => uint256) public chainIdMap;
     // record of trusted local composeMsgSender
-    mapping(address => bool) public localComposeMsgSender;
-    // record of trusted remote composeMsgSender: eid => address => bool
-    mapping(uint32 => mapping(address => bool)) public remoteComposeMsgSender;
+    mapping(address => bool) public localMsgSender;
+    // record of trusted remote MsgSender: eid => address => bool
+    mapping(uint32 => mapping(address => bool)) public remoteMsgSender;
     // mapping option => eid => airdropped gas/value limit
     mapping(uint8 => OptionsAirdrop) public optionsAirdrop;
 
