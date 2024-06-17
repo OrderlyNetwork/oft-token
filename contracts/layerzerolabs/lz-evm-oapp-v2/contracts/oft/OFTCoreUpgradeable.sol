@@ -58,9 +58,9 @@ abstract contract OFTCoreUpgradeable is
 
     // @dev Reord nonce for inbound messages: srcEid => sender => nonce
     mapping(uint32 => mapping(bytes32 => uint64)) public maxReceivedNonce;
+    // @dev Flag to enforce ordered nonce for each channel: srcEid => bool
+    mapping(uint32 => bool) public orderedNonce;
     address public occManager;
-    // @dev Flag to enforce ordered nonce, if true, the nonce must be strictly increasing by 1
-    bool public orderedNonce;
 
     uint256[47] private __gap;
 
@@ -607,7 +607,7 @@ abstract contract OFTCoreUpgradeable is
     }
 
     function _receiveToken(address _to, uint256 _amountLD, uint32 _srcEid) internal returns (uint256 amountReceivedLD) {
-        // @dev Only mint/unlock token if its amount > 0
+        // @dev Only mint/unlock token if its amount > 0 and receiver is not zero address
         if (_checkReceive(_to, _amountLD)) {
             amountReceivedLD = _credit(_to, _amountLD, _srcEid);
         }
@@ -628,13 +628,6 @@ abstract contract OFTCoreUpgradeable is
     function setOCCManager(address _addr) public onlyOwner zeroAddressCheck(_addr) {
         occManager = _addr;
     }
-    /**
-     * @dev Set the flag to enforce ordered nonce or not
-     * @param _orderedNonce the flag to enforce ordered nonce or not
-     */
-    function setOrderedNonce(bool _orderedNonce) public onlyOwner {
-        _setOrderedNonce(_orderedNonce);
-    }
 
     /**
      * @dev Get the next nonce for the sender
@@ -642,7 +635,7 @@ abstract contract OFTCoreUpgradeable is
      * @param _sender The address of the remote sender (oft or adapter)
      */
     function nextNonce(uint32 _srcEid, bytes32 _sender) public view override returns (uint64) {
-        if (orderedNonce) {
+        if (orderedNonce[_srcEid]) {
             return maxReceivedNonce[_srcEid][_sender] + 1;
         } else {
             return 0;
@@ -708,6 +701,20 @@ abstract contract OFTCoreUpgradeable is
     }
 
     /**
+     * @dev Set the flag to enforce ordered nonce or not
+     * @param _orderedNonce the flag to enforce ordered nonce or not
+     */
+    function setOrderedNonce(uint32 _srcEid, bool _orderedNonce) public onlyOwner {
+        orderedNonce[_srcEid] = _orderedNonce;
+    }
+
+    function setBatchOrderedNonce(uint32[] calldata _srcEids, bool[] calldata _orderedNonces) public onlyOwner {
+        require(_srcEids.length == _orderedNonces.length, "OFT: Invalid input length");
+        for (uint256 i = 0; i < _srcEids.length; i++) {
+            orderedNonce[_srcEids[i]] = _orderedNonces[i];
+        }
+    }
+    /**
      * @dev Check and accept the nonce of the inbound message
      * @param _srcEid The eid of the source chain
      * @param _sender The address of the remote sender (oft or adapter)
@@ -715,16 +722,12 @@ abstract contract OFTCoreUpgradeable is
      */
     function _acceptNonce(uint32 _srcEid, bytes32 _sender, uint64 _nonce) internal {
         uint64 curNonce = maxReceivedNonce[_srcEid][_sender];
-        if (orderedNonce) {
+        if (orderedNonce[_srcEid]) {
             require(_nonce == curNonce + 1, "OApp: invalid nonce");
         }
 
         if (_nonce > curNonce) {
             maxReceivedNonce[_srcEid][_sender] = _nonce;
         }
-    }
-
-    function _setOrderedNonce(bool _orderedNonce) internal {
-        orderedNonce = _orderedNonce;
     }
 }

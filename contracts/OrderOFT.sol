@@ -17,6 +17,5 @@ contract OrderOFT is OFTUpgradeable {
      */
     function initialize(address _lzEndpoint, address _delegate) external initializer {
         __initializeOFT("Orderly Network", "ORDER", _lzEndpoint, _delegate);
-        _setOrderedNonce(true);
     }
 }
