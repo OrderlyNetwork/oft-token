@@ -115,9 +115,10 @@ abstract contract OFTCoreUpgradeable is
      * Defaults to 6 decimal places to provide up to 18,446,744,073,709.551615 units (max uint64).
      * For tokens exceeding this totalSupply(), they will need to override the sharedDecimals function with something smaller.
      * ie. 4 sharedDecimals would be 1,844,674,407,370,955.1615
+     * @notice For ORDER tokens, the sharedDecimals should be set to 18 (decimalConversionRate = 1), no precision lost during cross-chain transfer.
      */
     function sharedDecimals() public view virtual returns (uint8) {
-        return 6;
+        return 18;
     }
 
     /**
@@ -148,7 +149,7 @@ abstract contract OFTCoreUpgradeable is
         returns (OFTLimit memory oftLimit, OFTFeeDetail[] memory oftFeeDetails, OFTReceipt memory oftReceipt)
     {
         uint256 minAmountLD = 0; // Unused in the default implementation.
-        uint256 maxAmountLD = type(uint64).max; // Unused in the default implementation.
+        uint256 maxAmountLD = type(uint256).max; // Unused in the default implementation.
         oftLimit = OFTLimit(minAmountLD, maxAmountLD);
 
         // Unused in the default implementation; reserved for future complex fee details.
@@ -518,7 +519,7 @@ abstract contract OFTCoreUpgradeable is
      * @param _amountSD The amount in shared decimals.
      * @return amountLD The amount in local decimals.
      */
-    function _toLD(uint64 _amountSD) internal view virtual returns (uint256 amountLD) {
+    function _toLD(uint256 _amountSD) internal view virtual returns (uint256 amountLD) {
         return _amountSD * decimalConversionRate;
     }
 
@@ -527,8 +528,8 @@ abstract contract OFTCoreUpgradeable is
      * @param _amountLD The amount in local decimals.
      * @return amountSD The amount in shared decimals.
      */
-    function _toSD(uint256 _amountLD) internal view virtual returns (uint64 amountSD) {
-        return uint64(_amountLD / decimalConversionRate);
+    function _toSD(uint256 _amountLD) internal view virtual returns (uint256 amountSD) {
+        return _amountLD / decimalConversionRate;
     }
 
     /**

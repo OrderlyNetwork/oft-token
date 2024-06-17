@@ -62,7 +62,7 @@ contract OrderOFTTest is TestHelperOz5 {
 
     OrderToken token;
 
-    uint8 public constant MSG_COUNT = 20;
+    uint8 public constant MSG_COUNT = 21;
     uint8 public constant MAX_OFTS = 10;
     // eid = 1: endpoint id on l1 side: ethereum, the first one always the ethereum chain
     // eid = 2: endpoint id on vault side: arb
@@ -178,6 +178,24 @@ contract OrderOFTTest is TestHelperOz5 {
                 MessagingFee memory fee = oftInstances[i].quoteSend(sendParam, false);
                 vm.expectRevert("OFT: ZeroAddress");
                 oftInstances[i].send{ value: fee.nativeFee }(sendParam, fee, payable(address(this)));
+            }
+        }
+    }
+
+    function test_dust_send() public {
+        uint256 dust = 1;
+        uint256 oldBalance;
+        uint256 newBalance;
+        for (uint8 i = 0; i < MAX_OFTS; i++) {
+            for (uint8 j = 0; j < MAX_OFTS; j++) {
+                if (i == j) continue;
+
+                _checkApproval(i);
+                _send(i, j, dust);
+                oldBalance = IERC20(oftInstances[j].token()).balanceOf(address(this));
+                verifyPackets(eids[j], addressToBytes32(ofts[j]));
+                newBalance = IERC20(oftInstances[j].token()).balanceOf(address(this));
+                assertEq(newBalance, oldBalance + dust);
             }
         }
     }
@@ -435,7 +453,7 @@ contract OrderOFTTest is TestHelperOz5 {
                     nonces[seq] = msgReceipt.nonce;
                 }
 
-                // commit packets: 0 - (MSG_COUNT - 1)
+                // commit packets: 0 - (MSG_COUNT / 2 - 1)
                 commitPackets(eids[j], addressToBytes32(ofts[j]), MSG_COUNT / 2);
 
                 oftInstances[j].setOrderedNonce(false);
@@ -508,7 +526,7 @@ contract OrderOFTTest is TestHelperOz5 {
                 );
 
                 // execute packets: (MSG_COUNT / 2) - (MSG_COUNT - 1)
-                commitPackets(eids[j], addressToBytes32(ofts[j]), MSG_COUNT / 2);
+                commitPackets(eids[j], addressToBytes32(ofts[j]), MSG_COUNT - MSG_COUNT / 2);
                 payloadHash = remoteEndpoint.inboundPayloadHash(
                     ofts[j],
                     eids[i],

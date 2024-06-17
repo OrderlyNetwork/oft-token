@@ -4,15 +4,19 @@ pragma solidity ^0.8.20;
 
 library OCCMsgCodec {
     // Offset constants for encoding and decoding OCC or OFT messages
-    // Layout: 2 + 32 + 8 + composeMsg/occMsg
-    // +---+-----------+-------+---------------+
-    // |   |           |       |               |
-    // | 2 |    32     |   8   |      msg      |
-    // |   |           |       |               |
-    // +---+-----------+-------+---------------+
+    // Layout: 2 + 32 + 32 + composeMsg/occMsg
+    // +-------+---------------+----------------+-------------------------+
+    // |       |               |                |                         |
+    // |       |               |                |                         |
+    // |       |               |                |                         |
+    // |   2   |       32      |       32       |           msg           |
+    // |       |               |                |                         |
+    // |       |               |                |                         |
+    // |       |               |                |                         |
+    // +-------+---------------+----------------+-------------------------+
     uint8 private constant MSG_TYPE_OFFSET = 2;
     uint8 private constant SEND_TO_OFFSET = 34;
-    uint8 private constant SEND_AMOUNT_SD_OFFSET = 42;
+    uint8 private constant SEND_AMOUNT_SD_OFFSET = 66;
 
     enum MSG_TYPE {
         OFT_MSG,
@@ -29,7 +33,7 @@ library OCCMsgCodec {
      */
     function encodeOFTMsg(
         bytes32 _sendTo,
-        uint64 _amountShared,
+        uint256 _amountShared,
         bytes memory _composeMsg
     ) internal view returns (bytes memory _msg, bool hasCompose) {
         hasCompose = _composeMsg.length > 0;
@@ -54,7 +58,7 @@ library OCCMsgCodec {
      */
     function encodeOCCMsg(
         bytes32 _sendTo,
-        uint64 _amountShared,
+        uint256 _amountShared,
         bytes memory _occMsg
     ) internal view returns (bytes memory _msg) {
         // @dev Remote chains will want to know the caller ie. msg.sender on the src.
@@ -100,8 +104,8 @@ library OCCMsgCodec {
      * @param _msg The message.
      * @return The amount in shared decimals.
      */
-    function amountSD(bytes calldata _msg) internal pure returns (uint64) {
-        return uint64(bytes8(_msg[SEND_TO_OFFSET:SEND_AMOUNT_SD_OFFSET]));
+    function amountSD(bytes calldata _msg) internal pure returns (uint256) {
+        return uint256(bytes32(_msg[SEND_TO_OFFSET:SEND_AMOUNT_SD_OFFSET]));
     }
 
     /**
