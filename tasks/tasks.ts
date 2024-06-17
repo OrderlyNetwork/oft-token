@@ -1,6 +1,6 @@
 
 import { task, types } from "hardhat/config"
-import { EnvType, OFTContractType, TEST_NETWORKS, MAIN_NETWORKS, tokenContractName, oftContractName, getLzConfig, checkNetwork, OPTIONS } from "./const"
+import { EnvType, OFTContractType, TEST_NETWORKS, MAIN_NETWORKS, tokenContractName, oftContractName, getLzConfig, checkNetwork, OPTIONS, TGE_CONTRACTS } from "./const"
 import { loadContractAddress, saveContractAddress,  setPeer, isPeered } from "./utils"
 import { Options } from '@layerzerolabs/lz-v2-utilities'
 import { DeployResult } from "hardhat-deploy/dist/types"
@@ -348,6 +348,10 @@ task("order:oft:set", "Connect OFT contracs on different networks: OrderOFT, Ord
             const [ signer ] = await hre.ethers.getSigners()
             let nonce = await signer.getTransactionCount()
             let enforcedOptions = []
+            let eids1 = []
+            let peers = []
+            let eids2 = []
+            let orderedNonces = []
             const localContractName = oftContractName(fromNetwork)
             const localContractAddress = await loadContractAddress(taskArgs.env, fromNetwork, localContractName) as string
             const localContract = await hre.ethers.getContractAt(localContractName, localContractAddress, signer)
@@ -358,7 +362,7 @@ task("order:oft:set", "Connect OFT contracs on different networks: OrderOFT, Ord
                     
                     remoteContractName = oftContractName(toNetwork)
                     remoteContractAddress = await loadContractAddress(taskArgs.env, toNetwork, remoteContractName) as string
-
+                    
                     
                     const lzConfig = getLzConfig(toNetwork)
                     const paddedPeerAddress = hre.ethers.utils.hexZeroPad(remoteContractAddress, 32)
@@ -366,23 +370,38 @@ task("order:oft:set", "Connect OFT contracs on different networks: OrderOFT, Ord
                     const isPeer = await localContract.isPeer(lzConfig["endpointId"], paddedPeerAddress)
                     
                     if (!isPeer) {
-                        const tx = await localContract.setPeer(lzConfig["endpointId"], paddedPeerAddress, {
-                            nonce: nonce++
-                        })
-                        await tx.wait()
-                        console.log(`Setting peer from ${fromNetwork} to ${toNetwork} with tx hash ${tx.hash}`)
+                        // const txSetPeer = await localContract.setPeer(lzConfig["endpointId"], paddedPeerAddress, {
+                        //     nonce: nonce++
+                        // })
+                        // await txSetPeer.wait()
+                        // console.log(`Setting peer from ${fromNetwork} to ${toNetwork} with tx hash ${txSetPeer.hash}`)
+                        eids1.push(lzConfig["endpointId"])
+                        peers.push(paddedPeerAddress)
                         await setPeer(taskArgs.env, fromNetwork, toNetwork, true)
                     } else {
                         console.log(`Already peered from ${fromNetwork} to ${toNetwork}`)
+                    }
+
+                    const orderedNonce = await localContract.orderedNonce(lzConfig["endpointId"])
+                    if (!orderedNonce) {
+                        // const txSetOrderedNonce = await localContract.setOrderedNonce(lzConfig["endpointId"], true, {
+                        //     nonce: nonce++
+                        // })
+                        // await txSetOrderedNonce.wait()
+                        // console.log(`Ordered nonce enabled from ${toNetwork} with tx hash ${txSetOrderedNonce.hash}`)
+                        eids2.push(lzConfig["endpointId"])
+                        orderedNonces.push(true)
+                    } else {
+                        console.log(`Ordered nonce from ${toNetwork} to ${fromNetwork} already enabled`)
                     }
                     const types = [1,2]
                     for (const type of types) {
                         const typeOptionOnContract = await localContract.enforcedOptions(lzConfig["endpointId"], type)
                         let enforcedOrderedOption = ""
                         if ( type === 1) {
-                            enforcedOrderedOption = Options.newOptions().addExecutorLzReceiveOption(OPTIONS[1].gas, OPTIONS[1].value).addExecutorOrderedExecutionOption().toHex()
+                            enforcedOrderedOption = Options.newOptions().addExecutorLzReceiveOption(OPTIONS[1].gas, OPTIONS[1].value).toHex() // .addExecutorOrderedExecutionOption()
                         } else if (type === 2) {
-                            enforcedOrderedOption = Options.newOptions().addExecutorLzReceiveOption(OPTIONS[1].gas, OPTIONS[1].value).addExecutorComposeOption(0, OPTIONS[2].gas, OPTIONS[2].value).addExecutorOrderedExecutionOption().toHex()
+                            enforcedOrderedOption = Options.newOptions().addExecutorLzReceiveOption(OPTIONS[1].gas, OPTIONS[1].value).addExecutorComposeOption(0, OPTIONS[2].gas, OPTIONS[2].value).toHex() // .addExecutorOrderedExecutionOption()
                         }
                         if (typeOptionOnContract !== enforcedOrderedOption) {
                             const optionsToAdd = {
@@ -395,25 +414,43 @@ task("order:oft:set", "Connect OFT contracs on different networks: OrderOFT, Ord
                     }   
                 }
             }
+            if (eids1.length > 0) {
+                const txSetPeers = await localContract.setPeers(eids1, peers, {nonce: nonce++})
+                await txSetPeers.wait()
+                console.log(`Setting peers for ${fromNetwork} with tx hash ${txSetPeers.hash}`)
+            } else {
+                console.log(`All peers already set for ${fromNetwork}`)
+            }
+
+            if (eids2.length > 0) {
+                const txSetOrderedNonces = await localContract.setBatchOrderedNonce(eids2, orderedNonces, {nonce: nonce++})
+                await txSetOrderedNonces.wait()
+                console.log(`Ordered nonces set for ${fromNetwork} with tx hash ${txSetOrderedNonces.hash}`)
+            } else {
+                console.log(`All ordered nonces already set for ${fromNetwork}`)
+            }
+
             if (enforcedOptions.length > 0) {
-                const txSetEnforcedOptions = await localContract.setEnforcedOptions(enforcedOptions)
+                const txSetEnforcedOptions = await localContract.setEnforcedOptions(enforcedOptions, {nonce: nonce++})
                 await txSetEnforcedOptions.wait()
                 console.log(`Enforced options set with tx hash ${txSetEnforcedOptions.hash}`)
             } else {
                 console.log(`Enforced options already set`)
             
             }
-            const orderedNonce = await localContract.orderedNonce()
-                    if (!orderedNonce) {
-                        const txSetOrderedNonce = await localContract.setOrderedNonce(true, {
-                            nonce: nonce++
-                        })
-                        await txSetOrderedNonce.wait()
-                        console.log(`Ordered nonce set to true with tx hash ${txSetOrderedNonce.hash}`)
-                    } else {
-                        console.log(`Ordered nonce already set`)
-                    
-                    }
+
+            const occManagerAddress = TGE_CONTRACTS[taskArgs.env][fromNetwork].occManager
+            const occManagerOnContract = await localContract.occManager()
+            if (occManagerAddress && (occManagerAddress !== occManagerOnContract)) {
+                const txSetOccManager = await localContract.setOCCManager(occManagerAddress, {
+                    nonce: nonce++
+                })
+                await txSetOccManager.wait()
+                console.log(`Set OCC manager address ${occManagerAddress} on ${localContractName}`)
+            } else {
+                console.log(`OCC manager address not found for ${taskArgs.env} ${fromNetwork}, or already set on ${localContractName}`)
+            }
+
         }
         catch (e) {
             console.log(`Error: ${e}`)
@@ -454,26 +491,22 @@ task("order:oft:distribute", "Distribute tokens to all OFT contracts on differen
                         const estimateGas = await erc20Contract.estimateGas.approve(localContractAddress, tokenAmount, {nonce: nonce})
                         // console.log(`Estimated gas: ${estimateGas}`)
                         const approveTx = await erc20Contract.approve(localContractAddress, tokenAmount, 
-                            {
-                                gasLimit: 3 * Number(estimateGas),
+                            {   
+                                gasPrice: 1000000000,
+                                gasLimit: 10 * Number(estimateGas),
                                 nonce: nonce++
                             })
                         await approveTx.wait()
                         console.log(`Approving ${localContractName} to spend ${taskArgs.amount} on ${erc20ContractName} with tx hash ${approveTx.hash}`)
                     }
                     
-                    // TODO: test with different gasLimit 
-                    const gasLimit = 50000
-                    const msgValue = 0
-                    const option = Options.newOptions().addExecutorLzReceiveOption(gasLimit, msgValue).toHex()
-                    const composeMsg = "0x"
                     const param = {
                         dstEid: getLzConfig(toNetwork)["endpointId"],
                         to: hre.ethers.utils.hexZeroPad(receiver, 32),
                         amountLD: tokenAmount,
                         minAmountLD: tokenAmount,
-                        extraOptions: option,
-                        composeMsg: composeMsg,
+                        extraOptions: "0x",
+                        composeMsg: "0x",
                         oftCmd: "0x"
                     }
                     const payLzToken = false
@@ -481,13 +514,13 @@ task("order:oft:distribute", "Distribute tokens to all OFT contracts on differen
 
                     const estimateGas = await localContract.estimateGas.send(param, fee, signer.address, 
                         {  
+                            gasPrice: 1000000000,
                             value: fee.nativeFee,
                             nonce: nonce
                         })
-                    console.log(`Estimated gas: ${estimateGas}`)
                     const sendTx = await localContract.send(param, fee, signer.address, 
                     {   
-                        gasLimit: 3 * Number(estimateGas),
+                        gasLimit: 10 * Number(estimateGas),
                         value: fee.nativeFee,
                         nonce: nonce++
                     })
@@ -536,6 +569,7 @@ task("order:oft:bridge", "Bridge tokens to a specific address on a specific netw
             
             const deciamls = await erc20Contract.decimals() 
             const tokenAmount = hre.ethers.utils.parseUnits(taskArgs.amount, deciamls)
+         
             let nonce = await signer.getTransactionCount()
 
             if (await localContract.approvalRequired() && (tokenAmount > await erc20Contract.allowance(signer.address, localContractAddress))) {
@@ -544,14 +578,13 @@ task("order:oft:bridge", "Bridge tokens to a specific address on a specific netw
                 console.log(`Approving ${localContractName} to spend ${taskArgs.amount} on ${erc20ContractName} with tx hash ${approveTx.hash}`)
             }
             
-            const composeMsg = "0x"
             const param = {
                 dstEid: getLzConfig(toNetwork)["endpointId"],
                 to: hre.ethers.utils.hexZeroPad(receiver, 32),
                 amountLD: tokenAmount,
                 minAmountLD: tokenAmount,
                 extraOptions: "0x",
-                composeMsg: composeMsg,
+                composeMsg: "0x",
                 oftCmd: "0x"
             }
             const payLzToken = false
@@ -702,7 +735,7 @@ task("lz:receive", "Receive a message on a specific network")
         const receiveAlertLog = logs.find(log => log.topics[0] === receiveAlertTopic)
 
         if (!receiveAlertLog) {
-            throw new Error(`Compose alert log not found`)
+            throw new Error(`Receive alert log not found`)
         }
         const log = endpointV2.interface.parseLog(receiveAlertLog)
         

@@ -122,7 +122,7 @@ contract OrderOFTTest is TestHelperOz5 {
                 if (!oftInstances[j].paused()) oftInstances[j].pause();
                 _checkApproval(i);
                 _send(i, j, tokenToSend);
-                oftInstances[j].setOrderedNonce(false);
+                oftInstances[j].setOrderedNonce(eids[i], false);
                 vm.prank(endpoints[eids[j]]);
                 vm.expectRevert(PausableUpgradeable.EnforcedPause.selector);
                 oftInstances[j].lzReceive(
@@ -252,7 +252,7 @@ contract OrderOFTTest is TestHelperOz5 {
                 }
 
                 // set unordered nonce to enable unordered delivery
-                oftInstances[j].setOrderedNonce(false);
+                oftInstances[j].setOrderedNonce(eids[i], false);
                 // execute packets: (MSG_COUNT / 2 + 1) - (MSG_COUNT - 1)
                 for (uint8 seq = MSG_COUNT - 1; seq >= MSG_COUNT / 2; seq--) {
                     oldBalance = IERC20(oftInstances[j].token()).balanceOf(address(this));
@@ -264,7 +264,7 @@ contract OrderOFTTest is TestHelperOz5 {
                     );
                 }
                 // reset ordered nonce
-                oftInstances[j].setOrderedNonce(true);
+                oftInstances[j].setOrderedNonce(eids[i], true);
             }
         }
     }
@@ -456,7 +456,7 @@ contract OrderOFTTest is TestHelperOz5 {
                 // commit packets: 0 - (MSG_COUNT / 2 - 1)
                 commitPackets(eids[j], addressToBytes32(ofts[j]), MSG_COUNT / 2);
 
-                oftInstances[j].setOrderedNonce(false);
+                oftInstances[j].setOrderedNonce(eids[i], false);
                 // execute packet: MSG_COUNT / 2 - 1
                 executePacket(address(0), guids[MSG_COUNT / 2 - 1]);
                 assertEq(
@@ -590,7 +590,7 @@ contract OrderOFTTest is TestHelperOz5 {
                     remoteEndpoint.EMPTY_PAYLOAD_HASH()
                 );
 
-                oftInstances[j].setOrderedNonce(true);
+                oftInstances[j].setOrderedNonce(eids[i], true);
             }
         }
     }
@@ -648,7 +648,7 @@ contract OrderOFTTest is TestHelperOz5 {
                 );
 
                 // execute packet: (MSG_COUNT - 1)
-                oftInstances[j].setOrderedNonce(false);
+                oftInstances[j].setOrderedNonce(eids[i], false);
                 executePacket(address(0), guids[MSG_COUNT - 1]);
                 assertEq(
                     remoteEndpoint.lazyInboundNonce(ofts[j], eids[i], addressToBytes32(ofts[i])),
@@ -697,7 +697,7 @@ contract OrderOFTTest is TestHelperOz5 {
                     }
                 }
 
-                oftInstances[j].setOrderedNonce(true);
+                oftInstances[j].setOrderedNonce(eids[i], true);
             }
         }
     }
@@ -871,6 +871,8 @@ contract OrderOFTTest is TestHelperOz5 {
                 );
                 enforcedOptions.push(enforcedOptionSend);
                 enforcedOptions.push(enforcedOptionSendAndCall);
+
+                oftInstances[i].setOrderedNonce(eids[j], true);
             }
             oftInstances[i].setEnforcedOptions(enforcedOptions);
         }
@@ -1007,7 +1009,6 @@ contract OrderOFTTest is TestHelperOz5 {
                 assertEq(oftInstances[i].approvalRequired(), false);
                 assertEq(oftInstances[i].balanceOf(address(this)), 0);
             }
-            assertEq(oftInstances[i].orderedNonce(), true);
         }
 
         // check if ofts are fully connected
@@ -1015,6 +1016,7 @@ contract OrderOFTTest is TestHelperOz5 {
             for (uint256 j = 0; j < MAX_OFTS; j++) {
                 if (i == j) continue;
                 assertEq(oftInstances[i].isPeer(eids[j], addressToBytes32(ofts[j])), true);
+                assertEq(oftInstances[i].orderedNonce(eids[j]), true);
             }
         }
 

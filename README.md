@@ -104,6 +104,8 @@ npx hardhat compile
 
 // On Sepolia testnet
 npx hardhat order:deploy --env dev --network sepolia --contract OrderToken
+npx hardhat order:deploy --env qa --network sepolia --contract OrderToken
+npx hardhat order:deploy --env staging --network sepolia --contract OrderToken
 // On Ethereum mainnet
 npx hardhat order:deploy --env mainnet --network ethereum --contract OrderToken
 ```
@@ -116,6 +118,8 @@ npx hardhat compile
 
 // On Sepolia testnet
 npx hardhat order:deploy --env dev --network sepolia --contract OrderAdapter
+npx hardhat order:deploy --env qa --network sepolia --contract OrderAdapter
+npx hardhat order:deploy --env staging --network sepolia --contract OrderAdapter
 // On Ethereum mainnet
 npx hardhat order:deploy --env mainnet --network ethereum --contract OrderAdapter
 ```
@@ -133,6 +137,18 @@ npx hardhat order:deploy --env dev --network amoy --contract OrderOFT
 npx hardhat order:deploy --env dev --network basesepolia --contract OrderOFT
 npx hardhat order:deploy --env dev --network orderlysepolia  --contract OrderOFT
 
+npx hardhat order:deploy --env qa --network arbitrumsepolia --contract OrderOFT
+npx hardhat order:deploy --env qa --network opsepolia --contract OrderOFT
+npx hardhat order:deploy --env qa --network amoy --contract OrderOFT
+npx hardhat order:deploy --env qa --network basesepolia --contract OrderOFT
+npx hardhat order:deploy --env qa --network orderlysepolia  --contract OrderOFT
+
+npx hardhat order:deploy --env staging --network arbitrumsepolia --contract OrderOFT
+npx hardhat order:deploy --env staging --network opsepolia --contract OrderOFT
+npx hardhat order:deploy --env staging --network amoy --contract OrderOFT
+npx hardhat order:deploy --env staging --network basesepolia --contract OrderOFT
+npx hardhat order:deploy --env staging --network orderlysepolia  --contract OrderOFT
+
 // On mainnet
 npx hardhat order:deploy --env mainnet --network arbitrum --contract OrderOFT
 npx hardhat order:deploy --env mainnet --network optimism --contract OrderOFT
@@ -146,6 +162,7 @@ npx hardhat order:deploy --env mainnet --network orderly --contract OrderOFT
 To upgradee the contract, we can use the `order:upgrade` task to upgrade the contract on the specified network.
 
 ```
+npx hardhat compile
 // npx hardhat order:upgrade --env envName --network networkName --contract contractName
 // On testnet
 npx hardhat order:upgrade --env dev --network sepolia --contract OrderAdapter
@@ -154,6 +171,20 @@ npx hardhat order:upgrade --env dev --network opsepolia --contract OrderOFT
 npx hardhat order:upgrade --env dev --network amoy --contract OrderOFT
 npx hardhat order:upgrade --env dev --network basesepolia --contract OrderOFT
 npx hardhat order:upgrade --env dev --network orderlysepolia --contract OrderOFT
+
+npx hardhat order:upgrade --env qa --network sepolia --contract OrderAdapter
+npx hardhat order:upgrade --env qa --network arbitrumsepolia --contract OrderOFT
+npx hardhat order:upgrade --env qa --network opsepolia --contract OrderOFT
+npx hardhat order:upgrade --env qa --network amoy --contract OrderOFT
+npx hardhat order:upgrade --env qa --network basesepolia --contract OrderOFT
+npx hardhat order:upgrade --env qa --network orderlysepolia --contract OrderOFT
+
+npx hardhat order:upgrade --env staging --network sepolia --contract OrderAdapter
+npx hardhat order:upgrade --env staging --network arbitrumsepolia --contract OrderOFT
+npx hardhat order:upgrade --env staging --network opsepolia --contract OrderOFT
+npx hardhat order:upgrade --env staging --network amoy --contract OrderOFT
+npx hardhat order:upgrade --env staging --network basesepolia --contract OrderOFT
+npx hardhat order:upgrade --env staging --network orderlysepolia --contract OrderOFT
 
 // On mainnet
 npx hardhat order:upgrade --env mainnet --network ethereum --contract OrderAdapter
@@ -218,6 +249,27 @@ npx hardhat order:oft:set --env dev --network opsepolia
 npx hardhat order:oft:set --env dev --network amoy
 npx hardhat order:oft:set --env dev --network basesepolia
 npx hardhat order:oft:set --env dev --network orderlysepolia
+
+npx hardhat order:oft:set --env qa --network sepolia
+npx hardhat order:oft:set --env qa --network arbitrumsepolia
+npx hardhat order:oft:set --env qa --network opsepolia
+npx hardhat order:oft:set --env qa --network amoy
+npx hardhat order:oft:set --env qa --network basesepolia
+npx hardhat order:oft:set --env qa --network orderlysepolia
+
+npx hardhat order:oft:set --env staging --network sepolia
+npx hardhat order:oft:set --env staging --network arbitrumsepolia
+npx hardhat order:oft:set --env staging --network opsepolia
+npx hardhat order:oft:set --env staging --network amoy
+npx hardhat order:oft:set --env staging --network basesepolia
+npx hardhat order:oft:set --env staging --network orderlysepolia
+
+npx hardhat order:oft:set --env mainnet --network ethereum
+npx hardhat order:oft:set --env mainnet --network arbitrum
+npx hardhat order:oft:set --env mainnet --network optimism
+npx hardhat order:oft:set --env mainnet --network polygon
+npx hardhat order:oft:set --env mainnet --network base
+npx hardhat order:oft:set --env mainnet --network orderly
 ```
 
 The task `order:oft:set` will try to connect the OFT(or Adapter) contract on the network specified in the `--network` parameter to the OFT contracts on other networks (Supported networks are defined by the `TEST_NETWORKS` or `MAIN_NETWORKS` in `tasks/const.ts`). The connection status will be recorded in the `config/oftPeers.json` file.
@@ -254,6 +306,24 @@ npx hardhat order:oft:distribute --env dev --network opsepolia --receiver 0xdd32
 npx hardhat order:oft:distribute --env dev --network amoy --receiver 0xdd3287043493e0a08d2b348397554096728b459c --amount 3000
 npx hardhat order:oft:distribute --env dev --network basesepolia --receiver 0xdd3287043493e0a08d2b348397554096728b459c --amount 4000
 npx hardhat order:oft:distribute --env dev --network orderlysepolia --receiver 0xdd3287043493e0a08d2b348397554096728b459c --amount 5000
+
+npx hardhat order:oft:distribute --env qa --network sepolia --receiver 0xdd3287043493e0a08d2b348397554096728b459c --amount 1000000
+npx hardhat order:oft:distribute --env qa --network arbitrumsepolia --receiver 0xdd3287043493e0a08d2b348397554096728b459c --amount 1000
+npx hardhat order:oft:distribute --env qa --network opsepolia --receiver 0xdd3287043493e0a08d2b348397554096728b459c --amount 2000
+npx hardhat order:oft:distribute --env qa --network amoy --receiver 0xdd3287043493e0a08d2b348397554096728b459c --amount 3000
+npx hardhat order:oft:distribute --env qa --network basesepolia --receiver 0xdd3287043493e0a08d2b348397554096728b459c --amount 4000
+npx hardhat order:oft:distribute --env qa --network orderlysepolia --receiver 0xdd3287043493e0a08d2b348397554096728b459c --amount 5000
+
+npx hardhat order:oft:distribute --env staging --network sepolia --receiver 0xdd3287043493e0a08d2b348397554096728b459c --amount 1000000
+npx hardhat order:oft:distribute --env staging --network arbitrumsepolia --receiver 0xdd3287043493e0a08d2b348397554096728b459c --amount 1000
+npx hardhat order:oft:distribute --env staging --network opsepolia --receiver 0xdd3287043493e0a08d2b348397554096728b459c --amount 2000
+npx hardhat order:oft:distribute --env staging --network amoy --receiver 0xdd3287043493e0a08d2b348397554096728b459c --amount 3000
+npx hardhat order:oft:distribute --env staging --network basesepolia --receiver 0xdd3287043493e0a08d2b348397554096728b459c --amount 4000
+npx hardhat order:oft:distribute --env staging --network orderlysepolia --receiver 0xdd3287043493e0a08d2b348397554096728b459c --amount 5000
+
+
+
+
 ```
 
 To test the token transfer across chains, we can use `order:oft:bridge` task to send the token from one network to another network. The task is defined as follows:
@@ -365,12 +435,12 @@ npx hardhat order:deploy --env dev --network fuji --contract OrderOFT
 npx hardhat order:oft:set --env dev --network fuji
 
 // Set the peer connection ot the OFT contract on Fuji on other supported networks
-npx hardhat order:oft:set --env --network sepolia
-npx hardhat order:oft:set --env --network arbitrumsepolia
-npx hardhat order:oft:set --env --network opsepolia
-npx hardhat order:oft:set --env --network amoy
-npx hardhat order:oft:set --env --network basesepolia
-npx hardhat order:oft:set --env --network orderlysepolia
+npx hardhat order:oft:set --env dev --network sepolia
+npx hardhat order:oft:set --env dev --network arbitrumsepolia
+npx hardhat order:oft:set --env dev --network opsepolia
+npx hardhat order:oft:set --env dev --network amoy
+npx hardhat order:oft:set --env dev --network basesepolia
+npx hardhat order:oft:set --env dev --network orderlysepolia
 ```
 
 ## Cross-Chain Msg with Token Transfer
@@ -442,9 +512,21 @@ npx hardhat compile
 npx hardhat order:deploy --env dev --network arbitrumsepolia --contract OrderSafeRelayer
 npx hardhat order:deploy --env dev --network arbitrumsepolia --contract OrderSafe
 
+npx hardhat order:deploy --env qa --network arbitrumsepolia --contract OrderSafeRelayer
+npx hardhat order:deploy --env qa --network arbitrumsepolia --contract OrderSafe
+
+npx hardhat order:deploy --env staging --network arbitrumsepolia --contract OrderSafeRelayer
+npx hardhat order:deploy --env staging --network arbitrumsepolia --contract OrderSafe
+
 // On Ledger side
 npx hardhat order:deploy --env dev --network orderlysepolia --contract OrderBoxRelayer
 npx hardhat order:deploy --env dev --network orderlysepolia --contract OrderBox
+
+npx hardhat order:deploy --env qa --network orderlysepolia --contract OrderBoxRelayer
+npx hardhat order:deploy --env qa --network orderlysepolia --contract OrderBox
+
+npx hardhat order:deploy --env staging --network orderlysepolia --contract OrderBoxRelayer
+npx hardhat order:deploy --env staging --network orderlysepolia --contract OrderBox
 ```
 
 ### Upgrade
@@ -452,11 +534,15 @@ npx hardhat order:deploy --env dev --network orderlysepolia --contract OrderBox
 To upgrade the cross-chain message relay contracts, we can use the `order:upgrade` task to upgrade the contract on the specified network.
 
 ```
+npx hardhat compile
 npx hardhat order:upgrade --env dev --network arbitrumsepolia --contract OrderSafeRelayer
 npx hardhat order:upgrade --env dev --network arbitrumsepolia --contract OrderSafe
 
-npx hardhat order:upgrade --env dev --network orderlysepolia --contract OrderBoxRelayer
-npx hardhat order:upgrade --env dev --network orderlysepolia --contract OrderBox
+npx hardhat order:upgrade --env qa --network arbitrumsepolia --contract OrderSafeRelayer
+npx hardhat order:upgrade --env qa --network arbitrumsepolia --contract OrderSafe
+
+npx hardhat order:upgrade --env staging --network orderlysepolia --contract OrderBoxRelayer
+npx hardhat order:upgrade --env staging --network orderlysepolia --contract OrderBox
 ```
 
 ### Verification
@@ -483,8 +569,20 @@ Before running the task to initialize the contracts, you **must have deploy** al
 npx hardhat order:init --env dev --network arbitrumsepolia --contract OrderSafeRelayer
 npx hardhat order:init --env dev --network arbitrumsepolia --contract OrderSafe
 
+npx hardhat order:init --env qa --network arbitrumsepolia --contract OrderSafeRelayer
+npx hardhat order:init --env qa --network arbitrumsepolia --contract OrderSafe
+
+npx hardhat order:init --env staging --network arbitrumsepolia --contract OrderSafeRelayer
+npx hardhat order:init --env dev --network arbitrumsepolia --contract OrderSafe
+
 npx hardhat order:init --env dev --network orderlysepolia --contract OrderBoxRelayer
 npx hardhat order:init --env dev --network orderlysepolia --contract OrderBox
+
+npx hardhat order:init --env qa --network orderlysepolia --contract OrderBoxRelayer
+npx hardhat order:init --env qa --network orderlysepolia --contract OrderBox
+
+npx hardhat order:init --env staging --network orderlysepolia --contract OrderBoxRelayer
+npx hardhat order:init --env staging --network orderlysepolia --contract OrderBox
 ```
 
 This `init` task will set correponding addresses on the contracts to enable the **TRUSTED** cross-chain message relay.
