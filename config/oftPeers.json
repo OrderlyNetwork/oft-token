@@ -128,5 +128,49 @@
       "basesepolia": true,
       "orderlysepolia": true
     }
+  },
+  "staging": {
+    "sepolia": {
+      "opsepolia": true,
+      "amoy": true,
+      "basesepolia": true,
+      "orderlysepolia": true,
+      "arbitrumsepolia": true
+    },
+    "arbitrumsepolia": {
+      "sepolia": true,
+      "opsepolia": true,
+      "amoy": true,
+      "basesepolia": true,
+      "orderlysepolia": true
+    },
+    "opsepolia": {
+      "sepolia": true,
+      "arbitrumsepolia": true,
+      "amoy": true,
+      "basesepolia": true,
+      "orderlysepolia": true
+    },
+    "amoy": {
+      "sepolia": true,
+      "arbitrumsepolia": true,
+      "opsepolia": true,
+      "basesepolia": true,
+      "orderlysepolia": true
+    },
+    "basesepolia": {
+      "sepolia": true,
+      "arbitrumsepolia": true,
+      "opsepolia": true,
+      "amoy": true,
+      "orderlysepolia": true
+    },
+    "orderlysepolia": {
+      "sepolia": true,
+      "arbitrumsepolia": true,
+      "opsepolia": true,
+      "amoy": true,
+      "basesepolia": true
+    }
   }
 }
