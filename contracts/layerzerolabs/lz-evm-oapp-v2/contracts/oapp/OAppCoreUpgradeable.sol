@@ -48,6 +48,13 @@ abstract contract OAppCoreUpgradeable is IOAppCore, OwnableUpgradeable {
         _setPeer(_eid, _peer);
     }
 
+    function setPeers(uint32[] calldata _eids, bytes32[] calldata _peers) public virtual onlyOwner {
+        require(_eids.length == _peers.length, "OAppCore: Invalid input length");
+        for (uint256 i = 0; i < _eids.length; i++) {
+            _setPeer(_eids[i], _peers[i]);
+        }
+    }
+
     /**
      * @notice Sets the peer address (OApp instance) for a corresponding endpoint.
      * @param _eid The endpoint ID.

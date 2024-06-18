@@ -9,10 +9,8 @@ import { IOAppMsgInspector } from "../oapp/interfaces/IOAppMsgInspector.sol";
 import { OAppPreCrimeSimulatorUpgradeable } from "../precrime/OAppPreCrimeSimulatorUpgradeable.sol";
 
 import { IOFT, SendParam, OFTLimit, OFTReceipt, OFTFeeDetail, MessagingReceipt, MessagingFee } from "./interfaces/IOFT.sol";
-import { IOCCManager } from "./interfaces/IOCCManager.sol";
 import { OFTMsgCodec } from "./libs/OFTMsgCodec.sol";
 import { OFTComposeMsgCodec } from "./libs/OFTComposeMsgCodec.sol";
-import { OCCMsgCodec } from "./libs/OCCMsgCodec.sol";
 
 /**
  * @title OFTCore
@@ -24,8 +22,8 @@ abstract contract OFTCoreUpgradeable is
     OAppPreCrimeSimulatorUpgradeable,
     OAppOptionsType3Upgradeable
 {
-    using OCCMsgCodec for bytes;
-    using OCCMsgCodec for bytes32;
+    using OFTMsgCodec for bytes;
+    using OFTMsgCodec for bytes32;
 
     // @notice Provides a conversion rate when swapping between denominations of SD and LD
     //      - shareDecimals == SD == shared Decimals
@@ -58,16 +56,21 @@ abstract contract OFTCoreUpgradeable is
 
     // @dev Reord nonce for inbound messages: srcEid => sender => nonce
     mapping(uint32 => mapping(bytes32 => uint64)) public maxReceivedNonce;
-    address public occManager;
-    // @dev Flag to enforce ordered nonce, if true, the nonce must be strictly increasing by 1
-    bool public orderedNonce;
+    // @dev Flag to enforce ordered nonce for each channel: srcEid => bool
+    mapping(uint32 => bool) public orderedNonce;
+    // @dev Trust Orderly addresses
+    mapping(address => bool) public trustOderlyAddress;
+    bool public onlyOrderly;
 
-    uint256[47] private __gap;
+    uint256[46] private __gap;
 
     event MsgInspectorSet(address inspector);
 
-    modifier onlyOCCManager(address _addr) {
-        require(_addr == occManager, "OFT: Only OCCManager");
+    // @dev Restrict the caller on Orderly chain that only we can call certain functions
+    modifier checkCaller(address _addr) {
+        if (onlyOrderly) {
+            require(trustOderlyAddress[_addr], "OFT: Only Trust Orderly Address");
+        }
         _;
     }
 
@@ -115,9 +118,10 @@ abstract contract OFTCoreUpgradeable is
      * Defaults to 6 decimal places to provide up to 18,446,744,073,709.551615 units (max uint64).
      * For tokens exceeding this totalSupply(), they will need to override the sharedDecimals function with something smaller.
      * ie. 4 sharedDecimals would be 1,844,674,407,370,955.1615
+     * @notice For ORDER tokens, the sharedDecimals should be set to 18 (decimalConversionRate = 1), no precision lost during cross-chain transfer.
      */
     function sharedDecimals() public view virtual returns (uint8) {
-        return 6;
+        return 18;
     }
 
     /**
@@ -148,7 +152,7 @@ abstract contract OFTCoreUpgradeable is
         returns (OFTLimit memory oftLimit, OFTFeeDetail[] memory oftFeeDetails, OFTReceipt memory oftReceipt)
     {
         uint256 minAmountLD = 0; // Unused in the default implementation.
-        uint256 maxAmountLD = type(uint64).max; // Unused in the default implementation.
+        uint256 maxAmountLD = type(uint256).max; // Unused in the default implementation.
         oftLimit = OFTLimit(minAmountLD, maxAmountLD);
 
         // Unused in the default implementation; reserved for future complex fee details.
@@ -185,11 +189,7 @@ abstract contract OFTCoreUpgradeable is
         (, uint256 amountReceivedLD) = _debitView(_sendParam.amountLD, _sendParam.minAmountLD, _sendParam.dstEid);
 
         // @dev Builds the options and OFT message to quote in the endpoint.
-        (bytes memory message, bytes memory options) = _buildTypeMsgAndOptions(
-            uint16(OCCMsgCodec.MSG_TYPE.OFT_MSG),
-            _sendParam,
-            amountReceivedLD
-        );
+        (bytes memory message, bytes memory options) = _buildMsgAndOptions(_sendParam, amountReceivedLD);
 
         // @dev Calculates the LayerZero fee for the send() operation.
         return _quote(_sendParam.dstEid, message, options, _payInLzToken);
@@ -221,9 +221,9 @@ abstract contract OFTCoreUpgradeable is
         override
         whenNotPaused
         zeroAddressCheck(_sendParam.to.bytes32ToAddress())
+        checkCaller(msg.sender)
         returns (MessagingReceipt memory msgReceipt, OFTReceipt memory oftReceipt)
     {
-        // require(_sendParam.to.bytes32ToAddress() != address(0), "OFT: Transfer to ZeroAddress");
         // @dev Applies the token transfers regarding this send() operation.
         // - amountSentLD is the amount in local decimals that was ACTUALLY sent/debited from the sender.
         // - amountReceivedLD is the amount in local decimals that will be received/credited to the recipient on the remote OFT instance.
@@ -235,11 +235,7 @@ abstract contract OFTCoreUpgradeable is
         );
 
         // @dev Builds the options and OFT message to quote in the endpoint.
-        (bytes memory message, bytes memory options) = _buildTypeMsgAndOptions(
-            uint16(OCCMsgCodec.MSG_TYPE.OFT_MSG),
-            _sendParam,
-            amountReceivedLD
-        );
+        (bytes memory message, bytes memory options) = _buildMsgAndOptions(_sendParam, amountReceivedLD);
 
         // @dev Sends the message to the LayerZero endpoint and returns the LayerZero msg receipt.
         msgReceipt = _lzSend(_sendParam.dstEid, message, options, _fee, _refundAddress);
@@ -250,126 +246,30 @@ abstract contract OFTCoreUpgradeable is
     }
 
     /**
-     * @notice Provides a quote for the relay() operation.
-     * @param _sendParam The parameters for the relay() operation.
-     * @param _payInLzToken Flag indicating whether the caller is paying in the LZ token.
-     * @return msgFee The calculated LayerZero messaging fee from the relay() operation.
-     *
-     * @dev MessagingFee: LayerZero msg fee
-     *  - nativeFee: The native fee.
-     *  - lzTokenFee: The lzToken fee.
-     */
-    function quoteRelay(
-        SendParam calldata _sendParam,
-        bool _payInLzToken
-    ) external view virtual returns (MessagingFee memory msgFee) {
-        // @dev mock the amount to receive, this is the same operation used in the send().
-        // The quote is as similar as possible to the actual send() operation.
-        (, uint256 amountReceivedLD) = _debitView(_sendParam.amountLD, _sendParam.minAmountLD, _sendParam.dstEid);
-
-        // @dev Builds the options and OFT message to quote in the endpoint.
-        (bytes memory message, bytes memory options) = _buildTypeMsgAndOptions(
-            uint16(OCCMsgCodec.MSG_TYPE.OCC_MSG),
-            _sendParam,
-            amountReceivedLD
-        );
-
-        // @dev Calculates the LayerZero fee for the send() operation.
-        return _quote(_sendParam.dstEid, message, options, _payInLzToken);
-    }
-
-    /**
-     * @dev Executes the relay operation.
-     * @param _sendParam The parameters for the relay operation. USE THE SAME PARAMS AS send() but encoded with a different msgType.
-     * @param _fee The calculated fee for the relay() operation.
-     *      - nativeFee: The native fee.
-     *      - lzTokenFee: The lzToken fee.
-     * @param _refundAddress The address to receive any excess funds.
-     * @return msgReceipt The receipt for the send operation.
-     * @return oftReceipt The OFT receipt information.
-     *
-     * @dev MessagingReceipt: LayerZero msg receipt
-     *  - guid: The unique identifier for the sent message.
-     *  - nonce: The nonce of the sent message.
-     *  - fee: The LayerZero fee incurred for the message.
-     */
-    function relay(
-        SendParam calldata _sendParam,
-        MessagingFee calldata _fee,
-        address _refundAddress
-    )
-        external
-        payable
-        virtual
-        whenNotPaused
-        onlyOCCManager(msg.sender)
-        zeroAddressCheck(_sendParam.to.bytes32ToAddress())
-        returns (MessagingReceipt memory msgReceipt, OFTReceipt memory oftReceipt)
-    {
-        // @dev Applies the token transfers regarding this relay() operation.
-        // - amountSentLD is the amount in local decimals that was ACTUALLY sent/debited from the sender.
-        // - amountReceivedLD is the amount in local decimals that will be received/credited to the recipient on the remote OFT instance.
-        (uint256 amountSentLD, uint256 amountReceivedLD) = _sentToken(
-            msg.sender,
-            _sendParam.amountLD,
-            _sendParam.minAmountLD,
-            _sendParam.dstEid
-        );
-
-        // @dev Builds the options and OFT message to quote in the endpoint.
-        // TODO: Prevent an incorrect extraOptions with .addExecutorLzComposeOption()
-        //       Should _check(extraOptions) in the relay() function.
-        (bytes memory message, bytes memory options) = _buildTypeMsgAndOptions(
-            uint16(OCCMsgCodec.MSG_TYPE.OCC_MSG),
-            _sendParam,
-            amountReceivedLD
-        );
-
-        // @dev Sends the message to the LayerZero endpoint and returns the LayerZero msg receipt.
-        msgReceipt = _lzSend(_sendParam.dstEid, message, options, _fee, _refundAddress);
-        // @dev Formulate the OFT receipt.
-        oftReceipt = OFTReceipt(amountSentLD, amountReceivedLD);
-
-        emit OCCSent(msgReceipt.guid, _sendParam.dstEid, msg.sender, amountSentLD, amountReceivedLD);
-    }
-
-    /**
      * @dev Internal function to build the message and options.
      * @param _sendParam The parameters for the send() operation.
      * @param _amountLD The amount in local decimals.
      * @return message The encoded message.
      * @return options The encoded options.
      */
-    function _buildTypeMsgAndOptions(
-        uint16 _msgType,
+    function _buildMsgAndOptions(
         SendParam calldata _sendParam,
         uint256 _amountLD
     ) internal view virtual returns (bytes memory message, bytes memory options) {
-        uint16 lzMsgType;
-        if (_msgType == uint16(OCCMsgCodec.MSG_TYPE.OFT_MSG)) {
-            bool hasCompose;
-            (message, hasCompose) = OCCMsgCodec.encodeOFTMsg(
-                _sendParam.to,
-                _toSD(_amountLD),
-                // @dev Must be include a non empty bytes if you want to compose, EVEN if you dont need it on the remote.
-                // EVEN if you dont require an arbitrary payload to be sent... eg. '0x01'
-                _sendParam.composeMsg
-            );
-            // @dev Change the msg type depending if its composed or not.
-            lzMsgType = hasCompose ? SEND_AND_CALL : SEND;
-        } else if (_msgType == uint16(OCCMsgCodec.MSG_TYPE.OCC_MSG)) {
-            message = OCCMsgCodec.encodeOCCMsg(
-                _sendParam.to,
-                _toSD(_amountLD),
-                // @dev Must be include a non empty bytes if you want to compose, EVEN if you dont need it on the remote.
-                // EVEN if you dont require an arbitrary payload to be sent... eg. '0x01'
-                _sendParam.composeMsg
-            );
-            // @dev The OCC_MSG is always a SEND operation.
-            lzMsgType = SEND;
-        }
+        bool hasCompose;
+        // @dev This generated message has the msg.sender encoded into the payload so the remote knows who the caller is.
+        (message, hasCompose) = OFTMsgCodec.encode(
+            _sendParam.to,
+            _toSD(_amountLD),
+            // @dev Must be include a non empty bytes if you want to compose, EVEN if you dont need it on the remote.
+            // EVEN if you dont require an arbitrary payload to be sent... eg. '0x01'
+            _sendParam.composeMsg
+        );
+        // @dev Change the msg type depending if its composed or not.
+        uint16 msgType = hasCompose ? SEND_AND_CALL : SEND;
         // @dev Combine the callers _extraOptions with the enforced options via the OAppOptionsType3.
-        options = combineOptions(_sendParam.dstEid, lzMsgType, _sendParam.extraOptions);
+        options = combineOptions(_sendParam.dstEid, msgType, _sendParam.extraOptions);
+
         // @dev Optionally inspect the message and options depending if the OApp owner has set a msg inspector.
         // @dev If it fails inspection, needs to revert in the implementation. ie. does not rely on return boolean
         if (msgInspector != address(0)) IOAppMsgInspector(msgInspector).inspect(message, options);
@@ -394,32 +294,19 @@ abstract contract OFTCoreUpgradeable is
         bytes calldata /*_extraData*/ // @dev unused in the default implementation.
     ) internal virtual override whenNotPaused {
         _acceptNonce(_origin.srcEid, _origin.sender, _origin.nonce);
-        // @dev Decode the OFT message and route to the appropriate receive function.
-        //      The message is encoded with the OFT/OCC message type.
-        //      If the message is an OFT_MSG, it will be routed to the OFT receive function.
-        //      If the message is an OCC_MSG, it will be routed to the OCC receive function.
-        if (_message.getType() == uint16(OCCMsgCodec.MSG_TYPE.OFT_MSG)) _oftReceive(_origin, _guid, _message);
-        else if (_message.getType() == uint16(OCCMsgCodec.MSG_TYPE.OCC_MSG)) _occReceive(_origin, _guid, _message);
-    }
-
-    /**
-     * @param _origin The origin information.
-     *  - srcEid: The source chain endpoint ID.
-     *  - sender: The sender address from the src chain.
-     *  - nonce: The nonce of the LayerZero message.
-     * @param _guid The unique identifier for the received LayerZero message.
-     * @param _message The encoded OFT message.
-     */
-    function _oftReceive(Origin calldata _origin, bytes32 _guid, bytes calldata _message) internal {
+        // @dev The src sending chain doesnt know the address length on this chain (potentially non-evm)
+        // Thus everything is bytes32() encoded in flight.
         address toAddress = _message.sendTo().bytes32ToAddress();
+        // @dev Credit the amountLD to the recipient and return the ACTUAL amount the recipient received in local decimals
         uint256 amountReceivedLD = _receiveToken(toAddress, _toLD(_message.amountSD()), _origin.srcEid);
-        if (_message.hasMsg()) {
+
+        if (_message.isComposed()) {
             // @dev Proprietary composeMsg format for the OFT.
             bytes memory composeMsg = OFTComposeMsgCodec.encode(
                 _origin.nonce,
                 _origin.srcEid,
                 amountReceivedLD,
-                _message.getMsg()
+                _message.composeMsg()
             );
 
             // @dev Stores the lzCompose payload that will be executed in a separate tx.
@@ -431,38 +318,6 @@ abstract contract OFTCoreUpgradeable is
         }
 
         emit OFTReceived(_guid, _origin.srcEid, toAddress, amountReceivedLD);
-    }
-
-    /**
-     * @param _origin The origin information.
-     *  - srcEid: The source chain endpoint ID.
-     *  - sender: The sender address from the src chain.
-     *  - nonce: The nonce of the LayerZero message.
-     * @param _guid The unique identifier for the received LayerZero message.
-     * @param _message The encoded OCC message.
-     */
-    function _occReceive(Origin calldata _origin, bytes32 _guid, bytes calldata _message) internal {
-        // @dev The src sending chain doesnt know the address length on this chain (potentially non-evm)
-        // Thus everything is bytes32() encoded in flight.
-        address toAddress = _message.sendTo().bytes32ToAddress();
-        // @dev Credit the amountLD to the recipient and return the ACTUAL amount the recipient received in local decimals
-        uint256 amountReceivedLD = _receiveToken(toAddress, _toLD(_message.amountSD()), _origin.srcEid);
-
-        if (_message.hasMsg()) {
-            // @dev Proprietary attachMsg format for the OCC.
-            //      For best capability, the attachMsg is encoded/decoded as the same format as the OFT composeMsg
-            bytes memory attachMsg = OFTComposeMsgCodec.encode(
-                _origin.nonce,
-                _origin.srcEid,
-                amountReceivedLD,
-                _message.getMsg()
-            );
-            // TODO: What if this call reverted? => lzReceiverAlert() on the endpoint, and orderedNonce pattern will result in
-            //       all future messages from the same sender being alerted.
-            IOCCManager(occManager).occReceive(attachMsg);
-        }
-
-        emit OCCReceived(_guid, _origin.srcEid, toAddress, amountReceivedLD);
     }
 
     /**
@@ -518,7 +373,7 @@ abstract contract OFTCoreUpgradeable is
      * @param _amountSD The amount in shared decimals.
      * @return amountLD The amount in local decimals.
      */
-    function _toLD(uint64 _amountSD) internal view virtual returns (uint256 amountLD) {
+    function _toLD(uint256 _amountSD) internal view virtual returns (uint256 amountLD) {
         return _amountSD * decimalConversionRate;
     }
 
@@ -527,8 +382,8 @@ abstract contract OFTCoreUpgradeable is
      * @param _amountLD The amount in local decimals.
      * @return amountSD The amount in shared decimals.
      */
-    function _toSD(uint256 _amountLD) internal view virtual returns (uint64 amountSD) {
-        return uint64(_amountLD / decimalConversionRate);
+    function _toSD(uint256 _amountLD) internal view virtual returns (uint256 amountSD) {
+        return _amountLD / decimalConversionRate;
     }
 
     /**
@@ -606,7 +461,7 @@ abstract contract OFTCoreUpgradeable is
     }
 
     function _receiveToken(address _to, uint256 _amountLD, uint32 _srcEid) internal returns (uint256 amountReceivedLD) {
-        // @dev Only mint/unlock token if its amount > 0
+        // @dev Only mint/unlock token if its amount > 0 and receiver is not zero address
         if (_checkReceive(_to, _amountLD)) {
             amountReceivedLD = _credit(_to, _amountLD, _srcEid);
         }
@@ -624,24 +479,13 @@ abstract contract OFTCoreUpgradeable is
         }
     }
 
-    function setOCCManager(address _addr) public onlyOwner zeroAddressCheck(_addr) {
-        occManager = _addr;
-    }
-    /**
-     * @dev Set the flag to enforce ordered nonce or not
-     * @param _orderedNonce the flag to enforce ordered nonce or not
-     */
-    function setOrderedNonce(bool _orderedNonce) public onlyOwner {
-        _setOrderedNonce(_orderedNonce);
-    }
-
     /**
      * @dev Get the next nonce for the sender
      * @param _srcEid The eid of the source chain
      * @param _sender The address of the remote sender (oft or adapter)
      */
     function nextNonce(uint32 _srcEid, bytes32 _sender) public view override returns (uint64) {
-        if (orderedNonce) {
+        if (orderedNonce[_srcEid]) {
             return maxReceivedNonce[_srcEid][_sender] + 1;
         } else {
             return 0;
@@ -707,6 +551,28 @@ abstract contract OFTCoreUpgradeable is
     }
 
     /**
+     * @dev Set the flag to enforce ordered nonce or not
+     * @param _orderedNonce the flag to enforce ordered nonce or not
+     */
+    function setOrderedNonce(uint32 _srcEid, bool _orderedNonce) public onlyOwner {
+        orderedNonce[_srcEid] = _orderedNonce;
+    }
+
+    function setBatchOrderedNonce(uint32[] calldata _srcEids, bool[] calldata _orderedNonces) public onlyOwner {
+        require(_srcEids.length == _orderedNonces.length, "OFT: Invalid input length");
+        for (uint256 i = 0; i < _srcEids.length; i++) {
+            orderedNonce[_srcEids[i]] = _orderedNonces[i];
+        }
+    }
+
+    function setTrustAddress(address _addr, bool _status) public onlyOwner zeroAddressCheck(_addr) {
+        trustOderlyAddress[_addr] = _status;
+    }
+
+    function setOnlyOrderly(bool _status) public onlyOwner {
+        onlyOrderly = _status;
+    }
+    /**
      * @dev Check and accept the nonce of the inbound message
      * @param _srcEid The eid of the source chain
      * @param _sender The address of the remote sender (oft or adapter)
@@ -714,16 +580,12 @@ abstract contract OFTCoreUpgradeable is
      */
     function _acceptNonce(uint32 _srcEid, bytes32 _sender, uint64 _nonce) internal {
         uint64 curNonce = maxReceivedNonce[_srcEid][_sender];
-        if (orderedNonce) {
+        if (orderedNonce[_srcEid]) {
             require(_nonce == curNonce + 1, "OApp: invalid nonce");
         }
 
         if (_nonce > curNonce) {
             maxReceivedNonce[_srcEid][_sender] = _nonce;
         }
-    }
-
-    function _setOrderedNonce(bool _orderedNonce) internal {
-        orderedNonce = _orderedNonce;
     }
 }

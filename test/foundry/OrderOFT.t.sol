@@ -62,7 +62,7 @@ contract OrderOFTTest is TestHelperOz5 {
 
     OrderToken token;
 
-    uint8 public constant MSG_COUNT = 20;
+    uint8 public constant MSG_COUNT = 21;
     uint8 public constant MAX_OFTS = 10;
     // eid = 1: endpoint id on l1 side: ethereum, the first one always the ethereum chain
     // eid = 2: endpoint id on vault side: arb
@@ -81,7 +81,7 @@ contract OrderOFTTest is TestHelperOz5 {
 
     function setUp() public override {
         vm.deal(address(this), 1000000 ether);
-
+        vm.deal(address(1), 1000000 ether);
         // Set the OFT contracts
         _setOft();
 
@@ -122,7 +122,7 @@ contract OrderOFTTest is TestHelperOz5 {
                 if (!oftInstances[j].paused()) oftInstances[j].pause();
                 _checkApproval(i);
                 _send(i, j, tokenToSend);
-                oftInstances[j].setOrderedNonce(false);
+                oftInstances[j].setOrderedNonce(eids[i], false);
                 vm.prank(endpoints[eids[j]]);
                 vm.expectRevert(PausableUpgradeable.EnforcedPause.selector);
                 oftInstances[j].lzReceive(
@@ -158,6 +158,58 @@ contract OrderOFTTest is TestHelperOz5 {
         }
     }
 
+    function test_trust_caller() public {
+        oftInstances[MAX_OFTS - 1].setTrustAddress(address(this), true);
+        oftInstances[MAX_OFTS - 1].setOnlyOrderly(true);
+        uint256 tokenToSend = 1 ether;
+        bytes memory options = OptionsBuilder.newOptions().addExecutorLzReceiveOption(RECEIVE_GAS, VALUE);
+        uint256 oldBalance;
+        uint256 newBalance;
+        for (uint8 i = 0; i < MAX_OFTS - 1; i++) {
+            _checkApproval(i);
+            SendParam memory sendParam = SendParam(
+                eids[MAX_OFTS - 1],
+                addressToBytes32(address(1)),
+                tokenToSend,
+                tokenToSend,
+                options,
+                "",
+                ""
+            );
+            MessagingFee memory fee = oftInstances[i].quoteSend(sendParam, false);
+            oftInstances[i].send{ value: fee.nativeFee }(sendParam, fee, payable(address(this)));
+            oldBalance = IERC20(oftInstances[MAX_OFTS - 1].token()).balanceOf(address(1));
+            verifyPackets(eids[MAX_OFTS - 1], addressToBytes32(ofts[MAX_OFTS - 1]));
+            newBalance = IERC20(oftInstances[MAX_OFTS - 1].token()).balanceOf(address(1));
+            assertEq(newBalance, oldBalance + tokenToSend);
+        }
+
+        for (uint8 i = 0; i < MAX_OFTS - 1; i++) {
+            SendParam memory sendParam = SendParam(
+                eids[i],
+                addressToBytes32(address(1)),
+                tokenToSend,
+                tokenToSend,
+                options,
+                "",
+                ""
+            );
+            MessagingFee memory fee = oftInstances[MAX_OFTS - 1].quoteSend(sendParam, false);
+            // untrusted caller to send token from Orderly chain to other chains
+            vm.startPrank(address(1));
+            vm.expectRevert("OFT: Only Trust Orderly Address");
+            oftInstances[MAX_OFTS - 1].send{ value: fee.nativeFee }(sendParam, fee, payable(address(1)));
+            vm.stopPrank();
+
+            // trusted caller to send token from Orderly chain to other chains
+            oftInstances[MAX_OFTS - 1].send{ value: fee.nativeFee }(sendParam, fee, payable(address(this)));
+            oldBalance = IERC20(oftInstances[i].token()).balanceOf(address(1));
+            verifyPackets(eids[i], addressToBytes32(ofts[i]));
+            newBalance = IERC20(oftInstances[i].token()).balanceOf(address(1));
+            assertEq(newBalance, oldBalance + tokenToSend);
+        }
+    }
+
     function test_zero_receiver() public {
         address zero_receiver = address(0);
         uint256 tokenToSend = 1 ether;
@@ -168,7 +220,7 @@ contract OrderOFTTest is TestHelperOz5 {
                 _checkApproval(i);
                 SendParam memory sendParam = SendParam(
                     eids[j],
-                    addressToBytes32(zero_receiver),
+                    addressToBytes32(address(zero_receiver)),
                     tokenToSend,
                     tokenToSend,
                     options,
@@ -178,6 +230,24 @@ contract OrderOFTTest is TestHelperOz5 {
                 MessagingFee memory fee = oftInstances[i].quoteSend(sendParam, false);
                 vm.expectRevert("OFT: ZeroAddress");
                 oftInstances[i].send{ value: fee.nativeFee }(sendParam, fee, payable(address(this)));
+            }
+        }
+    }
+
+    function test_dust_send() public {
+        uint256 dust = 1;
+        uint256 oldBalance;
+        uint256 newBalance;
+        for (uint8 i = 0; i < MAX_OFTS; i++) {
+            for (uint8 j = 0; j < MAX_OFTS; j++) {
+                if (i == j) continue;
+
+                _checkApproval(i);
+                _send(i, j, dust);
+                oldBalance = IERC20(oftInstances[j].token()).balanceOf(address(this));
+                verifyPackets(eids[j], addressToBytes32(ofts[j]));
+                newBalance = IERC20(oftInstances[j].token()).balanceOf(address(this));
+                assertEq(newBalance, oldBalance + dust);
             }
         }
     }
@@ -234,7 +304,7 @@ contract OrderOFTTest is TestHelperOz5 {
                 }
 
                 // set unordered nonce to enable unordered delivery
-                oftInstances[j].setOrderedNonce(false);
+                oftInstances[j].setOrderedNonce(eids[i], false);
                 // execute packets: (MSG_COUNT / 2 + 1) - (MSG_COUNT - 1)
                 for (uint8 seq = MSG_COUNT - 1; seq >= MSG_COUNT / 2; seq--) {
                     oldBalance = IERC20(oftInstances[j].token()).balanceOf(address(this));
@@ -246,7 +316,7 @@ contract OrderOFTTest is TestHelperOz5 {
                     );
                 }
                 // reset ordered nonce
-                oftInstances[j].setOrderedNonce(true);
+                oftInstances[j].setOrderedNonce(eids[i], true);
             }
         }
     }
@@ -435,10 +505,10 @@ contract OrderOFTTest is TestHelperOz5 {
                     nonces[seq] = msgReceipt.nonce;
                 }
 
-                // commit packets: 0 - (MSG_COUNT - 1)
+                // commit packets: 0 - (MSG_COUNT / 2 - 1)
                 commitPackets(eids[j], addressToBytes32(ofts[j]), MSG_COUNT / 2);
 
-                oftInstances[j].setOrderedNonce(false);
+                oftInstances[j].setOrderedNonce(eids[i], false);
                 // execute packet: MSG_COUNT / 2 - 1
                 executePacket(address(0), guids[MSG_COUNT / 2 - 1]);
                 assertEq(
@@ -508,7 +578,7 @@ contract OrderOFTTest is TestHelperOz5 {
                 );
 
                 // execute packets: (MSG_COUNT / 2) - (MSG_COUNT - 1)
-                commitPackets(eids[j], addressToBytes32(ofts[j]), MSG_COUNT / 2);
+                commitPackets(eids[j], addressToBytes32(ofts[j]), MSG_COUNT - MSG_COUNT / 2);
                 payloadHash = remoteEndpoint.inboundPayloadHash(
                     ofts[j],
                     eids[i],
@@ -572,7 +642,7 @@ contract OrderOFTTest is TestHelperOz5 {
                     remoteEndpoint.EMPTY_PAYLOAD_HASH()
                 );
 
-                oftInstances[j].setOrderedNonce(true);
+                oftInstances[j].setOrderedNonce(eids[i], true);
             }
         }
     }
@@ -630,7 +700,7 @@ contract OrderOFTTest is TestHelperOz5 {
                 );
 
                 // execute packet: (MSG_COUNT - 1)
-                oftInstances[j].setOrderedNonce(false);
+                oftInstances[j].setOrderedNonce(eids[i], false);
                 executePacket(address(0), guids[MSG_COUNT - 1]);
                 assertEq(
                     remoteEndpoint.lazyInboundNonce(ofts[j], eids[i], addressToBytes32(ofts[i])),
@@ -679,12 +749,12 @@ contract OrderOFTTest is TestHelperOz5 {
                     }
                 }
 
-                oftInstances[j].setOrderedNonce(true);
+                oftInstances[j].setOrderedNonce(eids[i], true);
             }
         }
     }
 
-    function test_send_msg() public {
+    function test_stake_msg() public {
         // Set the contracts to test cross-chain flow
         _setCC();
 
@@ -725,57 +795,6 @@ contract OrderOFTTest is TestHelperOz5 {
                 address(orderBoxRelayer),
                 stakeMsg
             );
-        }
-        assertEq(
-            IERC20(oftInstances[MAX_OFTS - 1].token()).balanceOf(address(orderBox)),
-            tokenToStake * (MAX_OFTS - 1)
-        );
-    }
-
-    function test_relay_msg() public {
-        // Set the contracts to test cross-chain flow
-        _setCC();
-
-        uint256 tokenToStake = 1000 ether;
-        uint256 stakeFee;
-        MessagingReceipt memory msgReceipt;
-        OFTReceipt memory oftReceipt;
-        bytes memory options;
-        bytes memory stakeMsg;
-        for (uint8 i = 0; i < MAX_OFTS - 1; i++) {
-            IERC20(oftInstances[i].token()).approve(address(orderSafeInstances[i]), tokenToStake);
-            stakeFee = orderSafeInstances[i].getRelayStakeFee(address(this), tokenToStake);
-            vm.recordLogs();
-            (msgReceipt, oftReceipt) = orderSafeInstances[i].relayStakeOrder{ value: stakeFee }(
-                address(this),
-                tokenToStake
-            ); // (msgReceipt, oftReceipt) =
-            Vm.Log[] memory logs = vm.getRecordedLogs();
-            for (uint8 j = 0; j < logs.length; j++) {
-                if (logs[j].topics[0] == keccak256("PacketSent(bytes,bytes,address)")) {
-                    (, options, ) = abi.decode(logs[j].data, (bytes, bytes, address));
-                    continue;
-                }
-                if (logs[j].topics[0] == keccak256("SendStakeMsg(uint32,bytes32,bytes)")) {
-                    (, , bytes memory composeMsg) = abi.decode(logs[j].data, (uint32, bytes32, bytes));
-                    stakeMsg = OFTComposeMsgCodec.encode(
-                        msgReceipt.nonce,
-                        eids[i],
-                        oftReceipt.amountReceivedLD,
-                        abi.encodePacked(addressToBytes32(address(orderSafeRelayerInstances[i])), composeMsg)
-                    );
-                    continue;
-                }
-            }
-            verifyPackets(eids[MAX_OFTS - 1], addressToBytes32(ofts[MAX_OFTS - 1]));
-            // this.lzCompose(
-            //     eids[MAX_OFTS - 1],
-            //     ofts[MAX_OFTS - 1],
-            //     options,
-            //     msgReceipt.guid,
-            //     address(orderBoxRelayer),
-            //     stakeMsg
-            // );
         }
         assertEq(
             IERC20(oftInstances[MAX_OFTS - 1].token()).balanceOf(address(orderBox)),
@@ -853,6 +872,8 @@ contract OrderOFTTest is TestHelperOz5 {
                 );
                 enforcedOptions.push(enforcedOptionSend);
                 enforcedOptions.push(enforcedOptionSendAndCall);
+
+                oftInstances[i].setOrderedNonce(eids[j], true);
             }
             oftInstances[i].setEnforcedOptions(enforcedOptions);
         }
@@ -907,8 +928,6 @@ contract OrderOFTTest is TestHelperOz5 {
         orderBoxRelayer.setOptionsAirdrop(1, composeGas, value); // lz compose
         orderBoxRelayer.setOrderBox(address(orderBox));
 
-        oftInstances[MAX_OFTS - 1].setOCCManager(address(orderBoxRelayer));
-
         orderBox.setOft(ofts[MAX_OFTS - 1]);
         orderBox.setOrderRelayer(address(orderBoxRelayer));
 
@@ -938,7 +957,6 @@ contract OrderOFTTest is TestHelperOz5 {
 
             orderSafeInstances[i].setOft(ofts[i]);
             orderSafeInstances[i].setOrderRelayer(address(orderSafeRelayerInstances[i]));
-            oftInstances[i].setOCCManager(address(orderSafeRelayerInstances[i]));
 
             orderBoxRelayer.setRemoteComposeMsgSender(eids[i], address(orderSafeRelayerInstances[i]), true);
             orderBoxRelayer.setEid(chainIds[i], eids[i]);
@@ -989,7 +1007,6 @@ contract OrderOFTTest is TestHelperOz5 {
                 assertEq(oftInstances[i].approvalRequired(), false);
                 assertEq(oftInstances[i].balanceOf(address(this)), 0);
             }
-            assertEq(oftInstances[i].orderedNonce(), true);
         }
 
         // check if ofts are fully connected
@@ -997,6 +1014,7 @@ contract OrderOFTTest is TestHelperOz5 {
             for (uint256 j = 0; j < MAX_OFTS; j++) {
                 if (i == j) continue;
                 assertEq(oftInstances[i].isPeer(eids[j], addressToBytes32(ofts[j])), true);
+                assertEq(oftInstances[i].orderedNonce(eids[j]), true);
             }
         }
 

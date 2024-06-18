@@ -18,6 +18,5 @@ contract OrderAdapter is OFTAdapterUpgradeable {
      */
     function initialize(address _orderToken, address _lzEndpoint, address _delegate) external initializer {
         __initializeOFTAdapter(_orderToken, _lzEndpoint, _delegate);
-        _setOrderedNonce(true);
     }
 }

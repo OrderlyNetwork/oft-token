@@ -5,7 +5,7 @@ pragma solidity ^0.8.20;
 library OFTMsgCodec {
     // Offset constants for encoding and decoding OFT messages
     uint8 private constant SEND_TO_OFFSET = 32;
-    uint8 private constant SEND_AMOUNT_SD_OFFSET = 40;
+    uint8 private constant SEND_AMOUNT_SD_OFFSET = 64;
 
     /**
      * @dev Encodes an OFT LayerZero message.
@@ -17,7 +17,7 @@ library OFTMsgCodec {
      */
     function encode(
         bytes32 _sendTo,
-        uint64 _amountShared,
+        uint256 _amountShared,
         bytes memory _composeMsg
     ) internal view returns (bytes memory _msg, bool hasCompose) {
         hasCompose = _composeMsg.length > 0;
@@ -50,8 +50,8 @@ library OFTMsgCodec {
      * @param _msg The OFT message.
      * @return The amount in shared decimals.
      */
-    function amountSD(bytes calldata _msg) internal pure returns (uint64) {
-        return uint64(bytes8(_msg[SEND_TO_OFFSET:SEND_AMOUNT_SD_OFFSET]));
+    function amountSD(bytes calldata _msg) internal pure returns (uint256) {
+        return uint256(bytes32(_msg[SEND_TO_OFFSET:SEND_AMOUNT_SD_OFFSET]));
     }
 
     /**

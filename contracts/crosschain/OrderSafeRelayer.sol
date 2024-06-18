@@ -11,7 +11,6 @@ import { IOrderSafeRelayer } from "./interfaces/IOrderSafeRelayer.sol";
 import { Options } from "./interfaces/IOrderRelayer.sol";
 import { OrderRelayerStorage } from "./storage/OrderRelayerStorage.sol";
 import { OrderSafeRelayerStorage } from "./storage/OrderSafeRelayerStorage.sol";
-import { OCCMsgCodec } from "../layerzerolabs/lz-evm-oapp-v2/contracts/oft/libs/OCCMsgCodec.sol";
 
 contract OrderSafeRelayer is IOrderSafeRelayer, OrderRelayerBase, OrderSafeRelayerStorage {
     using SafeERC20 for IERC20;
@@ -42,36 +41,6 @@ contract OrderSafeRelayer is IOrderSafeRelayer, OrderRelayerBase, OrderSafeRelay
         MessagingFee memory fee = IOFT(oft).quoteSend(sendParam, false);
         require(msg.value >= fee.nativeFee, "OrderSafeRelayer: insufficient lz fee");
         (msgReceipt, oftReceipt) = IOFT(oft).send{ value: fee.nativeFee }(sendParam, fee, payable(_staker));
-        emit SendStakeMsg(orderEid, OFTMsgCodec.addressToBytes32(orderBoxRelayer), stakeMsg);
-    }
-
-    function relayStakeMsg(
-        address _staker,
-        uint256 _amount
-    ) public payable returns (MessagingReceipt memory msgReceipt, OFTReceipt memory oftReceipt) {
-        require(msg.sender == orderSafe, "OrderSafeRelayer: Only OrderSafe can call");
-        if (IOFT(oft).approvalRequired()) {
-            IERC20 token = IERC20(IOFT(oft).token());
-            token.approve(oft, _amount);
-        }
-        uint32 orderEid = _getOrderEid();
-        uint128 lzReceiveGas = 200000;
-        uint128 airdropValue = 0;
-        bytes memory options = OptionsBuilder.newOptions().addExecutorLzReceiveOption(lzReceiveGas, airdropValue);
-        bytes memory stakeMsg = abi.encode(_staker, _amount);
-        SendParam memory sendParam = SendParam({
-            dstEid: orderEid,
-            to: OFTMsgCodec.addressToBytes32(orderBoxRelayer),
-            amountLD: _amount,
-            minAmountLD: _amount,
-            extraOptions: options,
-            composeMsg: stakeMsg,
-            oftCmd: ""
-        });
-
-        MessagingFee memory fee = IOFT(oft).quoteRelay(sendParam, false);
-        // require(msg.value >= fee.nativeFee, "OrderSafeRelayer: insufficient lz fee");
-        (msgReceipt, oftReceipt) = IOFT(oft).relay{ value: fee.nativeFee }(sendParam, fee, payable(_staker));
         emit SendStakeMsg(orderEid, OFTMsgCodec.addressToBytes32(orderBoxRelayer), stakeMsg);
     }
 
@@ -121,25 +90,6 @@ contract OrderSafeRelayer is IOrderSafeRelayer, OrderRelayerBase, OrderSafeRelay
         });
 
         MessagingFee memory fee = IOFT(oft).quoteSend(sendParam, false);
-        return fee.nativeFee;
-    }
-
-    function getRelayStakeFee(address _staker, uint256 _amount) public view returns (uint256) {
-        uint128 lzReceiveGas = 200000;
-        uint128 airdropValue = 0;
-        bytes memory options = OptionsBuilder.newOptions().addExecutorLzReceiveOption(lzReceiveGas, airdropValue);
-        bytes memory stakeMsg = abi.encode(_staker, _amount);
-        SendParam memory sendParam = SendParam({
-            dstEid: _getOrderEid(),
-            to: OFTMsgCodec.addressToBytes32(orderBoxRelayer),
-            amountLD: _amount,
-            minAmountLD: _amount,
-            extraOptions: options,
-            composeMsg: stakeMsg,
-            oftCmd: ""
-        });
-
-        MessagingFee memory fee = IOFT(oft).quoteRelay(sendParam, false);
         return fee.nativeFee;
     }
 

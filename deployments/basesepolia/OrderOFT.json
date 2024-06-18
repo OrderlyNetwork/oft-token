@@ -1,5 +1,5 @@
 {
-  "address": "0xb6B4CCe7da1d67d720a5C79143e6383D5ff8b16D",
+  "address": "0xEfe7959E7440e34c3cB3675d86bF2abf0434FaAf",
   "abi": [
     {
       "anonymous": false,
@@ -443,6 +443,74 @@
         }
       ],
       "name": "MsgInspectorSet",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "bytes32",
+          "name": "guid",
+          "type": "bytes32"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint32",
+          "name": "srcEid",
+          "type": "uint32"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "toAddress",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "amountReceivedLD",
+          "type": "uint256"
+        }
+      ],
+      "name": "OCCReceived",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "bytes32",
+          "name": "guid",
+          "type": "bytes32"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint32",
+          "name": "dstEid",
+          "type": "uint32"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "fromAddress",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "amountSentLD",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "amountReceivedLD",
+          "type": "uint256"
+        }
+      ],
+      "name": "OCCSent",
       "type": "event"
     },
     {
@@ -1325,6 +1393,19 @@
     },
     {
       "inputs": [],
+      "name": "occManager",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
       "name": "oftVersion",
       "outputs": [
         {
@@ -1342,7 +1423,13 @@
       "type": "function"
     },
     {
-      "inputs": [],
+      "inputs": [
+        {
+          "internalType": "uint32",
+          "name": "",
+          "type": "uint32"
+        }
+      ],
       "name": "orderedNonce",
       "outputs": [
         {
@@ -1430,6 +1517,24 @@
         }
       ],
       "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint32",
+          "name": "_srcEid",
+          "type": "uint32"
+        },
+        {
+          "internalType": "bytes32",
+          "name": "_sender",
+          "type": "bytes32"
+        }
+      ],
+      "name": "pullMaxReceivedNonce",
+      "outputs": [],
+      "stateMutability": "nonpayable",
       "type": "function"
     },
     {
@@ -1584,6 +1689,79 @@
           "type": "bool"
         }
       ],
+      "name": "quoteRelay",
+      "outputs": [
+        {
+          "components": [
+            {
+              "internalType": "uint256",
+              "name": "nativeFee",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "lzTokenFee",
+              "type": "uint256"
+            }
+          ],
+          "internalType": "struct MessagingFee",
+          "name": "msgFee",
+          "type": "tuple"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "components": [
+            {
+              "internalType": "uint32",
+              "name": "dstEid",
+              "type": "uint32"
+            },
+            {
+              "internalType": "bytes32",
+              "name": "to",
+              "type": "bytes32"
+            },
+            {
+              "internalType": "uint256",
+              "name": "amountLD",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "minAmountLD",
+              "type": "uint256"
+            },
+            {
+              "internalType": "bytes",
+              "name": "extraOptions",
+              "type": "bytes"
+            },
+            {
+              "internalType": "bytes",
+              "name": "composeMsg",
+              "type": "bytes"
+            },
+            {
+              "internalType": "bytes",
+              "name": "oftCmd",
+              "type": "bytes"
+            }
+          ],
+          "internalType": "struct SendParam",
+          "name": "_sendParam",
+          "type": "tuple"
+        },
+        {
+          "internalType": "bool",
+          "name": "_payInLzToken",
+          "type": "bool"
+        }
+      ],
       "name": "quoteSend",
       "outputs": [
         {
@@ -1605,6 +1783,130 @@
         }
       ],
       "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "components": [
+            {
+              "internalType": "uint32",
+              "name": "dstEid",
+              "type": "uint32"
+            },
+            {
+              "internalType": "bytes32",
+              "name": "to",
+              "type": "bytes32"
+            },
+            {
+              "internalType": "uint256",
+              "name": "amountLD",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "minAmountLD",
+              "type": "uint256"
+            },
+            {
+              "internalType": "bytes",
+              "name": "extraOptions",
+              "type": "bytes"
+            },
+            {
+              "internalType": "bytes",
+              "name": "composeMsg",
+              "type": "bytes"
+            },
+            {
+              "internalType": "bytes",
+              "name": "oftCmd",
+              "type": "bytes"
+            }
+          ],
+          "internalType": "struct SendParam",
+          "name": "_sendParam",
+          "type": "tuple"
+        },
+        {
+          "components": [
+            {
+              "internalType": "uint256",
+              "name": "nativeFee",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "lzTokenFee",
+              "type": "uint256"
+            }
+          ],
+          "internalType": "struct MessagingFee",
+          "name": "_fee",
+          "type": "tuple"
+        },
+        {
+          "internalType": "address",
+          "name": "_refundAddress",
+          "type": "address"
+        }
+      ],
+      "name": "relay",
+      "outputs": [
+        {
+          "components": [
+            {
+              "internalType": "bytes32",
+              "name": "guid",
+              "type": "bytes32"
+            },
+            {
+              "internalType": "uint64",
+              "name": "nonce",
+              "type": "uint64"
+            },
+            {
+              "components": [
+                {
+                  "internalType": "uint256",
+                  "name": "nativeFee",
+                  "type": "uint256"
+                },
+                {
+                  "internalType": "uint256",
+                  "name": "lzTokenFee",
+                  "type": "uint256"
+                }
+              ],
+              "internalType": "struct MessagingFee",
+              "name": "fee",
+              "type": "tuple"
+            }
+          ],
+          "internalType": "struct MessagingReceipt",
+          "name": "msgReceipt",
+          "type": "tuple"
+        },
+        {
+          "components": [
+            {
+              "internalType": "uint256",
+              "name": "amountSentLD",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "amountReceivedLD",
+              "type": "uint256"
+            }
+          ],
+          "internalType": "struct OFTReceipt",
+          "name": "oftReceipt",
+          "type": "tuple"
+        }
+      ],
+      "stateMutability": "payable",
       "type": "function"
     },
     {
@@ -1741,6 +2043,24 @@
     {
       "inputs": [
         {
+          "internalType": "uint32[]",
+          "name": "_srcEids",
+          "type": "uint32[]"
+        },
+        {
+          "internalType": "bool[]",
+          "name": "_orderedNonces",
+          "type": "bool[]"
+        }
+      ],
+      "name": "setBatchOrderedNonce",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
           "internalType": "address",
           "name": "_delegate",
           "type": "address"
@@ -1797,6 +2117,24 @@
     {
       "inputs": [
         {
+          "internalType": "address",
+          "name": "_addr",
+          "type": "address"
+        }
+      ],
+      "name": "setOCCManager",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint32",
+          "name": "_srcEid",
+          "type": "uint32"
+        },
+        {
           "internalType": "bool",
           "name": "_orderedNonce",
           "type": "bool"
@@ -1821,6 +2159,24 @@
         }
       ],
       "name": "setPeer",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint32[]",
+          "name": "_eids",
+          "type": "uint32[]"
+        },
+        {
+          "internalType": "bytes32[]",
+          "name": "_peers",
+          "type": "bytes32[]"
+        }
+      ],
+      "name": "setPeers",
       "outputs": [],
       "stateMutability": "nonpayable",
       "type": "function"
@@ -2021,76 +2377,76 @@
       "type": "constructor"
     }
   ],
-  "transactionHash": "0x485834afdfd6e896d55e38610c5f1b6c71887bf698bada1149f237d01d83894a",
+  "transactionHash": "0x045adb8edf83697322c164d7c29c8afa489184c5446ea9bc15ab54feae03c3fc",
   "receipt": {
     "to": "0x4e59b44847b379578588920cA78FbF26c0B4956C",
     "from": "0xDd3287043493E0a08d2B348397554096728B459c",
     "contractAddress": null,
-    "transactionIndex": 2,
-    "gasUsed": "479246",
-    "logsBloom": "0x00000000100008000000000000000000400000000000000000800000000000000000000000000000200000000000000000000002000000000000000000000000000000000000000000000000000002000001000000000000000000000000000000080000020000004200000000000800000000000000280000000000000010400000000000000020000800000000000000000000000080000000000000000000000000000000000000000000000000000002000000000000000000000000000400000020000000000000000000000000000000000004100000000000000020000000000000000000000000000000000000000000000000000000000000000000",
-    "blockHash": "0x2274195a34d4c1f2f3181b99e602063b931f4da55ffbe3a170388ffccaa14e79",
-    "transactionHash": "0x485834afdfd6e896d55e38610c5f1b6c71887bf698bada1149f237d01d83894a",
+    "transactionIndex": 4,
+    "gasUsed": "456945",
+    "logsBloom": "0x00000000000008000000000000000000400000000000000000800000000000000000000000000000200000000000000000000002000000000000000000000000000000000000000000000000000002080001000000000000000000000000020000080000020000000200000000000800000000000000000000000200000000400000000000000020000800000000000000000000000080000000000000000000000000000000000000000000000000000002000000000000000000000000000400000020000000000000000000000000000000080004000000000000000020000000000000000000000000000000008000000000000000000000000040000000",
+    "blockHash": "0x3c4537fac921cc5180af3420133a2ee31e0bcec7bff9d5f72547296e262e1f49",
+    "transactionHash": "0x045adb8edf83697322c164d7c29c8afa489184c5446ea9bc15ab54feae03c3fc",
     "logs": [
       {
-        "transactionIndex": 2,
-        "blockNumber": 10648514,
-        "transactionHash": "0x485834afdfd6e896d55e38610c5f1b6c71887bf698bada1149f237d01d83894a",
-        "address": "0xb6B4CCe7da1d67d720a5C79143e6383D5ff8b16D",
+        "transactionIndex": 4,
+        "blockNumber": 11448485,
+        "transactionHash": "0x045adb8edf83697322c164d7c29c8afa489184c5446ea9bc15ab54feae03c3fc",
+        "address": "0xEfe7959E7440e34c3cB3675d86bF2abf0434FaAf",
         "topics": [
           "0xbc7cd75a20ee27fd9adebab32041f755214dbc6bffa90cc0225b39da2e5c2d3b",
-          "0x00000000000000000000000081e16a30cd310d382de007dafcfb2de11de14a19"
+          "0x00000000000000000000000049b0641e7a8ae2f42f18f2edb778162a91a66a7d"
         ],
         "data": "0x",
-        "logIndex": 0,
-        "blockHash": "0x2274195a34d4c1f2f3181b99e602063b931f4da55ffbe3a170388ffccaa14e79"
+        "logIndex": 14,
+        "blockHash": "0x3c4537fac921cc5180af3420133a2ee31e0bcec7bff9d5f72547296e262e1f49"
       },
       {
-        "transactionIndex": 2,
-        "blockNumber": 10648514,
-        "transactionHash": "0x485834afdfd6e896d55e38610c5f1b6c71887bf698bada1149f237d01d83894a",
+        "transactionIndex": 4,
+        "blockNumber": 11448485,
+        "transactionHash": "0x045adb8edf83697322c164d7c29c8afa489184c5446ea9bc15ab54feae03c3fc",
         "address": "0x6EDCE65403992e310A62460808c4b910D972f10f",
         "topics": [
           "0x6ee10e9ed4d6ce9742703a498707862f4b00f1396a87195eb93267b3d7983981"
         ],
-        "data": "0x000000000000000000000000b6b4cce7da1d67d720a5c79143e6383d5ff8b16d000000000000000000000000dd3287043493e0a08d2b348397554096728b459c",
-        "logIndex": 1,
-        "blockHash": "0x2274195a34d4c1f2f3181b99e602063b931f4da55ffbe3a170388ffccaa14e79"
+        "data": "0x000000000000000000000000efe7959e7440e34c3cb3675d86bf2abf0434faaf000000000000000000000000dd3287043493e0a08d2b348397554096728b459c",
+        "logIndex": 15,
+        "blockHash": "0x3c4537fac921cc5180af3420133a2ee31e0bcec7bff9d5f72547296e262e1f49"
       },
       {
-        "transactionIndex": 2,
-        "blockNumber": 10648514,
-        "transactionHash": "0x485834afdfd6e896d55e38610c5f1b6c71887bf698bada1149f237d01d83894a",
-        "address": "0xb6B4CCe7da1d67d720a5C79143e6383D5ff8b16D",
+        "transactionIndex": 4,
+        "blockNumber": 11448485,
+        "transactionHash": "0x045adb8edf83697322c164d7c29c8afa489184c5446ea9bc15ab54feae03c3fc",
+        "address": "0xEfe7959E7440e34c3cB3675d86bF2abf0434FaAf",
         "topics": [
           "0x8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e0",
           "0x0000000000000000000000000000000000000000000000000000000000000000",
           "0x000000000000000000000000dd3287043493e0a08d2b348397554096728b459c"
         ],
         "data": "0x",
-        "logIndex": 2,
-        "blockHash": "0x2274195a34d4c1f2f3181b99e602063b931f4da55ffbe3a170388ffccaa14e79"
+        "logIndex": 16,
+        "blockHash": "0x3c4537fac921cc5180af3420133a2ee31e0bcec7bff9d5f72547296e262e1f49"
       },
       {
-        "transactionIndex": 2,
-        "blockNumber": 10648514,
-        "transactionHash": "0x485834afdfd6e896d55e38610c5f1b6c71887bf698bada1149f237d01d83894a",
-        "address": "0xb6B4CCe7da1d67d720a5C79143e6383D5ff8b16D",
+        "transactionIndex": 4,
+        "blockNumber": 11448485,
+        "transactionHash": "0x045adb8edf83697322c164d7c29c8afa489184c5446ea9bc15ab54feae03c3fc",
+        "address": "0xEfe7959E7440e34c3cB3675d86bF2abf0434FaAf",
         "topics": [
           "0xc7f505b2f371ae2175ee4913f4499e1f2633a7b5936321eed1cdaeb6115181d2"
         ],
         "data": "0x0000000000000000000000000000000000000000000000000000000000000001",
-        "logIndex": 3,
-        "blockHash": "0x2274195a34d4c1f2f3181b99e602063b931f4da55ffbe3a170388ffccaa14e79"
+        "logIndex": 17,
+        "blockHash": "0x3c4537fac921cc5180af3420133a2ee31e0bcec7bff9d5f72547296e262e1f49"
       }
     ],
-    "blockNumber": 10648514,
-    "cumulativeGasUsed": "610101",
+    "blockNumber": 11448485,
+    "cumulativeGasUsed": "2442137",
     "status": 1,
     "byzantium": true
   },
   "args": [
-    "0x81e16A30Cd310D382De007DafcFb2DE11dE14A19",
+    "0x49B0641e7a8aE2f42f18F2edb778162a91a66A7D",
     "0x485cc9550000000000000000000000006edce65403992e310a62460808c4b910d972f10f000000000000000000000000dd3287043493e0a08d2b348397554096728b459c"
   ],
   "numDeployments": 1,
@@ -2105,7 +2461,7 @@
       "0xDd3287043493E0a08d2B348397554096728B459c"
     ]
   },
-  "implementation": "0x81e16A30Cd310D382De007DafcFb2DE11dE14A19",
+  "implementation": "0x49B0641e7a8aE2f42f18F2edb778162a91a66A7D",
   "devdoc": {
     "details": "This contract implements an upgradeable proxy. It is upgradeable because calls are delegated to an implementation address that can be changed. This address is stored in storage in the location specified by https://eips.ethereum.org/EIPS/eip-1967[EIP1967], so that it doesn't conflict with the storage layout of the implementation behind the proxy.",
     "kind": "dev",

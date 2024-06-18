@@ -40,14 +40,14 @@ export type AllNetworkType = TestNetworkType | MainNetworkType
 export type OFTContractType = 'OrderToken' | 'OrderAdapter' | 'OrderOFT' | 'OrderSafe' | 'OrderBox' | 'OrderSafeRelayer' | 'OrderBoxRelayer'
 
 export const TEST_NETWORKS = ['sepolia', 'arbitrumsepolia', 'opsepolia', 'amoy', 'basesepolia', 'orderlysepolia']  //   'fuji',  
-export const MAIN_NETWORKS = ['ethereum', 'arbitrum', 'optimism', 'polygon', 'base', 'mantle',  'orderly'] // 'avax',
+export const MAIN_NETWORKS = ['ethereum', 'arbitrum', 'optimism', 'polygon', 'base',   'orderly'] //'mantle', 'avax',
 export const OPTIONS = {
     "1": {
-        "gas": 55000,
+        "gas": 50000,
         "value": 0
     },
     "2": {
-        "gas": 150000,
+        "gas": 100000,
         "value": 0
     }
 }
@@ -84,6 +84,10 @@ type LzConfig = {
     endpointAddress: address,
     endpointId: number,
     chainId: number,
+}
+
+type TgeContract = {
+    occManager: address
 }
 
 // For most testnets/mainnets, the endpoint is the follow one, but need to check the actual endpoint under this doc https://docs.layerzero.network/v2/developers/evm/technical-reference/deployed-contracts
@@ -173,6 +177,89 @@ export const LZ_CONFIG: { [key: network]: LzConfig} = {
         endpointId: MainnetV2EndpointId.ORDERLY_V2_MAINNET,
         chainId: 291,
     },
+}
+
+export const TGE_CONTRACTS: { [key: env]: { [key: network]: TgeContract} } = {
+    'dev': {
+        "sepolia": {
+            occManager: "0x51E74D767f61f2445A4142E13e265A2128648Ea8",
+        },
+        "arbitrumsepolia": {
+            occManager: "0xBfC49421E6c7Fe554345FbDDa23C01ee1d3780C0",
+        },
+        "opsepolia": {
+            occManager: "0x99f7be5818F926B15678B8EfAC083ac74a059235",
+        },
+        "amoy": {
+            occManager: "0x51E74D767f61f2445A4142E13e265A2128648Ea8",
+        },
+        "basepolia": {
+            occManager: "0x86725bc9C5B43a55113E05E4293237Fcc75A6809",
+        },
+        "orderlysepolia": {
+            occManager: "0x3871038ab33A8961e91C5c9ca62A7662a3354Cbf",
+        }
+    },
+    'qa': {
+        "sepolia": {
+            occManager: "0xBfc0B179da8551C8cf62460B93e40071C5ef131D",
+        },
+        "arbitrumsepolia": {
+            occManager: "0x13b2d9219e4afb48c085e60a9cfacbc193a61f43",
+        },
+        "opsepolia": {
+            occManager: "0xB4FC7751D82b1D0F6f90c63E6c2fabB47dF25a96",
+        },
+        "amoy": {
+            occManager: "0x2BB903A155fae5cB8e9fDd6eaeB46EF95AC93FB9",
+        },
+        "basepolia": {
+            occManager: "0x5dC15b3492184F3dFf8f2c8206127C50c7dDFc24",
+        },
+        "orderlysepolia": {
+            occManager: "0x3F973968db1704AD98c372B591ac04Dbeb43a6E9",
+        }
+    },
+    'staging': {
+        "sepolia": {
+            occManager: "",
+        },
+        "arbitrumsepolia": {
+            occManager: "0x5dC15b3492184F3dFf8f2c8206127C50c7dDFc24",
+        },
+        "opsepolia": {
+            occManager: "",
+        },
+        "amoy": {
+            occManager: "",
+        },
+        "basesepolia": {
+            occManager: "",
+        },
+        "orderlysepolia": {
+            occManager: "0x5dC15b3492184F3dFf8f2c8206127C50c7dDFc24",
+        }
+    },
+    'mainnet': {
+        "ethereum": {
+            occManager: "",
+        },
+        "arbitrum": {
+            occManager: "",
+        },
+        "optimism": {
+            occManager: "",
+        },
+        "polygon": {
+            occManager: "",
+        },
+        "base": {
+            occManager: "",
+        },
+        "orderly": {
+            occManager: "",
+        }
+    }
 }
 
 export function getLzConfig(network: network): LzConfig {
