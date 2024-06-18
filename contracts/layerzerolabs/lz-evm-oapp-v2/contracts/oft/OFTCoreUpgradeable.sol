@@ -58,14 +58,19 @@ abstract contract OFTCoreUpgradeable is
     mapping(uint32 => mapping(bytes32 => uint64)) public maxReceivedNonce;
     // @dev Flag to enforce ordered nonce for each channel: srcEid => bool
     mapping(uint32 => bool) public orderedNonce;
-    address public occManager;
+    // @dev Trust Orderly addresses
+    mapping(address => bool) public trustOderlyAddress;
+    bool public onlyOrderly;
 
-    uint256[47] private __gap;
+    uint256[46] private __gap;
 
     event MsgInspectorSet(address inspector);
 
-    modifier onlyOCCManager(address _addr) {
-        require(_addr == occManager, "OFT: Only OCCManager");
+    // @dev Restrict the caller on Orderly chain that only we can call certain functions
+    modifier checkCaller(address _addr) {
+        if (onlyOrderly) {
+            require(trustOderlyAddress[_addr], "OFT: Only Trust Orderly Address");
+        }
         _;
     }
 
@@ -216,6 +221,7 @@ abstract contract OFTCoreUpgradeable is
         override
         whenNotPaused
         zeroAddressCheck(_sendParam.to.bytes32ToAddress())
+        checkCaller(msg.sender)
         returns (MessagingReceipt memory msgReceipt, OFTReceipt memory oftReceipt)
     {
         // @dev Applies the token transfers regarding this send() operation.
@@ -473,10 +479,6 @@ abstract contract OFTCoreUpgradeable is
         }
     }
 
-    function setOCCManager(address _addr) public onlyOwner zeroAddressCheck(_addr) {
-        occManager = _addr;
-    }
-
     /**
      * @dev Get the next nonce for the sender
      * @param _srcEid The eid of the source chain
@@ -561,6 +563,14 @@ abstract contract OFTCoreUpgradeable is
         for (uint256 i = 0; i < _srcEids.length; i++) {
             orderedNonce[_srcEids[i]] = _orderedNonces[i];
         }
+    }
+
+    function setTrustAddress(address _addr, bool _status) public onlyOwner zeroAddressCheck(_addr) {
+        trustOderlyAddress[_addr] = _status;
+    }
+
+    function setOnlyOrderly(bool _status) public onlyOwner {
+        onlyOrderly = _status;
     }
     /**
      * @dev Check and accept the nonce of the inbound message

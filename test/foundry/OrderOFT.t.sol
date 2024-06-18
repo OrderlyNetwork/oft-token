@@ -81,7 +81,7 @@ contract OrderOFTTest is TestHelperOz5 {
 
     function setUp() public override {
         vm.deal(address(this), 1000000 ether);
-
+        vm.deal(address(1), 1000000 ether);
         // Set the OFT contracts
         _setOft();
 
@@ -155,6 +155,58 @@ contract OrderOFTTest is TestHelperOz5 {
             vm.prank(spender);
             vm.expectRevert(PausableUpgradeable.EnforcedPause.selector);
             IERC20(ofts[i]).transferFrom(address(this), spender, tokenToSend);
+        }
+    }
+
+    function test_trust_caller() public {
+        oftInstances[MAX_OFTS - 1].setTrustAddress(address(this), true);
+        oftInstances[MAX_OFTS - 1].setOnlyOrderly(true);
+        uint256 tokenToSend = 1 ether;
+        bytes memory options = OptionsBuilder.newOptions().addExecutorLzReceiveOption(RECEIVE_GAS, VALUE);
+        uint256 oldBalance;
+        uint256 newBalance;
+        for (uint8 i = 0; i < MAX_OFTS - 1; i++) {
+            _checkApproval(i);
+            SendParam memory sendParam = SendParam(
+                eids[MAX_OFTS - 1],
+                addressToBytes32(address(1)),
+                tokenToSend,
+                tokenToSend,
+                options,
+                "",
+                ""
+            );
+            MessagingFee memory fee = oftInstances[i].quoteSend(sendParam, false);
+            oftInstances[i].send{ value: fee.nativeFee }(sendParam, fee, payable(address(this)));
+            oldBalance = IERC20(oftInstances[MAX_OFTS - 1].token()).balanceOf(address(1));
+            verifyPackets(eids[MAX_OFTS - 1], addressToBytes32(ofts[MAX_OFTS - 1]));
+            newBalance = IERC20(oftInstances[MAX_OFTS - 1].token()).balanceOf(address(1));
+            assertEq(newBalance, oldBalance + tokenToSend);
+        }
+
+        for (uint8 i = 0; i < MAX_OFTS - 1; i++) {
+            SendParam memory sendParam = SendParam(
+                eids[i],
+                addressToBytes32(address(1)),
+                tokenToSend,
+                tokenToSend,
+                options,
+                "",
+                ""
+            );
+            MessagingFee memory fee = oftInstances[MAX_OFTS - 1].quoteSend(sendParam, false);
+            // untrusted caller to send token from Orderly chain to other chains
+            vm.startPrank(address(1));
+            vm.expectRevert("OFT: Only Trust Orderly Address");
+            oftInstances[MAX_OFTS - 1].send{ value: fee.nativeFee }(sendParam, fee, payable(address(1)));
+            vm.stopPrank();
+
+            // trusted caller to send token from Orderly chain to other chains
+            oftInstances[MAX_OFTS - 1].send{ value: fee.nativeFee }(sendParam, fee, payable(address(this)));
+            oldBalance = IERC20(oftInstances[i].token()).balanceOf(address(1));
+            verifyPackets(eids[i], addressToBytes32(ofts[i]));
+            newBalance = IERC20(oftInstances[i].token()).balanceOf(address(1));
+            assertEq(newBalance, oldBalance + tokenToSend);
         }
     }
 
