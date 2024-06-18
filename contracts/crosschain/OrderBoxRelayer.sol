@@ -10,15 +10,8 @@ import { OrderBoxRelayerStorage } from "./storage/OrderBoxRelayerStorage.sol";
 import { IOrderBoxRelayer } from "./interfaces/IOrderBoxRelayer.sol";
 import { OrderRelayerBase } from "./base/OrderRelayerBase.sol";
 import { IOrderBox } from "./interfaces/IOrderBox.sol";
-import { IOCCManager } from "../layerzerolabs/lz-evm-oapp-v2/contracts/oft/interfaces/IOCCManager.sol";
 
-contract OrderBoxRelayer is
-    IOrderBoxRelayer,
-    ILayerZeroComposer,
-    IOCCManager,
-    OrderRelayerBase,
-    OrderBoxRelayerStorage
-{
+contract OrderBoxRelayer is IOrderBoxRelayer, ILayerZeroComposer, OrderRelayerBase, OrderBoxRelayerStorage {
     using OFTComposeMsgCodec for bytes;
     using SafeERC20 for IERC20;
 
@@ -33,17 +26,6 @@ contract OrderBoxRelayer is
         uint32 srcEid = _message.srcEid();
         address remoteSender = OFTComposeMsgCodec.bytes32ToAddress(_message.composeFrom());
         _authorizeComposeMsgSender(msg.sender, _from, srcEid, remoteSender);
-        (address staker, uint256 amount) = abi.decode(composeMsg, (address, uint256));
-        IERC20 token = IERC20(IOFT(oft).token());
-        token.safeTransfer(orderBox, amount);
-        IOrderBox(orderBox).stakeOrder(_getChainId(srcEid), staker, amount);
-    }
-
-    function occReceive(bytes calldata _message) public payable {
-        bytes memory composeMsg = _message.composeMsg();
-        uint32 srcEid = _message.srcEid();
-        address remoteSender = OFTComposeMsgCodec.bytes32ToAddress(_message.composeFrom());
-        _authorizeOCCMsgSender(msg.sender, srcEid, remoteSender);
         (address staker, uint256 amount) = abi.decode(composeMsg, (address, uint256));
         IERC20 token = IERC20(IOFT(oft).token());
         token.safeTransfer(orderBox, amount);

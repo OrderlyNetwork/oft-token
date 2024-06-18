@@ -29,22 +29,6 @@ contract OrderSafe is IOrderSafe, OrderBaseUpgradeable, OrderSafeStorage {
         emit OrderStaked(_staker, _amount);
     }
 
-    function relayStakeOrder(
-        address _staker,
-        uint256 _amount
-    ) public payable whenNotPaused returns (MessagingReceipt memory msgReceipt, OFTReceipt memory oftReceipt) {
-        require(msg.sender == _staker, "OrderSafe: sender must be staker");
-        // Get the token address from the of contract, it could be the oft contract itself or a native erc20 contract
-        IERC20 token = IERC20(IOFT(oft).token());
-
-        // Transfer the amount from the staker to the relayer contract
-        // Staker should approve the safe contract to spend the amount first
-        token.safeTransferFrom(_staker, safeRelayer, _amount);
-        // Call the relayer contract to send the stake message
-        (msgReceipt, oftReceipt) = IOrderSafeRelayer(safeRelayer).relayStakeMsg{ value: msg.value }(_staker, _amount);
-        emit OrderStaked(_staker, _amount);
-    }
-
     function unstakeOrder(address _staker, uint256 _amount) public whenNotPaused {
         require(msg.sender == _staker, "OrderSafe: sender must be staker");
         // Call the relayer contract to send the unstake message
@@ -68,9 +52,5 @@ contract OrderSafe is IOrderSafe, OrderBaseUpgradeable, OrderSafeStorage {
 
     function getStakeFee(address _staker, uint256 _amount) public view returns (uint256) {
         return IOrderSafeRelayer(safeRelayer).getStakeFee(_staker, _amount);
-    }
-
-    function getRelayStakeFee(address _staker, uint256 _amount) public view returns (uint256) {
-        return IOrderSafeRelayer(safeRelayer).getRelayStakeFee(_staker, _amount);
     }
 }
