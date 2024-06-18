@@ -176,7 +176,7 @@ contract OrderOFTTest is TestHelperOz5 {
                     ""
                 );
                 MessagingFee memory fee = oftInstances[i].quoteSend(sendParam, false);
-                vm.expectRevert("OFT: Transfer to ZeroAddress");
+                vm.expectRevert("OFT: ZeroAddress");
                 oftInstances[i].send{ value: fee.nativeFee }(sendParam, fee, payable(address(this)));
             }
         }

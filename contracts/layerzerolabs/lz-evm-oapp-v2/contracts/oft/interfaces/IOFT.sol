@@ -70,21 +70,6 @@ interface IOFT {
         uint256 amountReceivedLD // Amount of tokens received in local decimals.
     );
 
-    // Events
-    event OCCSent(
-        bytes32 indexed guid, // GUID of the OCC message.
-        uint32 dstEid, // Destination Endpoint ID.
-        address indexed fromAddress, // Address of the sender on the src chain.
-        uint256 amountSentLD, // Amount of tokens sent in local decimals.
-        uint256 amountReceivedLD // Amount of tokens received in local decimals.
-    );
-    event OCCReceived(
-        bytes32 indexed guid, // GUID of the OCC message.
-        uint32 srcEid, // Source Endpoint ID.
-        address indexed toAddress, // Address of the recipient on the dst chain.
-        uint256 amountReceivedLD // Amount of tokens received in local decimals.
-    );
-
     /**
      * @notice Retrieves interfaceID and the version of the OFT.
      * @return interfaceId The interface ID.
@@ -157,39 +142,6 @@ interface IOFT {
      *  - fee: The LayerZero fee incurred for the message.
      */
     function send(
-        SendParam calldata _sendParam,
-        MessagingFee calldata _fee,
-        address _refundAddress
-    ) external payable returns (MessagingReceipt memory, OFTReceipt memory);
-
-    /**
-     * @notice Provides a quote for the relay() operation.
-     * @param _sendParam The parameters for the relay() operation.
-     * @param _payInLzToken Flag indicating whether the caller is paying in the LZ token.
-     * @return fee The calculated LayerZero messaging fee from the relay() operation.
-     *
-     * @dev MessagingFee: LayerZero msg fee
-     *  - nativeFee: The native fee.
-     *  - lzTokenFee: The lzToken fee.
-     */
-    function quoteRelay(SendParam calldata _sendParam, bool _payInLzToken) external view returns (MessagingFee memory);
-
-    /**
-     * @notice Executes the relay() operation.
-     * @param _sendParam The parameters for the relay operation.
-     * @param _fee The fee information supplied by the caller.
-     *      - nativeFee: The native fee.
-     *      - lzTokenFee: The lzToken fee.
-     * @param _refundAddress The address to receive any excess funds from fees etc. on the src.
-     * @return receipt The LayerZero messaging receipt from the relay() operation.
-     * @return oftReceipt The OFT receipt information.
-     *
-     * @dev MessagingReceipt: LayerZero msg receipt
-     *  - guid: The unique identifier for the sent message.
-     *  - nonce: The nonce of the sent message.
-     *  - fee: The LayerZero fee incurred for the message.
-     */
-    function relay(
         SendParam calldata _sendParam,
         MessagingFee calldata _fee,
         address _refundAddress
