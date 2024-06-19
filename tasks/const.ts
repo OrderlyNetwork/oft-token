@@ -182,62 +182,62 @@ export const LZ_CONFIG: { [key: network]: LzConfig} = {
 export const TGE_CONTRACTS: { [key: env]: { [key: network]: TgeContract} } = {
     'dev': {
         "sepolia": {
-            occManager: "",
+            occManager: "0x0180107E72FB14a22a776913063b8a4081E9dc94",
         },
         "arbitrumsepolia": {
-            occManager: "",
+            occManager: "0x0180107E72FB14a22a776913063b8a4081E9dc94",
         },
         "opsepolia": {
-            occManager: "",
+            occManager: "0x0180107E72FB14a22a776913063b8a4081E9dc94",
         },
         "amoy": {
-            occManager: "",
+            occManager: "0x0180107E72FB14a22a776913063b8a4081E9dc94",
         },
         "basepolia": {
-            occManager: "",
+            occManager: "0x0180107E72FB14a22a776913063b8a4081E9dc94",
         },
         "orderlysepolia": {
-            occManager: "",
+            occManager: "0xb846DF606b592B9646db03aE2568951651D9D5BC",
         }
     },
     'qa': {
         "sepolia": {
-            occManager: "",
+            occManager: "0xB20A18d8A53Ea23A5E8da32465De374f942693D7",
         },
         "arbitrumsepolia": {
-            occManager: "",
+            occManager: "0xB20A18d8A53Ea23A5E8da32465De374f942693D7",
         },
         "opsepolia": {
-            occManager: "",
+            occManager: "0xB20A18d8A53Ea23A5E8da32465De374f942693D7",
         },
         "amoy": {
-            occManager: "",
+            occManager: "0xB20A18d8A53Ea23A5E8da32465De374f942693D7",
         },
         "basesepolia": {
-            occManager: "",
+            occManager: "0xB20A18d8A53Ea23A5E8da32465De374f942693D7",
         },
         "orderlysepolia": {
-            occManager: "",
+            occManager: "0xD14bEE159B4a8E918f0A43EBf2F801eea93BeD53",
         }
     },
     'staging': {
         "sepolia": {
-            occManager: "",
+            occManager: "0x912196EB2583A2f0a18FaD632ee5dB65B8C93EEf",
         },
         "arbitrumsepolia": {
-            occManager: "",
+            occManager: "0x912196EB2583A2f0a18FaD632ee5dB65B8C93EEf",
         },
         "opsepolia": {
-            occManager: "",
+            occManager: "0x912196EB2583A2f0a18FaD632ee5dB65B8C93EEf",
         },
         "amoy": {
-            occManager: "",
+            occManager: "0x912196EB2583A2f0a18FaD632ee5dB65B8C93EEf",
         },
         "basesepolia": {
-            occManager: "",
+            occManager: "0x912196EB2583A2f0a18FaD632ee5dB65B8C93EEf",
         },
         "orderlysepolia": {
-            occManager: "",
+            occManager: "0x45f3039A9A0eefcC8997e030d9F3cCBb1A7AC6C1",
         }
     },
     'mainnet': {

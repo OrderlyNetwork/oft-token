@@ -492,7 +492,7 @@ task("order:oft:distribute", "Distribute tokens to all OFT contracts on differen
                         // console.log(`Estimated gas: ${estimateGas}`)
                         const approveTx = await erc20Contract.approve(localContractAddress, tokenAmount, 
                             {   
-                                // gasPrice: 1000000000,
+                              
                                 gasLimit: 10 * Number(estimateGas),
                                 nonce: nonce++
                             })
