@@ -350,8 +350,6 @@ task("order:oft:set", "Connect OFT contracs on different networks: OrderOFT, Ord
             let enforcedOptions = []
             let eids1 = []
             let peers = []
-            let eids2 = []
-            let orderedNonces = []
             const localContractName = oftContractName(fromNetwork)
             const localContractAddress = await loadContractAddress(taskArgs.env, fromNetwork, localContractName) as string
             const localContract = await hre.ethers.getContractAt(localContractName, localContractAddress, signer)
@@ -381,19 +379,6 @@ task("order:oft:set", "Connect OFT contracs on different networks: OrderOFT, Ord
                     } else {
                         console.log(`Already peered from ${fromNetwork} to ${toNetwork}`)
                     }
-
-                    const orderedNonce = await localContract.orderedNonce(lzConfig["endpointId"])
-                    if (!orderedNonce) {
-                        // const txSetOrderedNonce = await localContract.setOrderedNonce(lzConfig["endpointId"], true, {
-                        //     nonce: nonce++
-                        // })
-                        // await txSetOrderedNonce.wait()
-                        // console.log(`Ordered nonce enabled from ${toNetwork} with tx hash ${txSetOrderedNonce.hash}`)
-                        eids2.push(lzConfig["endpointId"])
-                        orderedNonces.push(true)
-                    } else {
-                        console.log(`Ordered nonce from ${toNetwork} to ${fromNetwork} already enabled`)
-                    }
                     const types = [1,2]
                     for (const type of types) {
                         const typeOptionOnContract = await localContract.enforcedOptions(lzConfig["endpointId"], type)
@@ -422,13 +407,6 @@ task("order:oft:set", "Connect OFT contracs on different networks: OrderOFT, Ord
                 console.log(`All peers already set for ${fromNetwork}`)
             }
 
-            if (eids2.length > 0) {
-                const txSetOrderedNonces = await localContract.setBatchOrderedNonce(eids2, orderedNonces, {nonce: nonce++})
-                await txSetOrderedNonces.wait()
-                console.log(`Ordered nonces set for ${fromNetwork} with tx hash ${txSetOrderedNonces.hash}`)
-            } else {
-                console.log(`All ordered nonces already set for ${fromNetwork}`)
-            }
 
             if (enforcedOptions.length > 0) {
                 const txSetEnforcedOptions = await localContract.setEnforcedOptions(enforcedOptions, {nonce: nonce++})
@@ -440,16 +418,38 @@ task("order:oft:set", "Connect OFT contracs on different networks: OrderOFT, Ord
             }
 
             const occManagerAddress = TGE_CONTRACTS[taskArgs.env][fromNetwork].occManager
-            const occManagerOnContract = await localContract.occManager()
-            if (occManagerAddress && (occManagerAddress !== occManagerOnContract)) {
-                const txSetOccManager = await localContract.setOCCManager(occManagerAddress, {
-                    nonce: nonce++
-                })
-                await txSetOccManager.wait()
-                console.log(`Set OCC manager address ${occManagerAddress} on ${localContractName}`)
+            // const occManagerAddress = "0xDd3287043493E0a08d2B348397554096728B459c"
+            if (occManagerAddress) {
+                const trustedStatus = await localContract.trustOderlyAddress(occManagerAddress)
+                if (!trustedStatus) {
+                    const txTrustOrderly = await localContract.setTrustAddress(occManagerAddress, true, {
+                        nonce: nonce++
+                    })
+                    await txTrustOrderly.wait()
+                    console.log(`Trusted Orderly OCC address ${occManagerAddress} on ${localContractName}`)
+                } else {
+                    console.log(`Orderly OCC address already trusted on ${localContractName}`)
+                }
             } else {
-                console.log(`OCC manager address not found for ${taskArgs.env} ${fromNetwork}, or already set on ${localContractName}`)
+                console.log(`No Orderly OCC address found on ${fromNetwork}`)
             }
+
+            if (fromNetwork === 'orderly' || fromNetwork === 'orderlysepolia') {
+                const onlyOrderlyEnabled = await localContract.onlyOrderly()
+
+                if (!onlyOrderlyEnabled) {
+                    const txSetOnlyOrderly = await localContract.setOnlyOrderly(true, {
+                        nonce: nonce++
+                    })
+                    await txSetOnlyOrderly.wait()
+                    console.log(`Set only orderly enabled on ${localContractName}`)
+                } else {
+                    console.log(`Only orderly already enabled on ${localContractName}`)
+                }
+            } else {
+                console.log(`Only orderly shouldn't be enabled on ${localContractName}`)
+            }
+            
 
         }
         catch (e) {
@@ -492,7 +492,7 @@ task("order:oft:distribute", "Distribute tokens to all OFT contracts on differen
                         // console.log(`Estimated gas: ${estimateGas}`)
                         const approveTx = await erc20Contract.approve(localContractAddress, tokenAmount, 
                             {   
-                                gasPrice: 1000000000,
+                                // gasPrice: 1000000000,
                                 gasLimit: 10 * Number(estimateGas),
                                 nonce: nonce++
                             })
@@ -514,7 +514,7 @@ task("order:oft:distribute", "Distribute tokens to all OFT contracts on differen
 
                     const estimateGas = await localContract.estimateGas.send(param, fee, signer.address, 
                         {  
-                            gasPrice: 1000000000,
+                            // gasPrice: 1000000000,
                             value: fee.nativeFee,
                             nonce: nonce
                         })
