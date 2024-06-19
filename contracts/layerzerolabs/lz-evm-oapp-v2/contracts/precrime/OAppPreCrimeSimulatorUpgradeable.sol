@@ -14,6 +14,11 @@ abstract contract OAppPreCrimeSimulatorUpgradeable is IOAppPreCrimeSimulator, Ow
     // The address of the preCrime implementation.
     address public preCrime;
 
+    /* ============================ Storage Slots + __gap == 50 ============================ */
+    // @dev The gap to prevent storage collisions
+    // @dev https://docs.openzeppelin.com/upgrades-plugins/1.x/writing-upgradeable#storage-gaps
+    // @dev New storage should be added below this line, and no exceeding 50 slots
+    uint256[50] private __gap;
     /**
      * @dev Retrieves the address of the OApp contract.
      * @return The address of the OApp contract.
