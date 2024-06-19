@@ -6,7 +6,7 @@ import { ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
  * @title OrderToken
  * @author Orderly Network
  * @dev OrderToken is the native ERC20 token for the Orderly Network and only deployed on Ethereum.
- * It is used to incentivize the traders and market markers on Orderly Network.
+ *      It is used to incentivize the traders and market markers on Orderly Network.
  */
 contract OrderToken is ERC20 {
     /**
