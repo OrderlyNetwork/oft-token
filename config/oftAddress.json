@@ -1,75 +1,65 @@
 {
   "dev": {
     "sepolia": {
-      "OrderToken": "0xEE75DD3A00acCbE2AB6b486a9C1763B02468C3e1",
-      "OrderAdapter": "0x581BE804Ba3A74DFcD86014c093042EB93508876"
+      "OrderToken": "0x4cdE8A33afbb7f0F80841d9AE3Ada59fA1413F38",
+      "OrderAdapter": "0x42A1D4a8459bB5B0FeA4f923A576d1A4e6290Db5"
     },
     "arbitrumsepolia": {
-      "OrderOFT": "0x6850bdEe5a830AE53b161B3246d68F202a6C14B7",
-      "OrderSafe": "0xD368c0A57FCacB04Fa9B2e1eFB377d0EC2816304",
-      "OrderSafeRelayer": "0x35e9DB7F1eE48Ee640c12E76057DecBEB9d62007"
+      "OrderOFT": "0xe2eB2df1CA9D90c8501049bAEEEf57f111782903"
     },
     "opsepolia": {
-      "OrderOFT": "0x6850bdEe5a830AE53b161B3246d68F202a6C14B7"
+      "OrderOFT": "0xe2eB2df1CA9D90c8501049bAEEEf57f111782903"
     },
     "amoy": {
-      "OrderOFT": "0x6850bdEe5a830AE53b161B3246d68F202a6C14B7"
+      "OrderOFT": "0xe2eB2df1CA9D90c8501049bAEEEf57f111782903"
     },
     "basesepolia": {
-      "OrderOFT": "0x6850bdEe5a830AE53b161B3246d68F202a6C14B7"
+      "OrderOFT": "0xe2eB2df1CA9D90c8501049bAEEEf57f111782903"
     },
     "orderlysepolia": {
-      "OrderOFT": "0x6850bdEe5a830AE53b161B3246d68F202a6C14B7",
-      "OrderBox": "0xEbd68f0Aac42cFb13f9a69f83e1e0c0b48BeB32a",
-      "OrderBoxRelayer": "0x4dc9DD48d9043daf8D3844725a6c8acAB9ba4F42"
-    },
-    "fuji": {
-      "OrderOFT": "0x6850bdEe5a830AE53b161B3246d68F202a6C14B7"
+      "OrderOFT": "0xe2eB2df1CA9D90c8501049bAEEEf57f111782903"
     }
   },
   "qa": {
     "sepolia": {
-      "OrderToken": "0x3D3791D96C9C6d9A429D68Ac5c90210C1c269bB6",
-      "OrderAdapter": "0x90573a6725202A16cd7d786167d947FC3fB1e628"
+      "OrderToken": "0x8F7c2c827f0E9248CB5cf81fE732FDa62207F09c",
+      "OrderAdapter": "0xaEc5B1E45E8383926ef5095Da0a4a1da95C3D4cc"
     },
     "arbitrumsepolia": {
-      "OrderOFT": "0xb6B4CCe7da1d67d720a5C79143e6383D5ff8b16D"
+      "OrderOFT": "0x562874e9fcb02Ae6164781EcFb4AeAa169E99B18"
     },
     "amoy": {
-      "OrderOFT": "0xb6B4CCe7da1d67d720a5C79143e6383D5ff8b16D"
+      "OrderOFT": "0x562874e9fcb02Ae6164781EcFb4AeAa169E99B18"
     },
     "opsepolia": {
-      "OrderOFT": "0xb6B4CCe7da1d67d720a5C79143e6383D5ff8b16D"
+      "OrderOFT": "0x562874e9fcb02Ae6164781EcFb4AeAa169E99B18"
     },
     "basesepolia": {
-      "OrderOFT": "0xb6B4CCe7da1d67d720a5C79143e6383D5ff8b16D"
+      "OrderOFT": "0x562874e9fcb02Ae6164781EcFb4AeAa169E99B18"
     },
     "orderlysepolia": {
-      "OrderOFT": "0xb6B4CCe7da1d67d720a5C79143e6383D5ff8b16D"
-    },
-    "fuji": {
-      "OrderOFT": "0xb6B4CCe7da1d67d720a5C79143e6383D5ff8b16D"
+      "OrderOFT": "0x562874e9fcb02Ae6164781EcFb4AeAa169E99B18"
     }
   },
   "staging": {
     "sepolia": {
-      "OrderToken": "0x72e8F30e9532968eF545E8e7369D2a12cdfcd5B0",
-      "OrderAdapter": "0x6cE51d49E1F5F8C8651697A7Fdb2322D8709E27F"
+      "OrderToken": "0xF706d113f17bDb5d571Ce58A353360537110A357",
+      "OrderAdapter": "0x4E2ECA66576aCdCB56AA4acE314f812Bdc097A4A"
     },
     "opsepolia": {
-      "OrderOFT": "0xEfe7959E7440e34c3cB3675d86bF2abf0434FaAf"
+      "OrderOFT": "0x2921a94509a17aebC1bB4d5bb35e3919Cd2a0BA8"
     },
     "amoy": {
-      "OrderOFT": "0xEfe7959E7440e34c3cB3675d86bF2abf0434FaAf"
+      "OrderOFT": "0x2921a94509a17aebC1bB4d5bb35e3919Cd2a0BA8"
     },
     "arbitrumsepolia": {
-      "OrderOFT": "0xEfe7959E7440e34c3cB3675d86bF2abf0434FaAf"
+      "OrderOFT": "0x2921a94509a17aebC1bB4d5bb35e3919Cd2a0BA8"
     },
     "basesepolia": {
-      "OrderOFT": "0xEfe7959E7440e34c3cB3675d86bF2abf0434FaAf"
+      "OrderOFT": "0x2921a94509a17aebC1bB4d5bb35e3919Cd2a0BA8"
     },
     "orderlysepolia": {
-      "OrderOFT": "0xEfe7959E7440e34c3cB3675d86bF2abf0434FaAf"
+      "OrderOFT": "0x2921a94509a17aebC1bB4d5bb35e3919Cd2a0BA8"
     }
   }
 }
