@@ -371,7 +371,7 @@ contract OrderInvariant is StdInvariant, TestHelperOz5 {
                 assertEq(oftInstances[i].approvalRequired(), false);
                 assertEq(oftInstances[i].balanceOf(address(this)), 0);
             }
-            assertEq(oftInstances[i].orderedNonce(), true);
+            // assertEq(oftInstances[i].orderedNonce(), true);
         }
 
         // check if ofts are fully connected

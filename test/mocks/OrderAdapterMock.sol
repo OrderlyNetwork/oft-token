@@ -10,7 +10,7 @@ contract OrderAdapterMock is OrderAdapter {
         return _removeDust(_amountLD);
     }
 
-    function getMaxReceivedNonce(uint32 _srcEid, bytes32 _sender) public returns (uint64) {
-        return maxReceivedNonce[_srcEid][_sender];
-    }
+    // function getMaxReceivedNonce(uint32 _srcEid, bytes32 _sender) public returns (uint64) {
+    //     return maxReceivedNonce[_srcEid][_sender];
+    // }
 }

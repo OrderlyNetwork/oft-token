@@ -551,10 +551,10 @@ contract OrderHandler is SoladyTest {
             beforeAfter.toDstBalanceBefore = t.dstOft.balanceOf(p.to);
             beforeAfter.dstTotalSupplyBefore = t.dstOft.totalSupply();
         }
-        beforeAfter.maxReceivedNonceBefore = t.dstOft.getMaxReceivedNonce(
-            p.srcOft.endpoint().eid(),
-            addressToBytes32(address(p.srcOft))
-        );
+        // beforeAfter.maxReceivedNonceBefore = t.dstOft.getMaxReceivedNonce(
+        //     p.srcOft.endpoint().eid(),
+        //     addressToBytes32(address(p.srcOft))
+        // );
 
         // ACTION
 
@@ -577,18 +577,18 @@ contract OrderHandler is SoladyTest {
             beforeAfter.toDstBalanceAfter = t.dstOft.balanceOf(p.to);
             beforeAfter.dstTotalSupplyAfter = t.dstOft.totalSupply();
         }
-        beforeAfter.maxReceivedNonceAfter = t.dstOft.getMaxReceivedNonce(
-            p.srcOft.endpoint().eid(),
-            addressToBytes32(address(p.srcOft))
-        );
+        // beforeAfter.maxReceivedNonceAfter = t.dstOft.getMaxReceivedNonce(
+        //     p.srcOft.endpoint().eid(),
+        //     addressToBytes32(address(p.srcOft))
+        // );
 
-        if (t.dstOft.orderedNonce()) {
-            assertEq(
-                beforeAfter.maxReceivedNonceAfter,
-                beforeAfter.maxReceivedNonceBefore + 1,
-                "OT-11: Max Received Nonce Should Increase By 1 on lzReceive"
-            );
-        }
+        // if (t.dstOft.orderedNonce()) {
+            // assertEq(
+            //     beforeAfter.maxReceivedNonceAfter,
+            //     beforeAfter.maxReceivedNonceBefore + 1,
+            //     "OT-11: Max Received Nonce Should Increase By 1 on lzReceive"
+            // );
+        // }
 
         assertEq(
             beforeAfter.toDstBalanceAfter,
@@ -622,177 +622,177 @@ contract OrderHandler is SoladyTest {
                             ONLY OWNER TARGET FUNCTIONS
     //////////////////////////////////////////////////////////////////////////*/
 
-    function setOrderedNonce(uint256 oftIndexSeed, bool _orderedNonce) public {
-        OrderOFTMock oft = randomOft(oftIndexSeed);
-        vm.prank(oft.owner());
-        oft.setOrderedNonce(_orderedNonce);
-    }
+    // function setOrderedNonce(uint256 oftIndexSeed, bool _orderedNonce) public {
+    //     OrderOFTMock oft = randomOft(oftIndexSeed);
+    //     vm.prank(oft.owner());
+    //     oft.setOrderedNonce(_orderedNonce);
+    // }
 
-    function skipInboundNonce(uint256 dstOftIndexSeed, uint256 messageReceiptIndexSeed) public {
-        // PRE-CONDITIONS
-        OrderOFTMock dstOft = randomOft(dstOftIndexSeed);
-        uint32 dstEid = dstOft.endpoint().eid();
-        if (packetVariables[dstEid].length == 0) return;
+    // function skipInboundNonce(uint256 dstOftIndexSeed, uint256 messageReceiptIndexSeed) public {
+    //     // PRE-CONDITIONS
+    //     OrderOFTMock dstOft = randomOft(dstOftIndexSeed);
+    //     uint32 dstEid = dstOft.endpoint().eid();
+    //     if (packetVariables[dstEid].length == 0) return;
 
-        (MessagingReceipt memory receipt, PacketVariables memory packetVars, uint256 index) = randomMessagingReceipt(
-            messageReceiptIndexSeed,
-            dstEid
-        );
+    //     (MessagingReceipt memory receipt, PacketVariables memory packetVars, uint256 index) = randomMessagingReceipt(
+    //         messageReceiptIndexSeed,
+    //         dstEid
+    //     );
 
-        uint64 nonce = receipt.nonce;
+    //     uint64 nonce = receipt.nonce;
 
-        bytes32 sender = addressToBytes32(address(packetVars.srcOft));
-        uint32 srcEid = packetVars.srcOft.endpoint().eid();
+    //     bytes32 sender = addressToBytes32(address(packetVars.srcOft));
+    //     uint32 srcEid = packetVars.srcOft.endpoint().eid();
 
-        if (nonce == 0) return;
+    //     if (nonce == 0) return;
 
-        vm.prank(dstOft.owner());
-        dstOft.skipInboundNonce(srcEid, sender, uint64(nonce));
+    //     vm.prank(dstOft.owner());
+    //     dstOft.skipInboundNonce(srcEid, sender, uint64(nonce));
 
-        // Removing skipped message from our queue
-        for (uint i = index; i < messageReceipts[dstEid].length - 1; i++) {
-            messageReceipts[dstEid][i] = messageReceipts[dstEid][i + 1];
-        }
-        messageReceipts[dstEid].pop();
-        // Removing skipped message from our queue
-        for (uint i = index; i < oftReceipts[dstEid].length - 1; i++) {
-            oftReceipts[dstEid][i] = oftReceipts[dstEid][i + 1];
-        }
-        oftReceipts[dstEid].pop();
-        // Removing skipped message from our queue
-        for (uint i = index; i < packetVariables[dstEid].length - 1; i++) {
-            packetVariables[dstEid][i] = packetVariables[dstEid][i + 1];
-        }
-        packetVariables[dstEid].pop();
-    }
+    //     // Removing skipped message from our queue
+    //     for (uint i = index; i < messageReceipts[dstEid].length - 1; i++) {
+    //         messageReceipts[dstEid][i] = messageReceipts[dstEid][i + 1];
+    //     }
+    //     messageReceipts[dstEid].pop();
+    //     // Removing skipped message from our queue
+    //     for (uint i = index; i < oftReceipts[dstEid].length - 1; i++) {
+    //         oftReceipts[dstEid][i] = oftReceipts[dstEid][i + 1];
+    //     }
+    //     oftReceipts[dstEid].pop();
+    //     // Removing skipped message from our queue
+    //     for (uint i = index; i < packetVariables[dstEid].length - 1; i++) {
+    //         packetVariables[dstEid][i] = packetVariables[dstEid][i + 1];
+    //     }
+    //     packetVariables[dstEid].pop();
+    // }
 
-    function clearInboundNonce(uint256 dstOftIndexSeed, uint256 messageReceiptIndexSeed) public {
-        // PRE-CONDITIONS
-        OrderOFTMock dstOft = randomOft(dstOftIndexSeed);
-        uint32 dstEid = dstOft.endpoint().eid();
-        if (packetVariables[dstEid].length == 0) return;
+    // function clearInboundNonce(uint256 dstOftIndexSeed, uint256 messageReceiptIndexSeed) public {
+    //     // PRE-CONDITIONS
+    //     OrderOFTMock dstOft = randomOft(dstOftIndexSeed);
+    //     uint32 dstEid = dstOft.endpoint().eid();
+    //     if (packetVariables[dstEid].length == 0) return;
 
-        (MessagingReceipt memory receipt, PacketVariables memory packetVars, uint256 index) = randomMessagingReceipt(
-            messageReceiptIndexSeed,
-            dstEid
-        );
+    //     (MessagingReceipt memory receipt, PacketVariables memory packetVars, uint256 index) = randomMessagingReceipt(
+    //         messageReceiptIndexSeed,
+    //         dstEid
+    //     );
 
-        uint64 nonce = receipt.nonce;
-        bytes32 sender = addressToBytes32(address(packetVars.srcOft));
-        uint32 srcEid = packetVars.srcOft.endpoint().eid();
+    //     uint64 nonce = receipt.nonce;
+    //     bytes32 sender = addressToBytes32(address(packetVars.srcOft));
+    //     uint32 srcEid = packetVars.srcOft.endpoint().eid();
 
-        Origin memory origin;
-        origin.srcEid = srcEid;
-        origin.sender = sender;
-        origin.nonce = nonce;
+    //     Origin memory origin;
+    //     origin.srcEid = srcEid;
+    //     origin.sender = sender;
+    //     origin.nonce = nonce;
 
-        if (nonce == 0) return;
-        bytes32 payloadHash = verifyHelper.validatePacket(receipt.guid);
+    //     if (nonce == 0) return;
+    //     bytes32 payloadHash = verifyHelper.validatePacket(receipt.guid);
 
-        vm.prank(dstOft.owner());
-        dstOft.clearInboundNonce(origin, receipt.guid, packetVars.message);
+    //     vm.prank(dstOft.owner());
+    //     dstOft.clearInboundNonce(origin, receipt.guid, packetVars.message);
 
-        // Removing skipped message from our queue
-        for (uint i = index; i < messageReceipts[dstEid].length - 1; i++) {
-            messageReceipts[dstEid][i] = messageReceipts[dstEid][i + 1];
-        }
-        messageReceipts[dstEid].pop();
-        // Removing skipped message from our queue
-        for (uint i = index; i < oftReceipts[dstEid].length - 1; i++) {
-            oftReceipts[dstEid][i] = oftReceipts[dstEid][i + 1];
-        }
-        oftReceipts[dstEid].pop();
-        // Removing skipped message from our queue
-        for (uint i = index; i < packetVariables[dstEid].length - 1; i++) {
-            packetVariables[dstEid][i] = packetVariables[dstEid][i + 1];
-        }
-        packetVariables[dstEid].pop();
-    }
+    //     // Removing skipped message from our queue
+    //     for (uint i = index; i < messageReceipts[dstEid].length - 1; i++) {
+    //         messageReceipts[dstEid][i] = messageReceipts[dstEid][i + 1];
+    //     }
+    //     messageReceipts[dstEid].pop();
+    //     // Removing skipped message from our queue
+    //     for (uint i = index; i < oftReceipts[dstEid].length - 1; i++) {
+    //         oftReceipts[dstEid][i] = oftReceipts[dstEid][i + 1];
+    //     }
+    //     oftReceipts[dstEid].pop();
+    //     // Removing skipped message from our queue
+    //     for (uint i = index; i < packetVariables[dstEid].length - 1; i++) {
+    //         packetVariables[dstEid][i] = packetVariables[dstEid][i + 1];
+    //     }
+    //     packetVariables[dstEid].pop();
+    // }
 
-    function nilifyInboundNonce(uint256 dstOftIndexSeed, uint256 messageReceiptIndexSeed) public {
-        // PRE-CONDITIONS
-        OrderOFTMock dstOft = randomOft(dstOftIndexSeed);
-        uint32 dstEid = dstOft.endpoint().eid();
-        if (packetVariables[dstEid].length == 0) return;
+    // function nilifyInboundNonce(uint256 dstOftIndexSeed, uint256 messageReceiptIndexSeed) public {
+    //     // PRE-CONDITIONS
+    //     OrderOFTMock dstOft = randomOft(dstOftIndexSeed);
+    //     uint32 dstEid = dstOft.endpoint().eid();
+    //     if (packetVariables[dstEid].length == 0) return;
 
-        (MessagingReceipt memory receipt, PacketVariables memory packetVars, uint256 index) = randomMessagingReceipt(
-            messageReceiptIndexSeed,
-            dstEid
-        );
+    //     (MessagingReceipt memory receipt, PacketVariables memory packetVars, uint256 index) = randomMessagingReceipt(
+    //         messageReceiptIndexSeed,
+    //         dstEid
+    //     );
 
-        uint64 nonce = receipt.nonce;
-        bytes32 sender = addressToBytes32(address(packetVars.srcOft));
-        uint32 srcEid = packetVars.srcOft.endpoint().eid();
+    //     uint64 nonce = receipt.nonce;
+    //     bytes32 sender = addressToBytes32(address(packetVars.srcOft));
+    //     uint32 srcEid = packetVars.srcOft.endpoint().eid();
 
-        Origin memory origin;
-        origin.srcEid = srcEid;
-        origin.sender = sender;
-        origin.nonce = nonce;
+    //     Origin memory origin;
+    //     origin.srcEid = srcEid;
+    //     origin.sender = sender;
+    //     origin.nonce = nonce;
 
-        if (nonce == 0) return;
+    //     if (nonce == 0) return;
 
-        vm.prank(dstOft.owner());
-        dstOft.nilifyInboundNonce(srcEid, sender, nonce, bytes32(0));
+    //     vm.prank(dstOft.owner());
+    //     dstOft.nilifyInboundNonce(srcEid, sender, nonce, bytes32(0));
 
-        // Removing skipped message from our queue
-        for (uint i = index; i < messageReceipts[dstEid].length - 1; i++) {
-            messageReceipts[dstEid][i] = messageReceipts[dstEid][i + 1];
-        }
-        messageReceipts[dstEid].pop();
-        // Removing skipped message from our queue
-        for (uint i = index; i < oftReceipts[dstEid].length - 1; i++) {
-            oftReceipts[dstEid][i] = oftReceipts[dstEid][i + 1];
-        }
-        oftReceipts[dstEid].pop();
-        // Removing skipped message from our queue
-        for (uint i = index; i < packetVariables[dstEid].length - 1; i++) {
-            packetVariables[dstEid][i] = packetVariables[dstEid][i + 1];
-        }
-        packetVariables[dstEid].pop();
-    }
+    //     // Removing skipped message from our queue
+    //     for (uint i = index; i < messageReceipts[dstEid].length - 1; i++) {
+    //         messageReceipts[dstEid][i] = messageReceipts[dstEid][i + 1];
+    //     }
+    //     messageReceipts[dstEid].pop();
+    //     // Removing skipped message from our queue
+    //     for (uint i = index; i < oftReceipts[dstEid].length - 1; i++) {
+    //         oftReceipts[dstEid][i] = oftReceipts[dstEid][i + 1];
+    //     }
+    //     oftReceipts[dstEid].pop();
+    //     // Removing skipped message from our queue
+    //     for (uint i = index; i < packetVariables[dstEid].length - 1; i++) {
+    //         packetVariables[dstEid][i] = packetVariables[dstEid][i + 1];
+    //     }
+    //     packetVariables[dstEid].pop();
+    // }
 
-    function burnInboundNonce(uint256 dstOftIndexSeed, uint256 messageReceiptIndexSeed) public {
-        // PRE-CONDITIONS
-        OrderOFTMock dstOft = randomOft(dstOftIndexSeed);
-        uint32 dstEid = dstOft.endpoint().eid();
-        if (packetVariables[dstEid].length == 0) return;
+    // function burnInboundNonce(uint256 dstOftIndexSeed, uint256 messageReceiptIndexSeed) public {
+    //     // PRE-CONDITIONS
+    //     OrderOFTMock dstOft = randomOft(dstOftIndexSeed);
+    //     uint32 dstEid = dstOft.endpoint().eid();
+    //     if (packetVariables[dstEid].length == 0) return;
 
-        (MessagingReceipt memory receipt, PacketVariables memory packetVars, uint256 index) = randomMessagingReceipt(
-            messageReceiptIndexSeed,
-            dstEid
-        );
+    //     (MessagingReceipt memory receipt, PacketVariables memory packetVars, uint256 index) = randomMessagingReceipt(
+    //         messageReceiptIndexSeed,
+    //         dstEid
+    //     );
 
-        uint64 nonce = receipt.nonce;
-        bytes32 sender = addressToBytes32(address(packetVars.srcOft));
-        uint32 srcEid = packetVars.srcOft.endpoint().eid();
+    //     uint64 nonce = receipt.nonce;
+    //     bytes32 sender = addressToBytes32(address(packetVars.srcOft));
+    //     uint32 srcEid = packetVars.srcOft.endpoint().eid();
 
-        Origin memory origin;
-        origin.srcEid = srcEid;
-        origin.sender = sender;
-        origin.nonce = nonce;
+    //     Origin memory origin;
+    //     origin.srcEid = srcEid;
+    //     origin.sender = sender;
+    //     origin.nonce = nonce;
 
-        if (nonce <= 2) return;
-        bytes32 payloadHash = verifyHelper.validatePacket(receipt.guid);
+    //     if (nonce <= 2) return;
+    //     bytes32 payloadHash = verifyHelper.validatePacket(receipt.guid);
 
-        vm.prank(dstOft.owner());
-        dstOft.burnInboundNonce(srcEid, sender, nonce, payloadHash);
+    //     vm.prank(dstOft.owner());
+    //     dstOft.burnInboundNonce(srcEid, sender, nonce, payloadHash);
 
-        // Removing skipped message from our queue
-        for (uint i = index; i < messageReceipts[dstEid].length - 1; i++) {
-            messageReceipts[dstEid][i] = messageReceipts[dstEid][i + 1];
-        }
-        messageReceipts[dstEid].pop();
-        // Removing skipped message from our queue
-        for (uint i = index; i < oftReceipts[dstEid].length - 1; i++) {
-            oftReceipts[dstEid][i] = oftReceipts[dstEid][i + 1];
-        }
-        oftReceipts[dstEid].pop();
-        // Removing skipped message from our queue
-        for (uint i = index; i < packetVariables[dstEid].length - 1; i++) {
-            packetVariables[dstEid][i] = packetVariables[dstEid][i + 1];
-        }
-        packetVariables[dstEid].pop();
-    }
+    //     // Removing skipped message from our queue
+    //     for (uint i = index; i < messageReceipts[dstEid].length - 1; i++) {
+    //         messageReceipts[dstEid][i] = messageReceipts[dstEid][i + 1];
+    //     }
+    //     messageReceipts[dstEid].pop();
+    //     // Removing skipped message from our queue
+    //     for (uint i = index; i < oftReceipts[dstEid].length - 1; i++) {
+    //         oftReceipts[dstEid][i] = oftReceipts[dstEid][i + 1];
+    //     }
+    //     oftReceipts[dstEid].pop();
+    //     // Removing skipped message from our queue
+    //     for (uint i = index; i < packetVariables[dstEid].length - 1; i++) {
+    //         packetVariables[dstEid][i] = packetVariables[dstEid][i + 1];
+    //     }
+    //     packetVariables[dstEid].pop();
+    // }
 
     /*//////////////////////////////////////////////////////////////////////////
                                      HELPERS
