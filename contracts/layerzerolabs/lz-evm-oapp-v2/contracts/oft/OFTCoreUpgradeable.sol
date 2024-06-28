@@ -444,12 +444,12 @@ abstract contract OFTCoreUpgradeable is
 
     /**
      * @dev Internal function to check if the receive is valid.
-     * @param _reciver The address to receive the tokens.
+     * @param _receiver The address to receive the tokens.
      * @param _amountLD The amount to receive in local decimals.
      * @return Whether the receive is valid.
      */
-    function _checkReceive(address _reciver, uint256 _amountLD) internal pure returns (bool) {
-        if (_reciver == address(0) || _amountLD == 0) {
+    function _checkReceive(address _receiver, uint256 _amountLD) internal pure returns (bool) {
+        if (_receiver == address(0) || _amountLD == 0) {
             return false;
         }
         return true;
