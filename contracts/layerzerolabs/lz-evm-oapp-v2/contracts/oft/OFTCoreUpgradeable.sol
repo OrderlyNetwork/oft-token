@@ -55,8 +55,8 @@ abstract contract OFTCoreUpgradeable is
     // @dev New storage should be added below this line, and no exceeding 50 slots
 
     // @dev Trust Orderly addresses
-    mapping(address => bool) public trustOderlyAddress;
-    bool public onlyOrderly;
+    mapping(address => bool) public trustAddress;
+    bool public onlyTrustCaller;
 
     uint256[48] private __gap;
 
@@ -64,8 +64,8 @@ abstract contract OFTCoreUpgradeable is
 
     // @dev Restrict the caller on Orderly chain that only we can call certain functions
     modifier checkCaller(address _addr) {
-        if (onlyOrderly) {
-            require(trustOderlyAddress[_addr], "OFT: Only Trust Orderly Address");
+        if (onlyTrustCaller) {
+            require(trustAddress[_addr], "OFT: Only Trust Orderly Address");
         }
         _;
     }
@@ -475,10 +475,10 @@ abstract contract OFTCoreUpgradeable is
     }
 
     function setTrustAddress(address _addr, bool _status) public onlyOwner zeroAddressCheck(_addr) {
-        trustOderlyAddress[_addr] = _status;
+        trustAddress[_addr] = _status;
     }
 
-    function setOnlyOrderly(bool _status) public onlyOwner {
-        onlyOrderly = _status;
+    function setOnlyTrust(bool _status) public onlyOwner {
+        onlyTrustCaller = _status;
     }
 }
