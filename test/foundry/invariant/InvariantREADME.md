@@ -17,6 +17,22 @@ With OrderHandler.sol containing conditional invariants and BaseInvariant contai
 
 The Suite also contains a contract to assist in verification methods: VerifyHelper.sol
 
+To provide coverage for OrderOFT.sol changes were made to LayerZero's TestHelperOz5.sol (@layerzerolabs/test-devtools-evm-foundry/contracts/TestHelperOz5.sol):
+* `mapping(bytes32 => bytes) packets` => `mapping(bytes32 => bytes) public packets`
+* `function validatePacket(bytes calldata _packetBytes) external {` => `function validatePacket(bytes calldata _packetBytes) external returns (bytes32) {`
+* In `function validatePacket`: 
+```solidity
+(uint64 major, , ) = IMessageLib(receiveLib).version();
+        if (major == 3) {
+            ...
+            dvn.execute(params);
+            return payloadHash; // added return value 
+        } else {
+            SimpleMessageLibMock(payable(receiveLib)).validatePacket(_packetBytes);
+            return ""; // added return value
+        }
+```
+
 To run invariant tests:
 ```shell
 forge test
@@ -35,7 +51,7 @@ forge test
 | **OT-08** | Native Token Total Supply Should Not Change On Send | PASS | 1,000,000+
 | **OT-09** | Source OFT Total Supply Should Decrease On Send | PASS | 1,000,000+
 | **OT-10** | Outbound Nonce Should Increase By 1 On Send | PASS | 1,000,000+
-| **OT-11** | Max Received Nonce Should Increase By 1 on lzReceive | PASS | 1,000,000+
+| **OT-11** | Max Received Nonce Should Increase By 1 on lzReceive | N/A | 1,000,000+
 | **OT-12** | Destination Token Balance Should Increase on lzReceive | PASS | 1,000,000+
 | **OT-13** | Adapter Balance Should Decrease on lzReceive | PASS | 1,000,000+
 | **OT-14** | Native Token Total Supply Should Not Change on lzReceive | PASS | 1,000,000+
