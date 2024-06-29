@@ -344,7 +344,7 @@ contract OrderHandler is SoladyTest {
 
         * OT-06: Source Token Balance Should Decrease On Send
         * OT-07: Adapter Balance Should Increase On Send
-        * OT-08: Native Token Total Supply Should Not Change On Send
+        * OT-08: ORDER Token Total Supply Should Not Change On Send
         * OT-09: Source OFT Total Supply Should Decrease On Send
         * OT-10: Outbound Nonce Should Increase By 1 On Send
 
@@ -493,7 +493,7 @@ contract OrderHandler is SoladyTest {
                 assertEq(
                     beforeAfter.srcTotalSupplyAfter,
                     beforeAfter.srcTotalSupplyBefore,
-                    "OT-08: Native Token Total Supply Should Not Change On Send"
+                    "OT-08: ORDER Token Total Supply Should Not Change On Send"
                 );
             } else {
                 assertEq(
@@ -518,7 +518,7 @@ contract OrderHandler is SoladyTest {
         * OT-11: Max Received Nonce Should Increase By 1 on lzReceive
         * OT-12: Destination Token Balance Should Increase on lzReceive
         * OT-13: Adapter Balance Should Decrease on lzReceive
-        * OT-14: Native Token Total Supply Should Not Change on lzReceive
+        * OT-14: ORDER Token Total Supply Should Not Change on lzReceive
         * OT-15: Destination Total Supply Should Increase on lzReceive
 
     /**************************************************************************************************************************************/
@@ -583,11 +583,11 @@ contract OrderHandler is SoladyTest {
         // );
 
         // if (t.dstOft.orderedNonce()) {
-            // assertEq(
-            //     beforeAfter.maxReceivedNonceAfter,
-            //     beforeAfter.maxReceivedNonceBefore + 1,
-            //     "OT-11: Max Received Nonce Should Increase By 1 on lzReceive"
-            // );
+        // assertEq(
+        //     beforeAfter.maxReceivedNonceAfter,
+        //     beforeAfter.maxReceivedNonceBefore + 1,
+        //     "OT-11: Max Received Nonce Should Increase By 1 on lzReceive"
+        // );
         // }
 
         assertEq(
@@ -605,7 +605,7 @@ contract OrderHandler is SoladyTest {
             assertEq(
                 beforeAfter.dstTotalSupplyAfter,
                 beforeAfter.dstTotalSupplyBefore,
-                "OT-14: Native Token Total Supply Should Not Change on lzReceive"
+                "OT-14: ORDER Token Total Supply Should Not Change on lzReceive"
             );
         } else {
             assertEq(
