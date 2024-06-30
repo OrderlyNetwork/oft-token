@@ -703,6 +703,61 @@ task("order:oft:bridge", "Bridge tokens to a specific address on a specific netw
         }
     })
 
+task("order:oft:quote", "Quote the fee for sending tokens to a specific address on a specific network through OFT contracts")
+.addParam("env", "The environment to send the tokens", undefined, types.string)
+.addParam("dstNetwork", "The network to receive the tokens", undefined, types.string)
+.addParam("receiver", "The address to receive the tokens", undefined, types.string)
+.addParam("amount", "The amount of tokens to send", undefined, types.string)
+.setAction(async (taskArgs, hre) => {
+    checkNetwork(hre.network.name)
+    checkNetwork(taskArgs.dstNetwork)
+    try {
+        fromNetwork = hre.network.name
+        console.log(`Running on ${fromNetwork}`)
+
+        const receiver = taskArgs.receiver
+        toNetwork = taskArgs.dstNetwork
+        
+        if (fromNetwork === toNetwork) {
+            throw new Error(`Cannot bridge tokens to the same network`)
+        } else {
+            localContractName = oftContractName(fromNetwork)
+            remoteContractName = oftContractName(toNetwork)
+        }
+
+        localContractAddress = await loadContractAddress(taskArgs.env, fromNetwork, localContractName) as string
+        remoteContractAddress = await loadContractAddress(taskArgs.env, toNetwork, remoteContractName) as string
+
+        const erc20ContractName = tokenContractName(fromNetwork)
+        const erc20ContractAddress = await loadContractAddress(taskArgs.env, fromNetwork, erc20ContractName) as string
+
+        const [ signer ] = await hre.ethers.getSigners()
+        const localContract = await hre.ethers.getContractAt(localContractName, localContractAddress, signer)
+        const erc20Contract = await hre.ethers.getContractAt(erc20ContractName, erc20ContractAddress, signer)
+        
+        const deciamls = await erc20Contract.decimals() 
+        const tokenAmount = hre.ethers.utils.parseUnits(taskArgs.amount, deciamls)
+        
+        const param = {
+            dstEid: getLzConfig(toNetwork)["endpointId"],
+            to: hre.ethers.utils.hexZeroPad(receiver, 32),
+            amountLD: tokenAmount,
+            minAmountLD: tokenAmount,
+            extraOptions: "0x",
+            composeMsg: "0x",
+            oftCmd: "0x"
+        }
+        const payLzToken = false
+        let fee = await localContract.quoteSend(param, payLzToken);
+        console.log(`Fee in Wei: ${fee.nativeFee}`) 
+        console.log(`Fee in ETH: ${hre.ethers.utils.formatEther(fee.nativeFee)}`)
+    }
+    catch (e) {
+        console.log(`Error: ${e}`)
+    }
+})
+
+
 task("order:oft:transfer", "Transfer tokens to a specific address on a specific network")
 .addParam("env", "The environment to send the tokens", undefined, types.string)
 .addParam("receiver", "The address to receive the tokens", undefined, types.string)
