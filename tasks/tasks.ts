@@ -786,7 +786,7 @@ task("order:stake", "Send stakes to a specific address on a specific network")
         }
     })
 
-task("lz:compose", "Compose a message to a specific address on a specific network")
+task("lz:retry:compose", "Compose a message to a specific address on a specific network")
     .addParam("hash", "The hash of the compose alert txn", undefined, types.string)
     .setAction(async (taskArgs, hre) => {
         checkNetwork(hre.network.name)
@@ -816,6 +816,31 @@ task("lz:compose", "Compose a message to a specific address on a specific networ
         
     })
 
+
+task("lz:exec:compose", "Compose a message to a specific address on a specific network")
+    .addParam("hash", "The hash of the compose alert txn", undefined, types.string)
+    .setAction(async (taskArgs, hre) => {
+        const composeSentTopic = hre.ethers.utils.id("ComposeSent(address,address,bytes32,uint16,bytes)")
+        const endpointV2Deployment = await hre.deployments.get('EndpointV2')
+        const [ signer ] = await hre.ethers.getSigners()
+        const endpointV2 = await hre.ethers.getContractAt(endpointV2Deployment.abi, endpointV2Deployment.address, signer)
+        const composeSentTxn = await hre.ethers.provider.getTransactionReceipt(taskArgs.hash)
+        if (!composeSentTxn) {
+            throw new Error(`Transaction with hash ${taskArgs.hash} not found`)
+        }
+        const logs = composeSentTxn.logs
+        const composeSentLog = logs.find(log => log.topics[0] === composeSentTopic)
+
+        if (!composeSentLog) {
+            throw new Error(`Compose alert log not found`)
+        }
+        const log = endpointV2.interface.parseLog(composeSentLog)
+        
+        const callLzComposeTx = await endpointV2.lzCompose(log.args["from"], log.args["to"], log.args["guid"], log.args["index"], log.args["message"], "0x")
+
+        console.log(`Composing message with tx hash ${callLzComposeTx.hash}`)
+
+    })
 
 
 task("lz:receive", "Receive a message on a specific network")
