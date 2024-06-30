@@ -87,6 +87,32 @@ type LzConfig = {
     receiveLib?: address,
     sendLib?: address,
     executor?: address,
+    sendLibConfig?: {
+        address: address,
+        executor: {
+            address: address,
+            maxMessageSize: number,
+        },
+        uln: {
+            confirmations: number, 
+            requiredDVNCount: number, 
+            optionalDVNCount: number, 
+            optionalDVNThreshold: number, 
+            requiredDVNs: address[],
+            optionalDVNs?: address[],
+        }
+    },
+    receiveLibConfig?: {
+        address: address,
+        uln: {
+            confirmations: number, 
+            requiredDVNCount: number, 
+            optionalDVNCount: number, 
+            optionalDVNThreshold: number, 
+            requiredDVNs: address[],
+            optionalDVNs?: address[],
+        }
+    }
 }
 
 type TgeContract = {
