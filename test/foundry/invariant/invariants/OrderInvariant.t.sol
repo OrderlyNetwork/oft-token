@@ -135,20 +135,12 @@ contract OrderInvariant is StdInvariant, TestHelperOz5 {
 
         targetContract(address(orderHandler));
 
-        // @dev To test with onlyOwner functions uncomment lines 137 & 143-147
-        // Selectors to target.
         bytes4[] memory orderSelectors = new bytes4[](5);
-        // bytes4[] memory orderSelectors = new bytes4[](10);
         orderSelectors[0] = orderHandler.approve.selector;
         orderSelectors[1] = orderHandler.transfer.selector;
         orderSelectors[2] = orderHandler.transferFrom.selector;
         orderSelectors[3] = orderHandler.send.selector;
         orderSelectors[4] = orderHandler.verifyPackets.selector;
-        // orderSelectors[5] = orderHandler.setOrderedNonce.selector;
-        // orderSelectors[6] = orderHandler.clearInboundNonce.selector;
-        // orderSelectors[7] = orderHandler.nilifyInboundNonce.selector;
-        // orderSelectors[8] = orderHandler.burnInboundNonce.selector;
-        // orderSelectors[9] = orderHandler.skipInboundNonce.selector;
 
         targetSelector(FuzzSelector({addr: address(orderHandler), selectors: orderSelectors}));
     }

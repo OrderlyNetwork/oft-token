@@ -13,8 +13,4 @@ contract VerifyHelper {
     function verifyPackets(uint32 dstEid, bytes32 _address, uint256 _packetAmount) public {
         orderInvariant.verifyPackets(dstEid, _address, _packetAmount, address(0x0));
     }
-
-    function validatePacket(bytes32 guid) public returns (bytes32) {
-        return orderInvariant.validatePacket(orderInvariant.packets(guid));
-    }
 }

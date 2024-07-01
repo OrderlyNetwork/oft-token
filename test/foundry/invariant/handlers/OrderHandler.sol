@@ -6,16 +6,21 @@ import "../../../mocks/OrderOFTMock.sol";
 import "../../../mocks/OrderAdapterMock.sol";
 import "contracts/OrderOFT.sol";
 
-import { ERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
+import {ERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
 
-import { OptionsBuilder } from "@layerzerolabs/lz-evm-oapp-v2/contracts/oapp/libs/OptionsBuilder.sol";
-import { IOFT, SendParam, OFTReceipt, MessagingReceipt } from "contracts/layerzerolabs/lz-evm-oapp-v2/contracts/oft/interfaces/IOFT.sol";
-import { MessagingFee } from "contracts/layerzerolabs/lz-evm-oapp-v2/contracts/oapp/OAppSenderUpgradeable.sol";
-import { OFTCoreUpgradeable } from "contracts/layerzerolabs/lz-evm-oapp-v2/contracts/oft/OFTCoreUpgradeable.sol";
-import { Origin } from "node_modules/@layerzerolabs/lz-evm-protocol-v2/contracts/interfaces/ILayerZeroEndpointV2.sol";
+import {OptionsBuilder} from "@layerzerolabs/lz-evm-oapp-v2/contracts/oapp/libs/OptionsBuilder.sol";
+import {
+    IOFT,
+    SendParam,
+    OFTReceipt,
+    MessagingReceipt
+} from "contracts/layerzerolabs/lz-evm-oapp-v2/contracts/oft/interfaces/IOFT.sol";
+import {MessagingFee} from "contracts/layerzerolabs/lz-evm-oapp-v2/contracts/oapp/OAppSenderUpgradeable.sol";
+import {OFTCoreUpgradeable} from "contracts/layerzerolabs/lz-evm-oapp-v2/contracts/oft/OFTCoreUpgradeable.sol";
+import {Origin} from "node_modules/@layerzerolabs/lz-evm-protocol-v2/contracts/interfaces/ILayerZeroEndpointV2.sol";
 
-import { VerifyHelper } from "test/foundry/invariant/helpers/VerifyHelper.sol";
-import { IERC20 } from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
+import {VerifyHelper} from "test/foundry/invariant/helpers/VerifyHelper.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
 /// @dev OrderHandler contains functions from the target contracts OrderOFT.sol,
 ///      OrderToken.sol, and OrderAdapter.sol.
@@ -156,7 +161,9 @@ contract OrderHandler is SoladyTest {
         address spender;
     }
 
-    function approve(uint256 srcOftIndexSeed, uint256 ownerIndexSeed, uint256 spenderIndexSeed, uint256 amount) public {
+    function approve(uint256 srcOftIndexSeed, uint256 ownerIndexSeed, uint256 spenderIndexSeed, uint256 amount)
+        public
+    {
         ApproveTemps memory t;
         // PRE-CONDITIONS
         t.srcOft = randomOft(srcOftIndexSeed);
@@ -226,12 +233,11 @@ contract OrderHandler is SoladyTest {
         // ACTION
         if (t.srcOft == oftInstances[0]) {
             vm.prank(t.from);
-            (t.success, ) = address(adapterToken).call(abi.encodeWithSelector(IERC20.transfer.selector, t.to, amount));
+            (t.success,) = address(adapterToken).call(abi.encodeWithSelector(IERC20.transfer.selector, t.to, amount));
         } else {
             vm.prank(t.from);
-            (t.success, ) = address(t.srcOft).call(
-                abi.encodeWithSelector(ERC20Upgradeable.transfer.selector, t.to, amount)
-            );
+            (t.success,) =
+                address(t.srcOft).call(abi.encodeWithSelector(ERC20Upgradeable.transfer.selector, t.to, amount));
         }
 
         // POST-CONDITIONS
@@ -278,12 +284,11 @@ contract OrderHandler is SoladyTest {
         // ACTION
         if (t.srcOft == oftInstances[0]) {
             vm.prank(t.sender);
-            (t.success, ) = address(adapterToken).call(
-                abi.encodeWithSelector(IERC20.transferFrom.selector, t.from, t.to, amount)
-            );
+            (t.success,) =
+                address(adapterToken).call(abi.encodeWithSelector(IERC20.transferFrom.selector, t.from, t.to, amount));
         } else {
             vm.prank(t.sender);
-            (t.success, ) = address(t.srcOft).call(
+            (t.success,) = address(t.srcOft).call(
                 abi.encodeWithSelector(ERC20Upgradeable.transferFrom.selector, t.from, t.to, amount)
             );
         }
@@ -294,11 +299,9 @@ contract OrderHandler is SoladyTest {
         }
     }
 
-    function _checkPostTransferInvariants(
-        BeforeAfter memory beforeAfter,
-        TransferTemps memory t,
-        uint256 amount
-    ) internal {
+    function _checkPostTransferInvariants(BeforeAfter memory beforeAfter, TransferTemps memory t, uint256 amount)
+        internal
+    {
         if (t.srcOft == oftInstances[0]) {
             beforeAfter.fromSrcBalanceAfter = adapterToken.balanceOf(t.from);
             beforeAfter.toSrcBalanceAfter = adapterToken.balanceOf(t.to);
@@ -402,41 +405,29 @@ contract OrderHandler is SoladyTest {
             beforeAfter.toSrcBalanceBefore = t.srcOft.balanceOf(t.to);
             beforeAfter.srcTotalSupplyBefore = t.srcOft.totalSupply();
         }
-        beforeAfter.outboundNonceBefore = t.srcOft.endpoint().outboundNonce(
-            address(t.srcOft),
-            t.dstEid,
-            addressToBytes32(address(t.dstOft))
-        );
+        beforeAfter.outboundNonceBefore =
+            t.srcOft.endpoint().outboundNonce(address(t.srcOft), t.dstEid, addressToBytes32(address(t.dstOft)));
 
         if (amount == 0) return;
 
         bytes memory options = OptionsBuilder.newOptions().addExecutorLzReceiveOption(200000, 0);
-        SendParam memory sendParam = SendParam(
-            t.dstEid,
-            addressToBytes32(t.to),
-            amount,
-            t.srcOft.removeDust(amount),
-            options,
-            "",
-            ""
-        );
+        SendParam memory sendParam =
+            SendParam(t.dstEid, addressToBytes32(t.to), amount, t.srcOft.removeDust(amount), options, "", "");
         MessagingFee memory fee = t.srcOft.quoteSend(sendParam, false);
 
         // ACTION
         bytes memory returnData;
         vm.startPrank(t.from);
-        (t.success, returnData) = payable(address(t.srcOft)).call{ value: fee.nativeFee }(
+        (t.success, returnData) = payable(address(t.srcOft)).call{value: fee.nativeFee}(
             abi.encodeWithSelector(OFTCoreUpgradeable.send.selector, sendParam, fee, address(this))
         );
         vm.stopPrank();
 
         if (t.success) {
-            (MessagingReceipt memory decodedMessagingReceipt, OFTReceipt memory decodedOFTReceipt) = abi.decode(
-                returnData,
-                (MessagingReceipt, OFTReceipt)
-            );
+            (MessagingReceipt memory decodedMessagingReceipt, OFTReceipt memory decodedOFTReceipt) =
+                abi.decode(returnData, (MessagingReceipt, OFTReceipt));
 
-            (bytes memory message, ) = t.srcOft.buildMsgAndOptions(sendParam, decodedOFTReceipt.amountReceivedLD);
+            (bytes memory message,) = t.srcOft.buildMsgAndOptions(sendParam, decodedOFTReceipt.amountReceivedLD);
             packetVars.message = message;
 
             // Pushing message receipts to the front
@@ -473,11 +464,8 @@ contract OrderHandler is SoladyTest {
                 beforeAfter.toSrcBalanceAfter = t.srcOft.balanceOf(t.to);
                 beforeAfter.srcTotalSupplyAfter = t.srcOft.totalSupply();
             }
-            beforeAfter.outboundNonceAfter = t.srcOft.endpoint().outboundNonce(
-                address(t.srcOft),
-                t.dstEid,
-                addressToBytes32(address(t.dstOft))
-            );
+            beforeAfter.outboundNonceAfter =
+                t.srcOft.endpoint().outboundNonce(address(t.srcOft), t.dstEid, addressToBytes32(address(t.dstOft)));
 
             assertEq(
                 beforeAfter.fromSrcBalanceAfter,
@@ -551,10 +539,6 @@ contract OrderHandler is SoladyTest {
             beforeAfter.toDstBalanceBefore = t.dstOft.balanceOf(p.to);
             beforeAfter.dstTotalSupplyBefore = t.dstOft.totalSupply();
         }
-        // beforeAfter.maxReceivedNonceBefore = t.dstOft.getMaxReceivedNonce(
-        //     p.srcOft.endpoint().eid(),
-        //     addressToBytes32(address(p.srcOft))
-        // );
 
         // ACTION
 
@@ -577,18 +561,6 @@ contract OrderHandler is SoladyTest {
             beforeAfter.toDstBalanceAfter = t.dstOft.balanceOf(p.to);
             beforeAfter.dstTotalSupplyAfter = t.dstOft.totalSupply();
         }
-        // beforeAfter.maxReceivedNonceAfter = t.dstOft.getMaxReceivedNonce(
-        //     p.srcOft.endpoint().eid(),
-        //     addressToBytes32(address(p.srcOft))
-        // );
-
-        // if (t.dstOft.orderedNonce()) {
-        // assertEq(
-        //     beforeAfter.maxReceivedNonceAfter,
-        //     beforeAfter.maxReceivedNonceBefore + 1,
-        //     "OT-11: Max Received Nonce Should Increase By 1 on lzReceive"
-        // );
-        // }
 
         assertEq(
             beforeAfter.toDstBalanceAfter,
@@ -616,184 +588,6 @@ contract OrderHandler is SoladyTest {
         }
     }
 
-    event MessageNum(string a, uint256 b);
-
-    /*//////////////////////////////////////////////////////////////////////////
-                            ONLY OWNER TARGET FUNCTIONS
-    //////////////////////////////////////////////////////////////////////////*/
-
-    // function setOrderedNonce(uint256 oftIndexSeed, bool _orderedNonce) public {
-    //     OrderOFTMock oft = randomOft(oftIndexSeed);
-    //     vm.prank(oft.owner());
-    //     oft.setOrderedNonce(_orderedNonce);
-    // }
-
-    // function skipInboundNonce(uint256 dstOftIndexSeed, uint256 messageReceiptIndexSeed) public {
-    //     // PRE-CONDITIONS
-    //     OrderOFTMock dstOft = randomOft(dstOftIndexSeed);
-    //     uint32 dstEid = dstOft.endpoint().eid();
-    //     if (packetVariables[dstEid].length == 0) return;
-
-    //     (MessagingReceipt memory receipt, PacketVariables memory packetVars, uint256 index) = randomMessagingReceipt(
-    //         messageReceiptIndexSeed,
-    //         dstEid
-    //     );
-
-    //     uint64 nonce = receipt.nonce;
-
-    //     bytes32 sender = addressToBytes32(address(packetVars.srcOft));
-    //     uint32 srcEid = packetVars.srcOft.endpoint().eid();
-
-    //     if (nonce == 0) return;
-
-    //     vm.prank(dstOft.owner());
-    //     dstOft.skipInboundNonce(srcEid, sender, uint64(nonce));
-
-    //     // Removing skipped message from our queue
-    //     for (uint i = index; i < messageReceipts[dstEid].length - 1; i++) {
-    //         messageReceipts[dstEid][i] = messageReceipts[dstEid][i + 1];
-    //     }
-    //     messageReceipts[dstEid].pop();
-    //     // Removing skipped message from our queue
-    //     for (uint i = index; i < oftReceipts[dstEid].length - 1; i++) {
-    //         oftReceipts[dstEid][i] = oftReceipts[dstEid][i + 1];
-    //     }
-    //     oftReceipts[dstEid].pop();
-    //     // Removing skipped message from our queue
-    //     for (uint i = index; i < packetVariables[dstEid].length - 1; i++) {
-    //         packetVariables[dstEid][i] = packetVariables[dstEid][i + 1];
-    //     }
-    //     packetVariables[dstEid].pop();
-    // }
-
-    // function clearInboundNonce(uint256 dstOftIndexSeed, uint256 messageReceiptIndexSeed) public {
-    //     // PRE-CONDITIONS
-    //     OrderOFTMock dstOft = randomOft(dstOftIndexSeed);
-    //     uint32 dstEid = dstOft.endpoint().eid();
-    //     if (packetVariables[dstEid].length == 0) return;
-
-    //     (MessagingReceipt memory receipt, PacketVariables memory packetVars, uint256 index) = randomMessagingReceipt(
-    //         messageReceiptIndexSeed,
-    //         dstEid
-    //     );
-
-    //     uint64 nonce = receipt.nonce;
-    //     bytes32 sender = addressToBytes32(address(packetVars.srcOft));
-    //     uint32 srcEid = packetVars.srcOft.endpoint().eid();
-
-    //     Origin memory origin;
-    //     origin.srcEid = srcEid;
-    //     origin.sender = sender;
-    //     origin.nonce = nonce;
-
-    //     if (nonce == 0) return;
-    //     bytes32 payloadHash = verifyHelper.validatePacket(receipt.guid);
-
-    //     vm.prank(dstOft.owner());
-    //     dstOft.clearInboundNonce(origin, receipt.guid, packetVars.message);
-
-    //     // Removing skipped message from our queue
-    //     for (uint i = index; i < messageReceipts[dstEid].length - 1; i++) {
-    //         messageReceipts[dstEid][i] = messageReceipts[dstEid][i + 1];
-    //     }
-    //     messageReceipts[dstEid].pop();
-    //     // Removing skipped message from our queue
-    //     for (uint i = index; i < oftReceipts[dstEid].length - 1; i++) {
-    //         oftReceipts[dstEid][i] = oftReceipts[dstEid][i + 1];
-    //     }
-    //     oftReceipts[dstEid].pop();
-    //     // Removing skipped message from our queue
-    //     for (uint i = index; i < packetVariables[dstEid].length - 1; i++) {
-    //         packetVariables[dstEid][i] = packetVariables[dstEid][i + 1];
-    //     }
-    //     packetVariables[dstEid].pop();
-    // }
-
-    // function nilifyInboundNonce(uint256 dstOftIndexSeed, uint256 messageReceiptIndexSeed) public {
-    //     // PRE-CONDITIONS
-    //     OrderOFTMock dstOft = randomOft(dstOftIndexSeed);
-    //     uint32 dstEid = dstOft.endpoint().eid();
-    //     if (packetVariables[dstEid].length == 0) return;
-
-    //     (MessagingReceipt memory receipt, PacketVariables memory packetVars, uint256 index) = randomMessagingReceipt(
-    //         messageReceiptIndexSeed,
-    //         dstEid
-    //     );
-
-    //     uint64 nonce = receipt.nonce;
-    //     bytes32 sender = addressToBytes32(address(packetVars.srcOft));
-    //     uint32 srcEid = packetVars.srcOft.endpoint().eid();
-
-    //     Origin memory origin;
-    //     origin.srcEid = srcEid;
-    //     origin.sender = sender;
-    //     origin.nonce = nonce;
-
-    //     if (nonce == 0) return;
-
-    //     vm.prank(dstOft.owner());
-    //     dstOft.nilifyInboundNonce(srcEid, sender, nonce, bytes32(0));
-
-    //     // Removing skipped message from our queue
-    //     for (uint i = index; i < messageReceipts[dstEid].length - 1; i++) {
-    //         messageReceipts[dstEid][i] = messageReceipts[dstEid][i + 1];
-    //     }
-    //     messageReceipts[dstEid].pop();
-    //     // Removing skipped message from our queue
-    //     for (uint i = index; i < oftReceipts[dstEid].length - 1; i++) {
-    //         oftReceipts[dstEid][i] = oftReceipts[dstEid][i + 1];
-    //     }
-    //     oftReceipts[dstEid].pop();
-    //     // Removing skipped message from our queue
-    //     for (uint i = index; i < packetVariables[dstEid].length - 1; i++) {
-    //         packetVariables[dstEid][i] = packetVariables[dstEid][i + 1];
-    //     }
-    //     packetVariables[dstEid].pop();
-    // }
-
-    // function burnInboundNonce(uint256 dstOftIndexSeed, uint256 messageReceiptIndexSeed) public {
-    //     // PRE-CONDITIONS
-    //     OrderOFTMock dstOft = randomOft(dstOftIndexSeed);
-    //     uint32 dstEid = dstOft.endpoint().eid();
-    //     if (packetVariables[dstEid].length == 0) return;
-
-    //     (MessagingReceipt memory receipt, PacketVariables memory packetVars, uint256 index) = randomMessagingReceipt(
-    //         messageReceiptIndexSeed,
-    //         dstEid
-    //     );
-
-    //     uint64 nonce = receipt.nonce;
-    //     bytes32 sender = addressToBytes32(address(packetVars.srcOft));
-    //     uint32 srcEid = packetVars.srcOft.endpoint().eid();
-
-    //     Origin memory origin;
-    //     origin.srcEid = srcEid;
-    //     origin.sender = sender;
-    //     origin.nonce = nonce;
-
-    //     if (nonce <= 2) return;
-    //     bytes32 payloadHash = verifyHelper.validatePacket(receipt.guid);
-
-    //     vm.prank(dstOft.owner());
-    //     dstOft.burnInboundNonce(srcEid, sender, nonce, payloadHash);
-
-    //     // Removing skipped message from our queue
-    //     for (uint i = index; i < messageReceipts[dstEid].length - 1; i++) {
-    //         messageReceipts[dstEid][i] = messageReceipts[dstEid][i + 1];
-    //     }
-    //     messageReceipts[dstEid].pop();
-    //     // Removing skipped message from our queue
-    //     for (uint i = index; i < oftReceipts[dstEid].length - 1; i++) {
-    //         oftReceipts[dstEid][i] = oftReceipts[dstEid][i + 1];
-    //     }
-    //     oftReceipts[dstEid].pop();
-    //     // Removing skipped message from our queue
-    //     for (uint i = index; i < packetVariables[dstEid].length - 1; i++) {
-    //         packetVariables[dstEid][i] = packetVariables[dstEid][i + 1];
-    //     }
-    //     packetVariables[dstEid].pop();
-    // }
-
     /*//////////////////////////////////////////////////////////////////////////
                                      HELPERS
     //////////////////////////////////////////////////////////////////////////*/
@@ -806,10 +600,11 @@ contract OrderHandler is SoladyTest {
         return oftInstances[_bound(seed, 0, oftInstances.length - 1)];
     }
 
-    function randomMessagingReceipt(
-        uint256 seed,
-        uint32 eid
-    ) internal view returns (MessagingReceipt memory, PacketVariables memory, uint256) {
+    function randomMessagingReceipt(uint256 seed, uint32 eid)
+        internal
+        view
+        returns (MessagingReceipt memory, PacketVariables memory, uint256)
+    {
         uint256 index = _bound(seed, 0, messageReceipts[eid].length - 1);
         MessagingReceipt memory receipt = messageReceipts[eid][index];
         PacketVariables memory packetVars = packetVariables[eid][index];
