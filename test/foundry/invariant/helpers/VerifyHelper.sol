@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.0;
 
-import { OrderInvariant } from "../invariants/OrderInvariant.t.sol";
+import {OrderInvariant} from "../invariants/OrderInvariant.t.sol";
 
 contract VerifyHelper {
     OrderInvariant public orderInvariant;

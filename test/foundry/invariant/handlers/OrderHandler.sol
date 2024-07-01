@@ -93,7 +93,7 @@ contract OrderHandler is SoladyTest {
         users[4] = user4;
         users[5] = user5;
 
-        for (uint i = 0; i < oftInstances.length; i++) {
+        for (uint256 i = 0; i < oftInstances.length; i++) {
             if (i == 0) {
                 vm.prank(user0);
                 adapterToken.approve(user0, type(uint256).max);
@@ -343,8 +343,8 @@ contract OrderHandler is SoladyTest {
     /***************************************************************************************************************************************
 
         * OT-06: Source Token Balance Should Decrease On Send
-        * OT-07: Adapter Balance Should Increase On Send
-        * OT-08: ORDER Token Total Supply Should Not Change On Send
+        * OT-07: Adapter Token Balance Should Increase On Send
+        * OT-08: Adapter Token Total Supply Should Not Change On Send
         * OT-09: Source OFT Total Supply Should Decrease On Send
         * OT-10: Outbound Nonce Should Increase By 1 On Send
 
@@ -441,19 +441,19 @@ contract OrderHandler is SoladyTest {
 
             // Pushing message receipts to the front
             messageReceipts[t.dstEid].push(); // Increase the array size by 1
-            for (uint i = messageReceipts[t.dstEid].length - 1; i > 0; i--) {
+            for (uint256 i = messageReceipts[t.dstEid].length - 1; i > 0; i--) {
                 messageReceipts[t.dstEid][i] = messageReceipts[t.dstEid][i - 1]; // Shift elements to the right
             }
             messageReceipts[t.dstEid][0] = decodedMessagingReceipt; // Insert the new element at the front
             // Pushing OFT receipts to the front
             oftReceipts[t.dstEid].push(); // Increase the array size by 1
-            for (uint i = oftReceipts[t.dstEid].length - 1; i > 0; i--) {
+            for (uint256 i = oftReceipts[t.dstEid].length - 1; i > 0; i--) {
                 oftReceipts[t.dstEid][i] = oftReceipts[t.dstEid][i - 1]; // Shift elements to the right
             }
             oftReceipts[t.dstEid][0] = decodedOFTReceipt;
             // Pushing packet variables to the front
             packetVariables[t.dstEid].push(); // Increase the array size by 1
-            for (uint i = packetVariables[t.dstEid].length - 1; i > 0; i--) {
+            for (uint256 i = packetVariables[t.dstEid].length - 1; i > 0; i--) {
                 packetVariables[t.dstEid][i] = packetVariables[t.dstEid][i - 1]; // Shift elements to the right
             }
             packetVariables[t.dstEid][0] = packetVars;
@@ -488,12 +488,12 @@ contract OrderHandler is SoladyTest {
                 assertEq(
                     beforeAfter.adapterBalanceAfter,
                     beforeAfter.adapterBalanceBefore + decodedOFTReceipt.amountSentLD,
-                    "OT-07: Adapter Balance Should Increase On Send"
+                    "OT-07: Adapter Token Balance Should Increase On Send"
                 );
                 assertEq(
                     beforeAfter.srcTotalSupplyAfter,
                     beforeAfter.srcTotalSupplyBefore,
-                    "OT-08: ORDER Token Total Supply Should Not Change On Send"
+                    "OT-08: Adapter Token Total Supply Should Not Change On Send"
                 );
             } else {
                 assertEq(
@@ -517,9 +517,9 @@ contract OrderHandler is SoladyTest {
 
         * OT-11: Max Received Nonce Should Increase By 1 on lzReceive
         * OT-12: Destination Token Balance Should Increase on lzReceive
-        * OT-13: Adapter Balance Should Decrease on lzReceive
-        * OT-14: ORDER Token Total Supply Should Not Change on lzReceive
-        * OT-15: Destination Total Supply Should Increase on lzReceive
+        * OT-13: Adapter Token Balance Should Decrease on lzReceive
+        * OT-14: Adapter Token Total Supply Should Not Change on lzReceive
+        * OT-15: Destination OFT Total Supply Should Increase on lzReceive
 
     /**************************************************************************************************************************************/
     /*** Assertions that must be true when a user calls send                                                                            ***/
@@ -600,18 +600,18 @@ contract OrderHandler is SoladyTest {
             assertEq(
                 beforeAfter.adapterBalanceAfter,
                 beforeAfter.adapterBalanceBefore - amountSentLD,
-                "OT-13: Adapter Balance Should Decrease on lzReceive"
+                "OT-13: Adapter Token Balance Should Decrease on lzReceive"
             );
             assertEq(
                 beforeAfter.dstTotalSupplyAfter,
                 beforeAfter.dstTotalSupplyBefore,
-                "OT-14: ORDER Token Total Supply Should Not Change on lzReceive"
+                "OT-14: Adapter Token Total Supply Should Not Change on lzReceive"
             );
         } else {
             assertEq(
                 beforeAfter.dstTotalSupplyAfter,
                 beforeAfter.dstTotalSupplyBefore + amountReceivedLD,
-                "OT-15: Destination Total Supply Should Increase on lzReceive"
+                "OT-15: Destination OFT Total Supply Should Increase on lzReceive"
             );
         }
     }

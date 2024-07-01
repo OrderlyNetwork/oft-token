@@ -3,39 +3,47 @@ pragma solidity ^0.8.20;
 
 // Forge imports
 import "forge-std/console.sol";
-import { StdInvariant } from "forge-std/StdInvariant.sol";
+import {StdInvariant} from "forge-std/StdInvariant.sol";
 
-import { OrderTokenMock } from "test/mocks/OrderTokenMock.sol";
-import { OrderOFTMock } from "test/mocks/OrderOFTMock.sol";
-import { OrderAdapterMock } from "test/mocks/OrderAdapterMock.sol";
-import { OFTInspectorMock } from "test/mocks/OFTInspectorMock.sol";
+import {OrderTokenMock} from "test/mocks/OrderTokenMock.sol";
+import {OrderOFTMock} from "test/mocks/OrderOFTMock.sol";
+import {OrderAdapterMock} from "test/mocks/OrderAdapterMock.sol";
+import {OFTInspectorMock} from "test/mocks/OFTInspectorMock.sol";
 
-import { OrderHandler } from "test/foundry/invariant/handlers/OrderHandler.sol";
+import {OrderHandler} from "test/foundry/invariant/handlers/OrderHandler.sol";
 
-import { TestHelperOz5 } from "@layerzerolabs/test-devtools-evm-foundry/contracts/TestHelperOz5.sol";
-import { OptionsBuilder } from "@layerzerolabs/lz-evm-oapp-v2/contracts/oapp/libs/OptionsBuilder.sol";
-import { IOAppOptionsType3, EnforcedOptionParam } from "contracts/layerzerolabs/lz-evm-oapp-v2/contracts/oapp/libs/OAppOptionsType3Upgradeable.sol";
+import {TestHelperOz5} from "@layerzerolabs/test-devtools-evm-foundry/contracts/TestHelperOz5.sol";
+import {OptionsBuilder} from "@layerzerolabs/lz-evm-oapp-v2/contracts/oapp/libs/OptionsBuilder.sol";
+import {
+    IOAppOptionsType3,
+    EnforcedOptionParam
+} from "contracts/layerzerolabs/lz-evm-oapp-v2/contracts/oapp/libs/OAppOptionsType3Upgradeable.sol";
 
-import { VerifyHelper } from "test/foundry/invariant/helpers/VerifyHelper.sol";
+import {VerifyHelper} from "test/foundry/invariant/helpers/VerifyHelper.sol";
 
 // Order imports
-import { OrderToken } from "contracts/OrderToken.sol";
-import { OrderAdapter } from "contracts/OrderAdapter.sol";
-import { OrderOFT } from "contracts/OrderOFT.sol";
-import { OrderBox } from "contracts/crosschain/OrderBox.sol";
-import { OrderBoxRelayer } from "contracts/crosschain/OrderBoxRelayer.sol";
-import { OrderSafe } from "contracts/crosschain/OrderSafe.sol";
-import { OrderSafeRelayer } from "contracts/crosschain/OrderSafeRelayer.sol";
+import {OrderToken} from "contracts/OrderToken.sol";
+import {OrderAdapter} from "contracts/OrderAdapter.sol";
+import {OrderOFT} from "contracts/OrderOFT.sol";
+import {OrderBox} from "contracts/crosschain/OrderBox.sol";
+import {OrderBoxRelayer} from "contracts/crosschain/OrderBoxRelayer.sol";
+import {OrderSafe} from "contracts/crosschain/OrderSafe.sol";
+import {OrderSafeRelayer} from "contracts/crosschain/OrderSafeRelayer.sol";
 
 // OFT imports
-import { IOFT, SendParam, OFTReceipt, MessagingReceipt } from "contracts/layerzerolabs/lz-evm-oapp-v2/contracts/oft/interfaces/IOFT.sol";
-import { MessagingFee } from "contracts/layerzerolabs/lz-evm-oapp-v2/contracts/oft/OFTCoreUpgradeable.sol";
-import { OFTMsgCodec } from "contracts/layerzerolabs/lz-evm-oapp-v2/contracts/oft/libs/OFTMsgCodec.sol";
-import { OFTComposeMsgCodec } from "contracts/layerzerolabs/lz-evm-oapp-v2/contracts/oft/libs/OFTComposeMsgCodec.sol";
+import {
+    IOFT,
+    SendParam,
+    OFTReceipt,
+    MessagingReceipt
+} from "contracts/layerzerolabs/lz-evm-oapp-v2/contracts/oft/interfaces/IOFT.sol";
+import {MessagingFee} from "contracts/layerzerolabs/lz-evm-oapp-v2/contracts/oft/OFTCoreUpgradeable.sol";
+import {OFTMsgCodec} from "contracts/layerzerolabs/lz-evm-oapp-v2/contracts/oft/libs/OFTMsgCodec.sol";
+import {OFTComposeMsgCodec} from "contracts/layerzerolabs/lz-evm-oapp-v2/contracts/oft/libs/OFTComposeMsgCodec.sol";
 
 // OZ imports
-import { IERC20 } from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
-import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
+import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 
 // forgefmt: disable-start
 /**************************************************************************************************************************************/
@@ -142,14 +150,12 @@ contract OrderInvariant is StdInvariant, TestHelperOz5 {
         // orderSelectors[8] = orderHandler.burnInboundNonce.selector;
         // orderSelectors[9] = orderHandler.skipInboundNonce.selector;
 
-        targetSelector(FuzzSelector({ addr: address(orderHandler), selectors: orderSelectors }));
+        targetSelector(FuzzSelector({addr: address(orderHandler), selectors: orderSelectors}));
     }
 
     function invariantOrderTokenBalanceSum() external {
         assertEq(
-            token.totalSupply(),
-            1_000_000_000 ether,
-            "OT-01: Total Supply of ORDER should always be 1,000,000,000"
+            token.totalSupply(), 1_000_000_000 ether, "OT-01: Total Supply of ORDER should always be 1,000,000,000"
         );
     }
 
@@ -171,17 +177,12 @@ contract OrderInvariant is StdInvariant, TestHelperOz5 {
             eids[i] = i + 1;
             oftInitDate = i == 0
                 ? abi.encodeWithSignature(
-                    "initialize(address,address,address)",
-                    address(token),
-                    address(endpoints[eids[i]]),
-                    address(this)
+                    "initialize(address,address,address)", address(token), address(endpoints[eids[i]]), address(this)
                 )
                 : abi.encodeWithSignature("initialize(address,address)", address(endpoints[eids[i]]), address(this));
 
-            ERC1967Proxy oftProxy = new ERC1967Proxy(
-                i == 0 ? address(orderAdapterImpl) : address(orderOFTImpl),
-                oftInitDate
-            );
+            ERC1967Proxy oftProxy =
+                new ERC1967Proxy(i == 0 ? address(orderAdapterImpl) : address(orderOFTImpl), oftInitDate);
             ofts[i] = address(oftProxy);
             oftInstances[i] = OrderOFTMock(address(oftProxy));
         }
@@ -198,19 +199,14 @@ contract OrderInvariant is StdInvariant, TestHelperOz5 {
                 EnforcedOptionParam memory enforcedOptionSend = EnforcedOptionParam(
                     eids[j],
                     uint16(OptionTypes.SEND),
-                    OptionsBuilder
-                        .newOptions()
-                        .addExecutorLzReceiveOption(RECEIVE_GAS, VALUE)
+                    OptionsBuilder.newOptions().addExecutorLzReceiveOption(RECEIVE_GAS, VALUE)
                         .addExecutorOrderedExecutionOption()
                 );
                 EnforcedOptionParam memory enforcedOptionSendAndCall = EnforcedOptionParam(
                     eids[j],
                     uint16(OptionTypes.SEND_AND_CALL),
-                    OptionsBuilder
-                        .newOptions()
-                        .addExecutorLzReceiveOption(RECEIVE_GAS, VALUE)
-                        .addExecutorLzComposeOption(0, COMPOSE_GAS, VALUE)
-                        .addExecutorOrderedExecutionOption()
+                    OptionsBuilder.newOptions().addExecutorLzReceiveOption(RECEIVE_GAS, VALUE)
+                        .addExecutorLzComposeOption(0, COMPOSE_GAS, VALUE).addExecutorOrderedExecutionOption()
                 );
                 enforcedOptions.push(enforcedOptionSend);
                 enforcedOptions.push(enforcedOptionSendAndCall);
@@ -329,18 +325,11 @@ contract OrderInvariant is StdInvariant, TestHelperOz5 {
                     IERC20(oftInstances[i].token()).approve(ofts[i], tokenToSend);
                 }
 
-                SendParam memory sendParam = SendParam(
-                    eids[j],
-                    addressToBytes32(address(this)),
-                    tokenToSend,
-                    tokenToSend,
-                    options,
-                    "",
-                    ""
-                );
+                SendParam memory sendParam =
+                    SendParam(eids[j], addressToBytes32(address(this)), tokenToSend, tokenToSend, options, "", "");
                 MessagingFee memory fee = oftInstances[i].quoteSend(sendParam, false);
 
-                oftInstances[i].send{ value: fee.nativeFee }(sendParam, fee, payable(address(this)));
+                oftInstances[i].send{value: fee.nativeFee}(sendParam, fee, payable(address(this)));
                 verifyPackets(eids[j], addressToBytes32(ofts[j]));
             }
         }

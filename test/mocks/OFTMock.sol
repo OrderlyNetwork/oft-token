@@ -1,36 +1,33 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.0;
 
-import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
-import { OFT } from "@layerzerolabs/lz-evm-oapp-v2/contracts/oft/OFT.sol";
-import { SendParam } from "@layerzerolabs/lz-evm-oapp-v2/contracts/oft/OFTCore.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {OFT} from "@layerzerolabs/lz-evm-oapp-v2/contracts/oft/OFT.sol";
+import {SendParam} from "@layerzerolabs/lz-evm-oapp-v2/contracts/oft/OFTCore.sol";
 
 contract OFTMock is OFT {
-    constructor(
-        string memory _name,
-        string memory _symbol,
-        address _lzEndpoint,
-        address _delegate
-    ) Ownable(_delegate) OFT(_name, _symbol, _lzEndpoint, _delegate) {}
+    constructor(string memory _name, string memory _symbol, address _lzEndpoint, address _delegate)
+        Ownable(_delegate)
+        OFT(_name, _symbol, _lzEndpoint, _delegate)
+    {}
 
     function mint(address _to, uint256 _amount) public {
         _mint(_to, _amount);
     }
 
     // @dev expose internal functions for testing purposes
-    function debit(
-        uint256 _amountToSendLD,
-        uint256 _minAmountToCreditLD,
-        uint32 _dstEid
-    ) public returns (uint256 amountDebitedLD, uint256 amountToCreditLD) {
+    function debit(uint256 _amountToSendLD, uint256 _minAmountToCreditLD, uint32 _dstEid)
+        public
+        returns (uint256 amountDebitedLD, uint256 amountToCreditLD)
+    {
         return _debit(msg.sender, _amountToSendLD, _minAmountToCreditLD, _dstEid);
     }
 
-    function debitView(
-        uint256 _amountToSendLD,
-        uint256 _minAmountToCreditLD,
-        uint32 _dstEid
-    ) public view returns (uint256 amountDebitedLD, uint256 amountToCreditLD) {
+    function debitView(uint256 _amountToSendLD, uint256 _minAmountToCreditLD, uint32 _dstEid)
+        public
+        view
+        returns (uint256 amountDebitedLD, uint256 amountToCreditLD)
+    {
         return _debitView(_amountToSendLD, _minAmountToCreditLD, _dstEid);
     }
 
@@ -50,10 +47,11 @@ contract OFTMock is OFT {
         return _credit(_to, _amountToCreditLD, _srcEid);
     }
 
-    function buildMsgAndOptions(
-        SendParam calldata _sendParam,
-        uint256 _amountToCreditLD
-    ) public view returns (bytes memory message, bytes memory options) {
+    function buildMsgAndOptions(SendParam calldata _sendParam, uint256 _amountToCreditLD)
+        public
+        view
+        returns (bytes memory message, bytes memory options)
+    {
         return _buildMsgAndOptions(_sendParam, _amountToCreditLD);
     }
 }
