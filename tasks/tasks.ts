@@ -737,7 +737,7 @@ task("order:oft:quote", "Quote the fee for sending tokens to a specific address 
         
         const deciamls = await erc20Contract.decimals() 
         const tokenAmount = hre.ethers.utils.parseUnits(taskArgs.amount, deciamls)
-        
+        console.log(`Print approve params:\n "${localContractAddress}", "${tokenAmount}"`)
         const param = {
             dstEid: getLzConfig(toNetwork)["endpointId"],
             to: hre.ethers.utils.hexZeroPad(receiver, 32),
@@ -751,6 +751,8 @@ task("order:oft:quote", "Quote the fee for sending tokens to a specific address 
         let fee = await localContract.quoteSend(param, payLzToken);
         console.log(`Fee in Wei: ${fee.nativeFee}`) 
         console.log(`Fee in ETH: ${hre.ethers.utils.formatEther(fee.nativeFee)}`)
+        console.log(`Print send params:\n [${param.dstEid}, "${param.to}", "${param.amountLD}", "${param.minAmountLD}", "${param.extraOptions}", "${param.composeMsg}", "${param.oftCmd}"]`)
+        console.log(`Print fee:\n [${fee}]`)
     }
     catch (e) {
         console.log(`Error: ${e}`)
