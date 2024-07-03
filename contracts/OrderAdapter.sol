@@ -12,6 +12,12 @@ import { Origin } from "./layerzerolabs/lz-evm-oapp-v2/contracts/oft/OFTCoreUpgr
  */
 contract OrderAdapter is OFTAdapterUpgradeable {
     /**
+     * @dev Disable the initializer on the implementation contract
+     */
+    constructor() {
+        _disableInitializers();
+    }
+    /**
      * @dev Initialize the OrderAdapter contract and set the ordered nonce flag
      * @param _lzEndpoint The LayerZero endpoint address
      * @param _delegate The delegate address of this OApp on the endpoint
