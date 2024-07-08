@@ -429,7 +429,7 @@ task("order:oft:set", "Connect OFT contracs on different networks: OrderOFT, Ord
             const occManagerAddress = TGE_CONTRACTS[taskArgs.env][fromNetwork].occManager
             // const occManagerAddress = "0xDd3287043493E0a08d2B348397554096728B459c"
             if (occManagerAddress) {
-                const trustedStatus = await localContract.trustOderlyAddress(occManagerAddress)
+                const trustedStatus = await localContract.trustAddress(occManagerAddress)
                 if (!trustedStatus) {
                     const txTrustOrderly = await localContract.setTrustAddress(occManagerAddress, true, {
                         nonce: nonce++
@@ -444,19 +444,19 @@ task("order:oft:set", "Connect OFT contracs on different networks: OrderOFT, Ord
             }
 
             if (fromNetwork === 'orderly' || fromNetwork === 'orderlysepolia') {
-                const onlyOrderlyEnabled = await localContract.onlyOrderly()
+                const onlyTrustCallerEnabled = await localContract.onlyTrustCaller()
 
-                if (!onlyOrderlyEnabled) {
-                    const txSetOnlyOrderly = await localContract.setOnlyOrderly(true, {
+                if (!onlyTrustCallerEnabled) {
+                    const txSetOnlyTrust = await localContract.setOnlyTrust(true, {
                         nonce: nonce++
                     })
-                    await txSetOnlyOrderly.wait()
-                    console.log(`Set only orderly enabled on ${localContractName}`)
+                    await txSetOnlyTrust.wait()
+                    console.log(`Set Only Trust enabled on ${localContractName}`)
                 } else {
-                    console.log(`Only orderly already enabled on ${localContractName}`)
+                    console.log(`Only Trust already enabled on ${localContractName}`)
                 }
             } else {
-                console.log(`Only orderly shouldn't be enabled on ${localContractName}`)
+                console.log(`Only Trust shouldn't be enabled on ${fromNetwork}`)
             }
             
 
@@ -483,14 +483,13 @@ task("order:oft:getconfig", "Print the configuration of OFT contracts on differe
             const localContractName = oftContractName(fromNetwork)
             const localContractAddress = await loadContractAddress(taskArgs.env, fromNetwork, localContractName) as string
             
-            let remoteLzConfig, remoteEid, defaultSendLib, defaultReceiveLib, sendLibConfigExecutorData, sendLibConfigULNData, receiveLibConfigULNData, sendLibConfigExecutor, sendLibConfigULN, receiveLibConfigULN
+            let remoteLzConfig, remoteEid, defaultSendLib, defaultReceiveLib, sendLibConfigExecutorData, sendLibConfigULNData, receiveLibConfigULNData
             let receiveLibConfigULNArray = []
             let sendLibConfigExecutorULNArray = []
             for (const toNetwork of NETWORKS) {
                 if (fromNetwork !== toNetwork) {
                     
                     remoteLzConfig = getLzConfig(toNetwork)
-                    
                     remoteEid = remoteLzConfig["endpointId"]
                     defaultSendLib = await endpointV2.defaultSendLibrary(remoteEid)
                     defaultReceiveLib = await endpointV2.defaultReceiveLibrary(remoteEid)
@@ -503,9 +502,10 @@ task("order:oft:getconfig", "Print the configuration of OFT contracts on differe
                     
                     console.log(`=================Print Config for ${toNetwork}===================`)
                     console.log(`Default SendLib: ${defaultSendLib}`)
-                    console.log(`Default ReceiveLib: ${defaultReceiveLib}`)
                     console.log(`SendLibConfigExecutor: \n maxMessageSize: ${decodedSendLibConfigExecutor[0]},\n executor: ${decodedSendLibConfigExecutor[1]}`)
                     console.log(`SendLibConfigULN: \n confirmations: ${decodedSendLibConfigULN[0]}, \n requiredDVNCount: ${decodedSendLibConfigULN[1]}, \n optionalDVNCount: ${decodedSendLibConfigULN[2]}, \n optionalDVNThreshold: ${decodedSendLibConfigULN[3]}, \n requiredDVNs: ${decodedSendLibConfigULN[4]}, \n optionalDVNs: ${decodedSendLibConfigULN[5]} \n`)
+                    
+                    console.log(`Default ReceiveLib: ${defaultReceiveLib}`)
                     console.log(`ReceiveLibConfigULN: \n confirmations: ${decodedReceiveLibConfigULN[0]}, \n requiredDVNCount: ${decodedReceiveLibConfigULN[1]}, \n optionalDVNCount: ${decodedReceiveLibConfigULN[2]}, \n optionalDVNThreshold: ${decodedReceiveLibConfigULN[3]}, \n requiredDVNs: ${decodedReceiveLibConfigULN[4]}, \n optionalDVNs: ${decodedReceiveLibConfigULN[5]} \n`)
 
                     if (taskArgs.setConfig) {
