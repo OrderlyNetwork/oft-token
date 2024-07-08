@@ -61,5 +61,26 @@
     "orderlysepolia": {
       "OrderOFT": "0x2921a94509a17aebC1bB4d5bb35e3919Cd2a0BA8"
     }
+  },
+  "mainnet": {
+    "ethereum": {
+      "OrderToken": "0xF706d113f17bDb5d571Ce58A353360537110A357",
+      "OrderAdapter": "0x6985884C4392D348587B19cb9eAAf157F13271cd"
+    },
+    "arbitrum": {
+      "OrderOFT": "0x6985884C4392D348587B19cb9eAAf157F13271cd"
+    },
+    "optimism": {
+      "OrderOFT": "0x6985884C4392D348587B19cb9eAAf157F13271cd"
+    },
+    "polygon": {
+      "OrderOFT": "0x6985884C4392D348587B19cb9eAAf157F13271cd"
+    },
+    "base": {
+      "OrderOFT": "0x6985884C4392D348587B19cb9eAAf157F13271cd"
+    },
+    "orderly": {
+      "OrderOFT": "0x6985884C4392D348587B19cb9eAAf157F13271cd"
+    }
   }
 }
