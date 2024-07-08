@@ -25,3 +25,9 @@ remappings = [
     '@layerzerolabs/=node_modules/@layerzerolabs/',
     '@openzeppelin/=node_modules/@openzeppelin/',
 ]
+
+[invariant]
+runs = 100
+depth = 30
+fail_on_revert = true
+dictionary_weight = 80

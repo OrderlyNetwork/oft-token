@@ -96,7 +96,7 @@ abstract contract OAppOptionsType3Upgradeable is IOAppOptionsType3, OwnableUpgra
      */
     function _assertOptionsType3(bytes memory _options) internal pure virtual {
         uint16 optionsType;
-        assembly {
+        assembly ("memory-safe") {
             optionsType := mload(add(_options, 2))
         }
         if (optionsType != OPTION_TYPE_3) revert InvalidOptions(_options);
