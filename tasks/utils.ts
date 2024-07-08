@@ -69,3 +69,22 @@ export async function isPeered(env: env, from: string, to: string) {
         throw new Error("Peers file not found")
     }
 }
+
+export function equalDVNs<T>(dvn1: T[], dvn2: T[]): boolean {
+    if (dvn1.length !== dvn2.length) {
+      return false;
+    }
+  
+    // Sort both arrays
+    const sortedDvn1 = dvn1.slice().sort();
+    const sortedDvn2 = dvn2.slice().sort();
+  
+    // Compare each element
+    for (let i = 0; i < sortedDvn1.length; i++) {
+      if (sortedDvn1[i] !== sortedDvn2[i]) {
+        return false;
+      }
+    }
+  
+    return true;
+  }
