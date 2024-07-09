@@ -469,12 +469,12 @@ export const TGE_CONTRACTS: { [key: env]: { [key: network]: TgeContract} } = {
     }
 }
 
-// export const MULTI_SIG: { [key: env]: address } = { 
-//     "dev": "0xFae9CAF31EeD9f6480262808920dA03eb7f76E7E",
-//     "qa": "0xc1465019B3e04602a50d34A558c6630Ac50f8fbb",
-//     "staging": "0x7D1e7BeAd9fBb72e35Dc8E6d1966c2e57DbDA3F0",
-//     "mainnet": "0x4e834Ca9310d7710a409638A7aa70CB22F141Df3",
-// }
+export const MULTI_SIG: { [key: env]: address } = { 
+    "dev": "0xFae9CAF31EeD9f6480262808920dA03eb7f76E7E",
+    "qa": "0xc1465019B3e04602a50d34A558c6630Ac50f8fbb",
+    "staging": "0x7D1e7BeAd9fBb72e35Dc8E6d1966c2e57DbDA3F0",
+    "mainnet": "0x4e834Ca9310d7710a409638A7aa70CB22F141Df3",
+}
 
 export function getLzConfig(network: network): LzConfig {
     checkNetwork(network)

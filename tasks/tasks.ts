@@ -1,6 +1,6 @@
 
 import { task, types } from "hardhat/config"
-import { EnvType, OFTContractType, TEST_NETWORKS, MAIN_NETWORKS, tokenContractName, oftContractName, getLzConfig, checkNetwork, OPTIONS, TGE_CONTRACTS, LZ_CONFIG, getLzLibConfig } from "./const"
+import { EnvType, OFTContractType, TEST_NETWORKS, MAIN_NETWORKS, tokenContractName, oftContractName, getLzConfig, checkNetwork, OPTIONS, TGE_CONTRACTS, LZ_CONFIG, getLzLibConfig , MULTI_SIG} from "./const"
 import { loadContractAddress, saveContractAddress,  setPeer, isPeered, equalDVNs } from "./utils"
 import { Options } from '@layerzerolabs/lz-v2-utilities'
 import { DeployResult } from "hardhat-deploy/dist/types"
@@ -593,7 +593,49 @@ task("order:oft:getconfig", "Print the configuration of OFT contracts on differe
         }
     })
 
+task("order:oft:owner", "Set the owner of OFT contracts on different networks: OrderOFT, OrderAdapter")
+    .addParam("env", "The environment to deploy the OFT contract", undefined, types.string)
+    .addFlag("setOwner", "Set the configuration of OFT contracts for different networks", )
+    .setAction(async (taskArgs, hre) => {
+        checkNetwork(hre.network.name)
+        try {
+            const fromNetwork = hre.network.name
+            console.log(`Running on ${fromNetwork}`)
+            const [ signer ] = await hre.ethers.getSigners()
+            const localContractName = oftContractName(fromNetwork)
+            const localContractAddress = await loadContractAddress(taskArgs.env, fromNetwork, localContractName) as string
+            const localContract = await hre.ethers.getContractAt(localContractName, localContractAddress, signer)
 
+            const endpointV2Deployment = await hre.deployments.get('EndpointV2')
+            const endpointV2 = await hre.ethers.getContractAt(endpointV2Deployment.abi, endpointV2Deployment.address, signer)
+
+            const oftOwner = await localContract.owner()
+            const oftDelegator = await endpointV2.delegates(localContractAddress)
+
+            console.log(`OFT Owner: ${oftOwner}`)
+            console.log(`OFT Delegator: ${oftDelegator}`)
+
+            if (taskArgs.setOwner) {
+                const multiSig = MULTI_SIG[taskArgs.env]
+                if (multiSig && oftOwner !== multiSig) {
+                    const txSetDelegator = await localContract.setDelegate(multiSig)
+                    await txSetDelegator.wait()
+                    console.log(`Set OFT Delegator to ${multiSig}`)
+                    const txSetOwner = await localContract.transferOwnership(multiSig)
+                    await txSetOwner.wait()
+                    console.log(`Set OFT Owner to ${multiSig}`)
+                } else {
+                    console.log(`OFT Owner already set to ${multiSig} or not found`)
+                }
+            }
+
+
+
+        }
+        catch (e) {
+            console.log(`Error: ${e}`)
+        }
+    })
 
 task("order:oft:distribute", "Distribute tokens to all OFT contracts on different networks")
     .addParam("env", "The environment to send the tokens", undefined, types.string)
