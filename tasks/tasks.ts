@@ -43,6 +43,7 @@ task("order:print", "Prints the address of the OFT contract")
 task("order:deploy", "Deploys the contract to a specific network: OrderToken, OrderAdapter, OrderOFT, OrderSafeRelayer, OrderBoxRelayer, OrderSafe, OrderBox")
     .addParam("env", "The environment to deploy the OFT contract", undefined, types.string)
     .addParam("contract", "The contract to deploy", undefined, types.string)
+    .addFlag("predictAddress", "Predict the address of the contract before deployment")
     .setAction(async (taskArgs, hre) => {
         checkNetwork(hre.network.name)
         try {
@@ -66,7 +67,9 @@ task("order:deploy", "Deploys the contract to a specific network: OrderToken, Or
             if (contractName === 'OrderToken') {
 
                 // should set proper distributor address for mainnet
-                distributorAddress = signer.address // multisig address
+                distributorAddress = signer.address                
+                // distributorAddress = MULTI_SIG[taskArgs.env] // multisig address
+                // distributorAddress = "0x336e544c59d768C51282a18Aa44676F43C652D8f"  // staging  foundation address
                 initArgs = [distributorAddress]
 
             } else if (contractName === 'OrderAdapter') {
@@ -99,31 +102,64 @@ task("order:deploy", "Deploys the contract to a specific network: OrderToken, Or
                 log: true,
                 deterministicDeployment: salt
             };
+
+            // const bytecode = (await hre.deployments.getArtifact(`${contractName}`)).bytecode;
+            // const constructorTypes: any[] = ["constructor(address)"];
+            // const constructorArgs: any = [`${signer.address}`];
+            // const encodedConstructorArgs = hre.ethers.utils.defaultAbiCoder.encode(constructorTypes, [constructorArgs]);
+            // const bytecodeHash = hre.ethers.utils.keccak256(bytecode + encodedConstructorArgs.slice(2));
+            // console.log(bytecode)
+
+            // const determinDeployer =  "0x4e59b44847b379578588920cA78FbF26c0B4956C"
+            // const create2Address = hre.ethers.utils.getCreate2Address(
+            //     determinDeployer, 
+            //     salt, 
+            //     bytecodeHash
+            //   );
+
+            // console.log(`Predicted contract address: ${create2Address}`);
+
+            const uupsData = await hre.ethers.getContractFactory("ERC1967Proxy");
+            const bytecode = uupsData.bytecode;
+            const constructorTypes: any[] = ["initialize(address,address,address)"];
+            const constructorArgs: any = [initArgs];
+            const encodedConstructorArgs = hre.ethers.utils.defaultAbiCoder.encode(constructorTypes, constructorArgs);
+            const bytecodeHash = hre.ethers.utils.keccak256(bytecode + encodedConstructorArgs.slice(2));
+            console.log(bytecode)
+
+            const determinDeployer =  "0x4e59b44847b379578588920cA78FbF26c0B4956C"
+            const create2Address = hre.ethers.utils.getCreate2Address(
+                determinDeployer, 
+                salt, 
+                bytecodeHash
+              );
+
+            console.log(`Predicted contract address: ${create2Address}`);
             
             // deterministic deployment
-            let deployedContract: DeployResult
-            if (proxy) {
-                deployedContract = await deploy(contractName, {
-                    ...baseDeployArgs,
-                    proxy: {
-                        owner: owner,
-                        proxyContract: "UUPS",
-                        execute: {
-                            methodName: "initialize",
-                            args: initArgs
-                        }
-                    },
-                    // gasLimit: 800000
-                })
-            } else {
-                deployedContract = await deploy(contractName, {
-                    ...baseDeployArgs,
-                    args: initArgs
-                })
-            }
-            console.log(`${contractName} contract deployed to ${deployedContract.address} with tx hash ${deployedContract.transactionHash}`);
-            contractAddress = deployedContract.address
-            await saveContractAddress(env, hre.network.name, contractName, contractAddress)       
+            // let deployedContract: DeployResult
+            // if (proxy) {
+            //     deployedContract = await deploy(contractName, {
+            //         ...baseDeployArgs,
+            //         proxy: {
+            //             owner: owner,
+            //             proxyContract: "UUPS",
+            //             execute: {
+            //                 methodName: "initialize",
+            //                 args: initArgs
+            //             }
+            //         },
+            //         // gasLimit: 800000
+            //     })
+            // } else {
+            //     deployedContract = await deploy(contractName, {
+            //         ...baseDeployArgs,
+            //         args: initArgs
+            //     })
+            // }
+            // console.log(`${contractName} contract deployed to ${deployedContract.address} with tx hash ${deployedContract.transactionHash}`);
+            // contractAddress = deployedContract.address
+            // await saveContractAddress(env, hre.network.name, contractName, contractAddress)       
         }
         catch (e) {
             console.log(`Error: ${e}`)
