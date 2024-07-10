@@ -1,6 +1,6 @@
 
 import { task, types } from "hardhat/config"
-import { EnvType, OFTContractType, TEST_NETWORKS, MAIN_NETWORKS, tokenContractName, oftContractName, getLzConfig, checkNetwork, OPTIONS, TGE_CONTRACTS, LZ_CONFIG, getLzLibConfig , MULTI_SIG} from "./const"
+import { EnvType, OFTContractType, TEST_NETWORKS, MAIN_NETWORKS, tokenContractName, oftContractName, getLzConfig, checkNetwork, OPTIONS, TGE_CONTRACTS, LZ_CONFIG, getLzLibConfig , MULTI_SIG, ERC1967PROXY_BYTECODE, DETERMIN_CONTRSCT_FACTORY, INIT_TOKEN_HOLDER, TEST_LZ_ENDPOINT, MAIN_LZ_ENDPOINT, SIGNER} from "./const"
 import { loadContractAddress, saveContractAddress,  setPeer, isPeered, equalDVNs } from "./utils"
 import { Options } from '@layerzerolabs/lz-v2-utilities'
 import { DeployResult } from "hardhat-deploy/dist/types"
@@ -43,7 +43,7 @@ task("order:print", "Prints the address of the OFT contract")
 task("order:deploy", "Deploys the contract to a specific network: OrderToken, OrderAdapter, OrderOFT, OrderSafeRelayer, OrderBoxRelayer, OrderSafe, OrderBox")
     .addParam("env", "The environment to deploy the OFT contract", undefined, types.string)
     .addParam("contract", "The contract to deploy", undefined, types.string)
-    .addFlag("predictAddress", "Predict the address of the contract before deployment")
+    .addFlag("preAddress", "Predict the address of the contract before deployment")
     .setAction(async (taskArgs, hre) => {
         checkNetwork(hre.network.name)
         try {
@@ -67,9 +67,7 @@ task("order:deploy", "Deploys the contract to a specific network: OrderToken, Or
             if (contractName === 'OrderToken') {
 
                 // should set proper distributor address for mainnet
-                distributorAddress = signer.address                
-                // distributorAddress = MULTI_SIG[taskArgs.env] // multisig address
-                // distributorAddress = "0x336e544c59d768C51282a18Aa44676F43C652D8f"  // staging  foundation address
+                distributorAddress = INIT_TOKEN_HOLDER                
                 initArgs = [distributorAddress]
 
             } else if (contractName === 'OrderAdapter') {
@@ -102,68 +100,123 @@ task("order:deploy", "Deploys the contract to a specific network: OrderToken, Or
                 log: true,
                 deterministicDeployment: salt
             };
-
-            // const bytecode = (await hre.deployments.getArtifact(`${contractName}`)).bytecode;
-            // const constructorTypes: any[] = ["constructor(address)"];
-            // const constructorArgs: any = [`${signer.address}`];
-            // const encodedConstructorArgs = hre.ethers.utils.defaultAbiCoder.encode(constructorTypes, [constructorArgs]);
-            // const bytecodeHash = hre.ethers.utils.keccak256(bytecode + encodedConstructorArgs.slice(2));
-            // console.log(bytecode)
-
-            // const determinDeployer =  "0x4e59b44847b379578588920cA78FbF26c0B4956C"
-            // const create2Address = hre.ethers.utils.getCreate2Address(
-            //     determinDeployer, 
-            //     salt, 
-            //     bytecodeHash
-            //   );
-
-            // console.log(`Predicted contract address: ${create2Address}`);
-
-            const uupsData = await hre.ethers.getContractFactory("ERC1967Proxy");
-            const bytecode = uupsData.bytecode;
-            const constructorTypes: any[] = ["initialize(address,address,address)"];
-            const constructorArgs: any = [initArgs];
-            const encodedConstructorArgs = hre.ethers.utils.defaultAbiCoder.encode(constructorTypes, constructorArgs);
-            const bytecodeHash = hre.ethers.utils.keccak256(bytecode + encodedConstructorArgs.slice(2));
-            console.log(bytecode)
-
-            const determinDeployer =  "0x4e59b44847b379578588920cA78FbF26c0B4956C"
-            const create2Address = hre.ethers.utils.getCreate2Address(
-                determinDeployer, 
-                salt, 
-                bytecodeHash
-              );
-
-            console.log(`Predicted contract address: ${create2Address}`);
-            
             // deterministic deployment
-            // let deployedContract: DeployResult
-            // if (proxy) {
-            //     deployedContract = await deploy(contractName, {
-            //         ...baseDeployArgs,
-            //         proxy: {
-            //             owner: owner,
-            //             proxyContract: "UUPS",
-            //             execute: {
-            //                 methodName: "initialize",
-            //                 args: initArgs
-            //             }
-            //         },
-            //         // gasLimit: 800000
-            //     })
-            // } else {
-            //     deployedContract = await deploy(contractName, {
-            //         ...baseDeployArgs,
-            //         args: initArgs
-            //     })
-            // }
-            // console.log(`${contractName} contract deployed to ${deployedContract.address} with tx hash ${deployedContract.transactionHash}`);
-            // contractAddress = deployedContract.address
-            // await saveContractAddress(env, hre.network.name, contractName, contractAddress)       
+            let deployedContract: DeployResult
+            if (proxy) {
+                deployedContract = await deploy(contractName, {
+                    ...baseDeployArgs,
+                    proxy: {
+                        owner: owner,
+                        proxyContract: "UUPS",
+                        execute: {
+                            methodName: "initialize",
+                            args: initArgs
+                        }
+                    },
+                    // gasLimit: 800000
+                })
+            } else {
+                deployedContract = await deploy(contractName, {
+                    ...baseDeployArgs,
+                    args: initArgs
+                })
+            }
+            console.log(`${contractName} contract deployed to ${deployedContract.address} with tx hash ${deployedContract.transactionHash}`);
+            contractAddress = deployedContract.address
+            await saveContractAddress(env, hre.network.name, contractName, contractAddress)       
         }
         catch (e) {
             console.log(`Error: ${e}`)
         }
+    })
+
+task("order:predicate", "Predicts the address of the contract before deployment")
+    .addParam("env", "The environment to deploy the OFT contract", undefined, types.string)
+    .setAction(async (taskArgs, hre) => {
+        const contractNames = ['OrderToken', 'OrderAdapter', 'OrderOFT']
+        const env: EnvType = taskArgs.env as EnvType
+        const lzEndpoint = env === 'mainnet' ? MAIN_LZ_ENDPOINT : TEST_LZ_ENDPOINT
+        const salt = hre.ethers.utils.id(process.env.ORDER_DEPLOYMENT_SALT + `${env}` || "deterministicDeployment")
+        const signer = SIGNER
+        let constructorTypes: any[] = []
+        let constructorArgs: any[] = []
+        let encodedConstructorArgs
+        let bytecodeHash, bytecode
+        let tokenAddress
+        let initArgs
+
+        for (const contractName of contractNames) {
+            bytecode = (await hre.deployments.getArtifact(`${contractName}`)).bytecode; 
+
+            if (contractName === 'OrderToken') {
+                constructorTypes = ["(address)"];
+                constructorArgs = [INIT_TOKEN_HOLDER];
+                encodedConstructorArgs = hre.ethers.utils.defaultAbiCoder.encode(constructorTypes, [constructorArgs]);
+                bytecodeHash = hre.ethers.utils.keccak256(bytecode + encodedConstructorArgs.slice(2));
+                tokenAddress = hre.ethers.utils.getCreate2Address(
+                    DETERMIN_CONTRSCT_FACTORY, 
+                    salt, 
+                    bytecodeHash!
+                    );
+            } else if (contractName === 'OrderAdapter') {
+                constructorTypes = []
+                constructorArgs = []
+                encodedConstructorArgs = hre.ethers.utils.defaultAbiCoder.encode(constructorTypes, constructorArgs);
+                bytecodeHash = hre.ethers.utils.keccak256(bytecode + encodedConstructorArgs.slice(2));
+                const preImplAddress = hre.ethers.utils.getCreate2Address(
+                    DETERMIN_CONTRSCT_FACTORY, 
+                    salt, 
+                    bytecodeHash!
+                    );
+                console.log(`Predicted ${contractName} implementation address: ${preImplAddress}`);
+    
+                const ABI = ["function initialize(address _orderToken, address _lzEndpoint, address _delegate)"];
+                const initFunction = "initialize";
+                const iface = new hre.ethers.utils.Interface(ABI);
+                initArgs = [tokenAddress, lzEndpoint, signer]
+                const intialData = iface.encodeFunctionData(initFunction, initArgs)
+    
+                bytecode = ERC1967PROXY_BYTECODE
+                constructorTypes = ["(address,bytes)"];
+                constructorArgs = [preImplAddress, intialData];
+    
+                encodedConstructorArgs = hre.ethers.utils.defaultAbiCoder.encode(constructorTypes, [constructorArgs])
+                bytecodeHash = hre.ethers.utils.keccak256(bytecode + encodedConstructorArgs.slice(66)) // remove the first 32 bytes with 0x prefix
+                
+            } else if (contractName === 'OrderOFT') {
+                constructorTypes = []
+                constructorArgs = []
+                encodedConstructorArgs = hre.ethers.utils.defaultAbiCoder.encode(constructorTypes, constructorArgs);
+                bytecodeHash = hre.ethers.utils.keccak256(bytecode + encodedConstructorArgs.slice(2));
+                const preImplAddress = hre.ethers.utils.getCreate2Address(
+                    DETERMIN_CONTRSCT_FACTORY, 
+                    salt, 
+                    bytecodeHash!
+                    );
+                console.log(`Predicted ${contractName} implementation address: ${preImplAddress}`);
+    
+                const ABI = ["function initialize(address _lzEndpoint, address _delegate)"];
+                const initFunction = "initialize";
+                const iface = new hre.ethers.utils.Interface(ABI);
+                initArgs = [lzEndpoint, signer]
+                const intialData = iface.encodeFunctionData(initFunction, initArgs)
+    
+                bytecode = ERC1967PROXY_BYTECODE
+                constructorTypes = ["(address,bytes)"];
+                constructorArgs = [preImplAddress, intialData];
+    
+                encodedConstructorArgs = hre.ethers.utils.defaultAbiCoder.encode(constructorTypes, [constructorArgs])
+                bytecodeHash = hre.ethers.utils.keccak256(bytecode + encodedConstructorArgs.slice(66)) 
+            }
+            const preAddress = hre.ethers.utils.getCreate2Address(
+                    DETERMIN_CONTRSCT_FACTORY, 
+                    salt, 
+                    bytecodeHash!
+                    );
+            console.log(`Predicted ${contractName} address: ${preAddress}`);
+        }
+            
+        
     })
 
 task("order:init", "Initializes the contract on a specific network: OrderSafe, OrderSafeRelayer, OrderBox, OrderBoxRelayer")
