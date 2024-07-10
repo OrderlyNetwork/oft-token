@@ -400,7 +400,7 @@ export const TGE_CONTRACTS: { [key: env]: { [key: network]: TgeContract} } = {
         "amoy": {
             occManager: "0x0180107E72FB14a22a776913063b8a4081E9dc94",
         },
-        "basepolia": {
+        "basesepolia": {
             occManager: "0x0180107E72FB14a22a776913063b8a4081E9dc94",
         },
         "orderlysepolia": {
