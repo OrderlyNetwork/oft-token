@@ -215,8 +215,6 @@ npx @layerzerolabs/verify-contract -d "./deployments" --contracts "OrderOFT" -n 
 
 npx @layerzerolabs/verify-contract -d "./deployments" --contracts "OrderOFT" -n "basesepolia" -u $BASESEPOLIA_API_URL -k $BASESEPOLIA_API_KEY
 
-npx @layerzerolabs/verify-contract -d "./deployments" --contracts "OrderOFT" -n "mantlesepolia" -u $MANTLESEPOLIA_API_URL -k $MANTLESEPOLIA_API_KEY
-
 npx @layerzerolabs/verify-contract -d "./deployments/" --contracts "OrderOFT" -n "orderlysepolia" -u $ORDERLYSEPOLIA_API_URL
 ```
 
@@ -284,6 +282,38 @@ Setting peer from arbitrumsepolia to orderlysepolia with tx hash 0x1d3fd4dd47c8b
 ```
 
 After we have executed the `order:oft:set` task on each supported network, it is supposed that the OFT contracts on different networks are connected together. The transfer between any two of them is enabled.
+
+### Set Config
+
+```
+npx hardhat order:oft:getconfig --env dev --network sepolia --set-config --force-set
+npx hardhat order:oft:getconfig --env dev --network arbitrumsepolia --set-config --force-set
+npx hardhat order:oft:getconfig --env dev --network opsepolia --set-config --force-set
+npx hardhat order:oft:getconfig --env dev --network amoy --set-config --force-set
+npx hardhat order:oft:getconfig --env dev --network basesepolia --set-config --force-set
+npx hardhat order:oft:getconfig --env dev --network orderlysepolia --set-config --force-set
+
+npx hardhat order:oft:getconfig --env qa --network sepolia --set-config --force-set
+npx hardhat order:oft:getconfig --env qa --network arbitrumsepolia --set-config --force-set
+npx hardhat order:oft:getconfig --env qa --network opsepolia --set-config --force-set
+npx hardhat order:oft:getconfig --env qa --network amoy --set-config --force-set
+npx hardhat order:oft:getconfig --env qa --network basesepolia --set-config --force-set
+npx hardhat order:oft:getconfig --env qa --network orderlysepolia --set-config --force-set
+
+npx hardhat order:oft:getconfig --env staging --network sepolia --set-config --force-set
+npx hardhat order:oft:getconfig --env staging --network arbitrumsepolia --set-config --force-set
+npx hardhat order:oft:getconfig --env staging --network opsepolia --set-config --force-set
+npx hardhat order:oft:getconfig --env staging --network amoy --set-config --force-set
+npx hardhat order:oft:getconfig --env staging --network basesepolia --set-config --force-set
+npx hardhat order:oft:getconfig --env staging --network orderlysepolia --set-config --force-set
+
+npx hardhat order:oft:getconfig --env mainnnet --network sepolia --set-config --force-set
+npx hardhat order:oft:getconfig --env mainnnet --network arbitrumsepolia --set-config --force-set
+npx hardhat order:oft:getconfig --env mainnnet --network opsepolia --set-config --force-set
+npx hardhat order:oft:getconfig --env mainnnet --network amoy --set-config --force-set
+npx hardhat order:oft:getconfig --env mainnnet --network basesepolia --set-config --force-set
+npx hardhat order:oft:getconfig --env mainnnet --network orderlysepolia --set-config --force-set
+```
 
 ### Token Transfer
 
