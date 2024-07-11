@@ -168,7 +168,7 @@ task("order:predicate", "Predicts the address of the contract before deployment"
                     salt, 
                     bytecodeHash!
                     );
-                console.log(`Predicted ${contractName} implementation address: ${preImplAddress}`);
+                console.log(`✅ Calculated ${contractName} implementation address: ${preImplAddress}`);
     
                 const ABI = ["function initialize(address _orderToken, address _lzEndpoint, address _delegate)"];
                 const initFunction = "initialize";
@@ -193,7 +193,7 @@ task("order:predicate", "Predicts the address of the contract before deployment"
                     salt, 
                     bytecodeHash!
                     );
-                console.log(`Predicted ${contractName} implementation address: ${preImplAddress}`);
+                console.log(`✅ Calculated ${contractName} implementation address: ${preImplAddress}`);
     
                 const ABI = ["function initialize(address _lzEndpoint, address _delegate)"];
                 const initFunction = "initialize";
@@ -213,7 +213,7 @@ task("order:predicate", "Predicts the address of the contract before deployment"
                     salt, 
                     bytecodeHash!
                     );
-            console.log(`Predicted ${contractName} address: ${preAddress}`);
+            console.log(`✅ Calculated ${contractName} address: ${preAddress}`);
         }
             
         
@@ -517,13 +517,14 @@ task("order:oft:set", "Connect OFT contracs on different networks: OrderOFT, Ord
 
             const occManagerAddress = TGE_CONTRACTS[taskArgs.env][fromNetwork].occManager
             // const occManagerAddress = "0xDd3287043493E0a08d2B348397554096728B459c"
+            
             if (occManagerAddress) {
                 const trustedStatus = await localContract.trustAddress(occManagerAddress)
                 if (!trustedStatus) {
-                    const txTrustOrderly = await localContract.setTrustAddress(occManagerAddress, true, {
+                    const txTrustCaller = await localContract.setTrustAddress(occManagerAddress, true, {
                         nonce: nonce++
                     })
-                    await txTrustOrderly.wait()
+                    await txTrustCaller.wait()
                     console.log(`Trusted Orderly OCC address ${occManagerAddress} on ${localContractName}`)
                 } else {
                     console.log(`Orderly OCC address already trusted on ${localContractName}`)
@@ -533,6 +534,14 @@ task("order:oft:set", "Connect OFT contracs on different networks: OrderOFT, Ord
             }
 
             if (fromNetwork === 'orderly' || fromNetwork === 'orderlysepolia') {
+
+                const trustEOA = signer.address
+                if (!(await localContract.trustAddress(trustEOA))) {
+                    const txTrustEOA = await localContract.setTrustAddress(trustEOA, true, {nonce: nonce++})
+                    console.log(`Trusted EOA ${trustEOA} with tx hash ${txTrustEOA.hash}`)
+                } else {
+                    console.log(`EOA ${trustEOA} already trusted`)
+                }
                 const onlyTrustCallerEnabled = await localContract.onlyTrustCaller()
 
                 if (!onlyTrustCallerEnabled) {
