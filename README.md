@@ -270,6 +270,19 @@ npx hardhat order:oft:set --env mainnet --network base
 npx hardhat order:oft:set --env mainnet --network orderly
 ```
 
+The task `order:oft:set` will try to connect the OFT(or Adapter) contract on the network specified in the `--network` parameter to the OFT contracts on other networks (Supported networks are defined by the `TEST_NETWORKS` or `MAIN_NETWORKS` in `tasks/const.ts`). The connection status will be recorded in the `config/oftPeers.json` file.
+
+```
+npx hardhat order:oft:set --env dev --network arbitrumsepolia
+
+Running on arbitrumsepolia
+Setting peer from arbitrumsepolia to sepolia with tx hash 0x18e8c44af4ae59b7be6669338d2faf653abc12a634e1c732cf7345a255819dd6
+Setting peer from arbitrumsepolia to opsepolia with tx hash 0xcfced93bc51c9a2f0e4f09cd99b1a5752c84dd52870c7ccabbf4b8b8e3e7e7c5
+Setting peer from arbitrumsepolia to orderlysepolia with tx hash 0x1d3fd4dd47c8b8f2fb9c06ffd78fc11bdbd48ac8515eb14643de1bb835791f27
+```
+
+After we have executed the `order:oft:set` task on each supported network, it is supposed that the OFT contracts on different networks are connected together. The transfer between any two of them is enabled.
+
 ### Set Config
 
 ```
@@ -301,19 +314,6 @@ npx hardhat order:oft:getconfig --env mainnnet --network amoy --set-config --for
 npx hardhat order:oft:getconfig --env mainnnet --network basesepolia --set-config --force-set
 npx hardhat order:oft:getconfig --env mainnnet --network orderlysepolia --set-config --force-set
 ```
-
-The task `order:oft:set` will try to connect the OFT(or Adapter) contract on the network specified in the `--network` parameter to the OFT contracts on other networks (Supported networks are defined by the `TEST_NETWORKS` or `MAIN_NETWORKS` in `tasks/const.ts`). The connection status will be recorded in the `config/oftPeers.json` file.
-
-```
-npx hardhat order:oft:set --env dev --network arbitrumsepolia
-
-Running on arbitrumsepolia
-Setting peer from arbitrumsepolia to sepolia with tx hash 0x18e8c44af4ae59b7be6669338d2faf653abc12a634e1c732cf7345a255819dd6
-Setting peer from arbitrumsepolia to opsepolia with tx hash 0xcfced93bc51c9a2f0e4f09cd99b1a5752c84dd52870c7ccabbf4b8b8e3e7e7c5
-Setting peer from arbitrumsepolia to orderlysepolia with tx hash 0x1d3fd4dd47c8b8f2fb9c06ffd78fc11bdbd48ac8515eb14643de1bb835791f27
-```
-
-After we have executed the `order:oft:set` task on each supported network, it is supposed that the OFT contracts on different networks are connected together. The transfer between any two of them is enabled.
 
 ### Token Transfer
 
